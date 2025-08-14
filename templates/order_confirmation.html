@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Order Confirmation</h1>
+
+<p>Thank you for your purchase, {{ name }}!</p>
+
+<div class="product">
+    <img src="{{ url_for('static', filename='images/compilation.jpg') }}" alt="Compilation Album">
+    <h2>Compilation Album</h2>
+    <p>We will ship your order to {{ address }}.</p>
+</div>
+{% endblock %}
