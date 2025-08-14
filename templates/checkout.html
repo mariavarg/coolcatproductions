@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Checkout</h2>
+<p>Album: <strong>{{ album.title }}</strong></p>
+<p>Base Price: ${{ album.price }}</p>
+<p>Final Price (with VAT): ${{ final_price }}</p>
+
+<button onclick="alert('Payment system to be implemented')">Proceed to Payment</button>
+{% endblock %}
