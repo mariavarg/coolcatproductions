@@ -1,3 +1,6 @@
+from flask import Flask
+app = Flask(__name__)
+
 def calculate_price_with_vat(price, vat_rate=0.24):
     """Υπολογίζει την τελική τιμή με ΦΠΑ"""
     return round(price * (1 + vat_rate), 2)
