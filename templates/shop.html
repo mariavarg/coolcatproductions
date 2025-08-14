@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Our Albums</h2>
+<div class="album-list">
+    {% for album in albums %}
+        <div class="album-card">
+            <img src="{{ url_for('static', filename='images/' ~ album.cover) }}" alt="{{ album.title }}">
+            <h3>{{ album.title }}</h3>
+            <p>Price: ${{ album.price }}</p>
+            <p>With VAT: ${{ calculate_price_with_vat(album.price) }}</p>
+            <a href="{{ url_for('checkout', title=album.title) }}">Buy Now</a>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
