@@ -36,6 +36,16 @@ main {
     padding: 20px;
 }
 
+/* Banner styling */
+.banner {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 500px; /* μπορείς να αλλάξεις το ύψος αν θέλεις */
+    object-fit: contain; /* δείχνει όλη την εικόνα χωρίς κοψίματα */
+    background-color: #000; /* χρώμα φόντου γύρω από την εικόνα */
+}
+
 /* ===== FLASH MESSAGES ===== */
 .flash {
     padding: 10px;
