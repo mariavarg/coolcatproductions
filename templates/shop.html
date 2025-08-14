@@ -1,16 +1,19 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-<h2>Our Albums</h2>
-<div class="album-list">
-    {% for album in albums %}
-        <div class="album-card">
-            <img src="{{ url_for('static', filename='images/' ~ album.cover) }}" alt="{{ album.title }}">
-            <h3>{{ album.title }}</h3>
-            <p>Price: ${{ album.price }}</p>
-            <p>With VAT: ${{ calculate_price_with_vat(album.price) }}</p>
-            <a href="{{ url_for('checkout', title=album.title) }}">Buy Now</a>
-        </div>
-    {% endfor %}
+<h1>Music Shop</h1>
+
+<div class="product">
+    <img src="{{ url_for('static', filename='images/darkside.jpg') }}" alt="Dark Side of the Moon">
+    <h2>Dark Side of the Moon</h2>
+    <p>Price: $10.00</p>
 </div>
+
+<div class="product">
+    <img src="{{ url_for('static', filename='images/compilation.jpg') }}" alt="Compilation Album">
+    <h2>Compilation Album</h2>
+    <p>Price: $12.00</p>
+</div>
+
 {% endblock %}
+
