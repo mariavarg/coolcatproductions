@@ -1,0 +1,10 @@
+[
+  {
+    "album": "Cool Cat Compilation Vol. 1",
+    "artist": "Cool Cat Productions",
+    "price": 12.50,
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "address": "456 Broadway, New York"
+  }
+]
