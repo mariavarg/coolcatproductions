@@ -7,6 +7,21 @@ from werkzeug.security import generate_password_hash
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import sys
+import subprocess
+
+def check_dependencies():
+    required = {'flask', 'werkzeug', 'pillow', 'gunicorn'}
+    installed = {pkg.key for pkg in pkg_resources.working_set}
+    missing = required - installed
+    
+    if missing:
+        print(f"Missing packages: {missing}")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing])
+        print("Packages installed. Please restart the application.")
+        sys.exit(1)
+
+check_dependencies()
 
 app = Flask(__name__)
 
