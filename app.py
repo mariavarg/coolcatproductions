@@ -3,6 +3,11 @@ import json
 import os
 from werkzeug.utils import secure_filename
 
+# Add health check route
+@app.route('/health')
+def health():
+    return "OK", 200
+
 app = Flask(__name__)
 
 # ===== Basic Security Setup =====
