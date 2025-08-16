@@ -3,6 +3,8 @@
 {% block content %}
 <h1>Music Shop</h1>
 
+<a href="{{ url_for('order', album_id=loop.index0) }}" class="btn btn-primary">Order</a>
+
 <div class="product">
     <img src="{{ url_for('static', filename='images/shop_banner.jpg') }}" alt="Shop Banner" class="banner">
 
