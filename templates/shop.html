@@ -2,105 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHOP | VINYL STORE</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
+    <title>SHOP - VINYL STORE</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
             font-family: 'Sofia', cursive;
-            color: white;
         }
-        body {
-            background: black;
+        body { 
+            background: black; 
+            color: white; 
             min-height: 100vh;
         }
-        /* FIXED HEADER WITH VISIBLE LINKS */
-        header {
-            padding: 1.5rem;
-            border-bottom: 1px solid white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        header { 
+            padding: 1rem; 
+            border-bottom: 1px solid white; 
+            display: flex; 
+            justify-content: space-between; 
         }
-        .logo {
-            font-size: 1.8rem;
+        nav a { 
+            margin-left: 1rem; 
+            color: white; 
+            text-decoration: none; 
         }
-        nav {
-            display: flex; /* Ensures links stay in row */
+        .album-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+            gap: 1rem; 
+            padding: 1rem; 
         }
-        nav a {
-            margin-left: 1.5rem;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border 0.3s;
+        .album-card { 
+            border: 1px solid white; 
+            padding: 1rem; 
         }
-        nav a:hover {
-            border-bottom: 1px solid white;
+        .album-cover { 
+            width: 100%; 
+            height: 200px; 
+            object-fit: cover; 
+            border: 1px solid white; 
+            margin-bottom: 0.5rem; 
         }
-        /* VISIBLE ALBUM GRID */
-        .album-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 2rem;
-            padding: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
+        button { 
+            background: black; 
+            color: white; 
+            border: 1px solid white; 
+            padding: 0.5rem; 
+            margin-top: 0.5rem; 
+            width: 100%; 
         }
-        .album-card {
-            border: 1px solid white;
-            padding: 1.5rem;
-            transition: all 0.3s;
-        }
-        .album-cover {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-            border: 1px solid white;
-            margin-bottom: 1rem;
-            display: block;
-        }
-        .add-to-cart {
-            display: block;
-            width: 100%;
-            padding: 0.5rem;
-            margin-top: 1rem;
-            background: black;
-            border: 1px solid white;
-            cursor: pointer;
+        *:focus { 
+            outline: 2px solid white; 
         }
     </style>
 </head>
 <body>
-    <!-- FIXED HEADER WITH WORKING LINKS -->
     <header>
-        <div class="logo">VINYL STORE</div>
+        <div>VINYL STORE</div>
         <nav>
-            <a href="{{ url_for('home') }}">HOME</a>
-            <a href="{{ url_for('checkout') }}">CART</a>
+            <a href="/" accesskey="h">HOME [H]</a>
+            <a href="/checkout" accesskey="c">CART [C]</a>
         </nav>
     </header>
 
-    <!-- VISIBLE ALBUM GRID -->
     <div class="album-grid">
         {% for album in albums %}
-        <div class="album-card">
-            <img src="{{ url_for('static', filename='images/covers/' + album.image) }}" 
+        <div class="album-card" tabindex="0">
+            <img src="/static/images/covers/{{ album.image }}" 
                  alt="{{ album.title }}" 
                  class="album-cover">
-            
             <h3>{{ album.title }}</h3>
             <p>{{ album.artist }}</p>
-            <p>${{ album.price }}</p>
-            
-            <button class="add-to-cart"
-                    onclick="window.location.href='{{ url_for('add_to_cart', album_id=album.id) }}'">
-                ADD TO CART
-            </button>
+            <button tabindex="0">ADD TO CART</button>
         </div>
         {% endfor %}
     </div>
