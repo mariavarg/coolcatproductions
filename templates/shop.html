@@ -1,22 +1,426 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-  <h2>Our Albums</h2>
-  <div class="row">
-    {% for album in albums %}
-    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-      <div class="card h-100">
-        <img src="{{ url_for('static', filename='images/albums/' + album['cover']) }}"
-             class="card-img-top img-fluid" alt="{{ album['title'] }}">
-        <div class="card-body">
-          <h5 class="card-title">{{ album['title'] }}</h5>
-          <p class="card-text"><strong>{{ album['artist'] }}</strong></p>
-          <p class="card-text text-success">${{ album['price'] }}</p>
-          <a href="{{ url_for('order', album_id=loop.index0) }}" class="btn btn-primary">Order</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Album Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+        }
+        .album-card {
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .album-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .card-img-top {
+            height: 250px;
+            object-fit: cover;
+        }
+        .price {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+        .search-box {
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+        .sort-dropdown {
+            margin-bottom: 20px;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        .pagination {
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .discount-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Music Shop</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('shop') }}">Shop</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('upload_album') }}">Upload</a>
+                    </li>
+                </ul>
+                <div class="d-flex position-relative">
+                    <a href="#" class="btn btn-outline-light position-relative" id="cartButton">
+                        <i class="bi bi-cart3"></i>
+                        <span class="cart-badge badge bg-danger rounded-pill" id="cartCount">0</span>
+                    </a>
+                </div>
+            </div>
         </div>
-      </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <h1 class="text-center mb-4">Music Albums</h1>
+        
+        <!-- Search and Sort -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group search-box">
+                    <input type="text" class="form-control" placeholder="Search albums..." id="searchInput">
+                    <button class="btn btn-primary" type="button" id="searchButton">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="dropdown sort-dropdown d-inline-block">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        Sort By
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="title-asc">Title (A-Z)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="title-desc">Title (Z-A)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="price-asc">Price (Low to High)</a></li>
+                        <li><a class="dropdown-item sort-option" href="#" data-sort="price-desc">Price (High to Low)</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Albums Grid -->
+        <div id="albumsContainer">
+            {% if not albums %}
+                <div class="empty-state">
+                    <h2>No albums available</h2>
+                    <p>Check back later or upload new albums</p>
+                    <a href="{{ url_for('upload_album') }}" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload Album
+                    </a>
+                </div>
+            {% else %}
+                <div class="row row-cols-1 row-cols-md-3 g-4" id="albumsGrid">
+                    {% for album in albums %}
+                        <div class="col album-item" 
+                             data-title="{{ album.title.lower() }}" 
+                             data-artist="{{ album.artist.lower() }}" 
+                             data-price="{{ album.price }}">
+                            <div class="card album-card h-100">
+                                {% if album.price < 15 %}
+                                    <span class="discount-badge badge bg-success">SALE</span>
+                                {% endif %}
+                                <img 
+                                    src="{{ url_for('static', filename='images/albums/' + album.image) if album.image else 'https://via.placeholder.com/300' }}" 
+                                    class="card-img-top" 
+                                    alt="{{ album.title }}"
+                                    onerror="this.src='https://via.placeholder.com/300?text=Image+Not+Found'"
+                                >
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ album.title }}</h5>
+                                    <p class="card-text text-muted">{{ album.artist }}</p>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="price">${{ "%.2f"|format(album.price) }}</span>
+                                        <button class="btn btn-primary add-to-cart" data-album-id="{{ loop.index }}">
+                                            <i class="bi bi-cart-plus"></i> Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Album pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1">Previous</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+        </div>
     </div>
-    {% endfor %}
-  </div>
-</div>
-{% endblock %}
+
+    <!-- Shopping Cart Modal -->
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Your Shopping Cart</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Album</th>
+                                    <th>Artist</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartItems">
+                                <!-- Cart items will be added here dynamically -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-end fw-bold">Subtotal:</td>
+                                    <td id="cartSubtotal">$0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue Shopping</button>
+                    <button type="button" class="btn btn-primary">Checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        $(document).ready(function() {
+            // Cart functionality
+            let cart = [];
+            
+            // Add to cart
+            $('.add-to-cart').click(function() {
+                const albumId = $(this).data('album-id');
+                const albumTitle = $(this).closest('.album-item').data('title');
+                const albumArtist = $(this).closest('.album-item').data('artist');
+                const albumPrice = parseFloat($(this).closest('.album-item').data('price'));
+                
+                // Check if already in cart
+                const existingItem = cart.find(item => item.id === albumId);
+                
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({
+                        id: albumId,
+                        title: albumTitle,
+                        artist: albumArtist,
+                        price: albumPrice,
+                        quantity: 1
+                    });
+                }
+                
+                updateCartCount();
+                showAlert('Album added to cart!', 'success');
+            });
+            
+            // Update cart count
+            function updateCartCount() {
+                const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+                $('#cartCount').text(totalItems);
+            }
+            
+            // Show alert
+            function showAlert(message, type) {
+                const alert = $(`
+                    <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+                
+                $('body').append(alert);
+                
+                setTimeout(() => {
+                    alert.alert('close');
+                }, 3000);
+            }
+            
+            // Search functionality
+            $('#searchInput').on('keyup', function() {
+                const searchTerm = $(this).val().toLowerCase();
+                
+                $('.album-item').each(function() {
+                    const title = $(this).data('title');
+                    const artist = $(this).data('artist');
+                    
+                    if (title.includes(searchTerm) || artist.includes(searchTerm)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+            
+            // Sort functionality
+            $('.sort-option').click(function(e) {
+                e.preventDefault();
+                const sortType = $(this).data('sort');
+                const $grid = $('#albumsGrid');
+                const $items = $('.album-item');
+                
+                $items.sort(function(a, b) {
+                    const aTitle = $(a).data('title');
+                    const bTitle = $(b).data('title');
+                    const aPrice = parseFloat($(a).data('price'));
+                    const bPrice = parseFloat($(b).data('price'));
+                    
+                    switch(sortType) {
+                        case 'title-asc':
+                            return aTitle.localeCompare(bTitle);
+                        case 'title-desc':
+                            return bTitle.localeCompare(aTitle);
+                        case 'price-asc':
+                            return aPrice - bPrice;
+                        case 'price-desc':
+                            return bPrice - aPrice;
+                        default:
+                            return 0;
+                    }
+                });
+                
+                $grid.append($items);
+            });
+            
+            // Cart modal
+            $('#cartButton').click(function(e) {
+                e.preventDefault();
+                updateCartModal();
+                $('#cartModal').modal('show');
+            });
+            
+            function updateCartModal() {
+                const $cartItems = $('#cartItems');
+                $cartItems.empty();
+                
+                let subtotal = 0;
+                
+                cart.forEach(item => {
+                    const total = item.price * item.quantity;
+                    subtotal += total;
+                    
+                    $cartItems.append(`
+                        <tr>
+                            <td>${item.title}</td>
+                            <td>${item.artist}</td>
+                            <td>$${item.price.toFixed(2)}</td>
+                            <td>
+                                <div class="input-group" style="width: 120px;">
+                                    <button class="btn btn-outline-secondary change-quantity" data-id="${item.id}" data-change="-1">-</button>
+                                    <input type="text" class="form-control text-center quantity-input" value="${item.quantity}" data-id="${item.id}">
+                                    <button class="btn btn-outline-secondary change-quantity" data-id="${item.id}" data-change="1">+</button>
+                                </div>
+                            </td>
+                            <td>$${total.toFixed(2)}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm remove-item" data-id="${item.id}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
+                
+                $('#cartSubtotal').text('$' + subtotal.toFixed(2));
+            }
+            
+            // Handle cart item changes
+            $(document).on('click', '.change-quantity', function() {
+                const id = $(this).data('id');
+                const change = parseInt($(this).data('change'));
+                const item = cart.find(item => item.id === id);
+                
+                if (item) {
+                    item.quantity += change;
+                    
+                    if (item.quantity < 1) {
+                        item.quantity = 1;
+                    }
+                    
+                    updateCartModal();
+                    updateCartCount();
+                }
+            });
+            
+            // Handle item removal
+            $(document).on('click', '.remove-item', function() {
+                const id = $(this).data('id');
+                cart = cart.filter(item => item.id !== id);
+                
+                updateCartModal();
+                updateCartCount();
+                showAlert('Album removed from cart', 'warning');
+            });
+            
+            // Handle manual quantity input
+            $(document).on('change', '.quantity-input', function() {
+                const id = $(this).data('id');
+                const quantity = parseInt($(this).val()) || 1;
+                const item = cart.find(item => item.id === id);
+                
+                if (item) {
+                    item.quantity = quantity;
+                    updateCartModal();
+                    updateCartCount();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
