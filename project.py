@@ -1,25 +1,46 @@
 from flask import Flask
 app = Flask(__name__)
 
-def calculate_price_with_vat(price, vat_rate=0.24):
-    """Υπολογίζει την τελική τιμή με ΦΠΑ"""
-    return round(price * (1 + vat_rate), 2)
+@app.route("/order/<int:album_id>", methods=["GET", "POST"])
+def order(album_id):
+    # Load albums
+    with open(ALBUMS_FILE, "r") as f:
+        albums = json.load(f)
 
-def format_album_title(title):
-    """Μορφοποιεί τον τίτλο άλμπουμ με κεφαλαία γράμματα αρχικών"""
-    return title.title()
+    try:
+        album = albums[album_id]
+    except IndexError:
+        flash("Album not found.", "danger")
+        return redirect(url_for("shop"))
 
-def apply_discount(price, discount_percent):
-    """Εφαρμόζει έκπτωση σε τιμή"""
-    return round(price * (1 - discount_percent / 100), 2)
+    if request.method == "POST":
+        customer_name = request.form["name"]
+        customer_email = request.form["email"]
+        address = request.form["address"]
 
-def main():
-    """Κύρια συνάρτηση για δοκιμή"""
-    price = 10
-    print("Base Price:", price)
-    print("With VAT:", calculate_price_with_vat(price))
-    print("Formatted Title:", format_album_title("the loveliest dead"))
-    print("Discounted:", apply_discount(price, 10))
+        # Order details
+        order_data = {
+            "album": album["title"],
+            "artist": album["artist"],
+            "price": album["price"],
+            "name": customer_name,
+            "email": customer_email,
+            "address": address,
+        }
 
-if __name__ == "__main__":
-    main()
+        # Load existing orders.json or create new list
+        if os.path.exists("orders.json"):
+            with open("orders.json", "r") as f:
+                orders = json.load(f)
+        else:
+            orders = []
+
+        orders.append(order_data)
+
+        with open("orders.json", "w") as f:
+            json.dump(orders, f, indent=2)
+
+        flash("✅ Order placed successfully! We'll contact you soon.", "success")
+        return redirect(url_for("shop"))
+
+    return render_template("order.html", album=album, album_id=album_id)
