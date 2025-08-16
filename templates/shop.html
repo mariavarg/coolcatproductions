@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DISCOGRAPHY</title>
+    <title>SHOP | RECORD STORE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
@@ -12,118 +12,69 @@
             font-family: 'Sofia', cursive;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
             color: white;
         }
         body {
             background: #000;
             min-height: 100vh;
         }
-        header {
-            padding: 1.5rem;
-            border-bottom: 1px solid white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.8rem;
-        }
-        nav a {
-            margin-left: 1.5rem;
-            text-decoration: none;
-            font-size: 1.1rem;
-        }
+        
+        /* VISIBLE GRID STYLES */
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 2rem;
             padding: 2rem;
             max-width: 1200px;
             margin: 0 auto;
+            border: 1px solid white; /* Outer grid border */
         }
+        
         .album {
-            border: 1px solid white;
-            padding: 1rem;
-            cursor: pointer;
+            border: 1px solid white !important; /* Force white border */
+            padding: 1.5rem;
+            background: #000;
             transition: all 0.3s;
         }
-        .album:hover {
-            background: #111;
-        }
+        
         .album-cover {
             width: 100%;
-            aspect-ratio: 1/1;
+            height: 250px;
             object-fit: cover;
-            margin-bottom: 1rem;
-            border: 1px solid white;
+            border: 1px solid white !important;
+            display: block; /* Ensures image is visible */
+            background: #111; /* Fallback if image missing */
         }
-        .album-title {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        .album-year {
-            opacity: 0.7;
-            font-size: 0.9rem;
-        }
-        .tracklist {
-            display: none;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #333;
-        }
-        .track {
-            padding: 0.3rem 0;
-            font-size: 0.9rem;
-        }
-        .active .tracklist {
-            display: block;
-        }
-        .cart-count {
-            margin-left: 0.3rem;
-        }
+        
+        /* Rest of your styles... */
     </style>
 </head>
 <body>
-    <header>
-        <div class="logo">DISCOGRAPHY</div>
-        <nav>
-            <a href="{{ url_for('home') }}">HOME</a>
-            <a href="{{ url_for('checkout') }}">
-                CART
-                {% if session.get('cart') %}
-                    <span class="cart-count">({{ session.cart.values()|sum }})</span>
-                {% endif %}
-            </a>
-        </nav>
-    </header>
-
     <div class="gallery">
-        {% for product in products %}
+        {% for album in albums %}
         <div class="album" onclick="this.classList.toggle('active')">
-            <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image != 'default.jpg' else url_for('static', filename='images/default.jpg') }}" 
-                 alt="{{ product.name }}" class="album-cover">
-            <h3 class="album-title">{{ product.name }}</h3>
-            <p class="album-year">2023</p>
+            <!-- Image will now be clearly visible with white border -->
+            <img src="{{ url_for('static', filename='images/covers/' + album.image) }}" 
+                 alt="{{ album.title }}" 
+                 class="album-cover"
+                 onerror="this.src='{{ url_for('static', filename='images/covers/default.jpg') }}'">
+                 
+            <h3 class="album-title">{{ album.title }}</h3>
+            <p class="album-artist">{{ album.artist }}</p>
+            <p class="album-price">${{ album.price }}</p>
             
             <div class="tracklist">
-                {% for track in product.get('tracks', ['Track 1', 'Track 2', 'Track 3']) %}
+                {% for track in album.tracks %}
                 <div class="track">{{ track }}</div>
                 {% endfor %}
             </div>
+            
+            <button class="add-to-cart" 
+                    onclick="event.stopPropagation(); window.location.href='{{ url_for('add_to_cart', album_id=album.id) }}'">
+                ADD TO CART
+            </button>
         </div>
         {% endfor %}
     </div>
-
-    <script>
-        // Close other albums when opening a new one
-        document.querySelectorAll('.album').forEach(album => {
-            album.addEventListener('click', function() {
-                document.querySelectorAll('.album').forEach(a => {
-                    if(a !== this) a.classList.remove('active');
-                });
-            });
-        });
-    </script>
 </body>
 </html>
