@@ -77,6 +77,12 @@ def add_to_cart(product_id):
     
     return redirect(url_for('shop'))
 
+# Add this route in your app.py
+@app.route('/sales')
+def sales():
+    """Sales page - redirects to shop with sales filter"""
+    return redirect(url_for('shop', sale=True))  # You can implement sales filtering later
+    
 @app.route('/checkout')
 def checkout():
     """Checkout page"""
