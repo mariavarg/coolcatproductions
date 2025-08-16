@@ -2,67 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CART | Cool Cat Productions</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
+    <title>CART - VINYL STORE</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
             font-family: 'Sofia', cursive;
-            color: white;
         }
-        body {
-            background: black;
+        body { 
+            background: black; 
+            color: white; 
             min-height: 100vh;
         }
-        /* FIXED HEADER WITH VISIBLE LINKS */
-        header {
-            padding: 1.5rem;
-            border-bottom: 1px solid white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        header { 
+            padding: 1rem; 
+            border-bottom: 1px solid white; 
+            display: flex; 
+            justify-content: space-between; 
         }
-        .logo {
-            font-size: 1.8rem;
+        nav a { 
+            margin-left: 1rem; 
+            color: white; 
+            text-decoration: none; 
         }
-        nav {
-            display: flex; /* Ensures links stay in row */
+        .container { 
+            padding: 1rem; 
+            max-width: 800px; 
+            margin: 0 auto; 
         }
-        nav a {
-            margin-left: 1.5rem;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border 0.3s;
-        }
-        nav a:hover {
-            border-bottom: 1px solid white;
-        }
-        /* CART STYLING */
-        .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            border: 1px solid white;
+        *:focus { 
+            outline: 2px solid white; 
         }
     </style>
 </head>
 <body>
-    <!-- FIXED HEADER WITH WORKING LINKS -->
     <header>
-        <div class="logo">VINYL STORE</div>
+        <div>VINYL STORE</div>
         <nav>
-            <a href="{{ url_for('home') }}">HOME</a>
-            <a href="{{ url_for('shop') }}">SHOP</a>
+            <a href="/" accesskey="h">HOME [H]</a>
+            <a href="/shop" accesskey="s">SHOP [S]</a>
         </nav>
     </header>
 
     <div class="container">
-        <!-- Your cart content here -->
+        <h1>YOUR CART</h1>
+        <!-- Cart items would go here -->
     </div>
 </body>
 </html>
