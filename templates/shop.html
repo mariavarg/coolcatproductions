@@ -2,42 +2,20 @@ cat > templates/shop.html <<'EOF'
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DrunaC Store</title>
+    <title>DrunaC Shop</title>
     <style>
-        body {
-            background: #000;
-            color: #0ff;
-            font-family: 'Courier New', monospace;
-        }
-        .product {
-            border: 1px solid #0ff;
-            margin: 1rem;
-            padding: 1rem;
-            width: 300px;
-            display: inline-block;
-        }
-        .format-tag {
-            background: #0ff;
-            color: #000;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.8rem;
-        }
+        body { background: #000; color: #0f0; font-family: monospace; }
+        .product { border: 1px solid #0f0; margin: 1rem; padding: 1rem; }
     </style>
 </head>
 <body>
-    <header>
-        <a href="/">← BACK TO HOME</a>
-    </header>
-
-    {% for item in items %}
-    <div class="product" tabindex="0">
-        <h3>{{ item.title }}</h3>
-        <p>{{ item.artist }}</p>
-        <span class="format-tag">{{ item.format|upper }}</span>
-        <p>${{ "%.2f"|format(item.price) }}</p>
-        <button>ADD TO CART</button>
+    {% for product in products %}
+    <div class="product">
+        <h2>{{ product.title }}</h2>
+        <p>{{ product.format|upper }} • ${{ product.price }}</p>
     </div>
     {% endfor %}
+    <a href="/" accesskey="h">HOME [H]</a>
 </body>
 </html>
 EOF
