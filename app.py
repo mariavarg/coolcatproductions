@@ -17,9 +17,9 @@ def load_albums():
             initial_albums = [
                 {
                     "id": "1",
-                    "title": "YOUR FIRST ALBUM",
-                    "artist": "ARTIST NAME",
-                    "year": "2023",
+                    "title": "The Loveliest Dead.jpg",
+                    "artist": "The Loveliest Dead",
+                    "year": "2025",
                     "price": "24.99",
                     "image": "your-first-cover.jpg",  # MUST match your filename exactly
                     "tracks": ["Track 1", "Track 2"]
