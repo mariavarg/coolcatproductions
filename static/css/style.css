@@ -1,6 +1,6 @@
 /* ===== GLOBAL STYLES ===== */
 body {
-    font-family: Arial, sans-serif;
+    font-family: Sofia, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #f9f9f9;
@@ -38,7 +38,7 @@ main {
 
 /* Banner styling */
 .banner {
-    width: 100%;
+    width: 500px;
     height: auto;
     display: block;
     max-height: 500px; /* μπορείς να αλλάξεις το ύψος αν θέλεις */
