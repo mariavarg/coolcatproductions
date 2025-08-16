@@ -19,6 +19,7 @@
             background: black;
             min-height: 100vh;
         }
+        /* FIXED HEADER WITH VISIBLE LINKS */
         header {
             padding: 1.5rem;
             border-bottom: 1px solid white;
@@ -26,6 +27,22 @@
             justify-content: space-between;
             align-items: center;
         }
+        .logo {
+            font-size: 1.8rem;
+        }
+        nav {
+            display: flex; /* Ensures links stay in row */
+        }
+        nav a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border 0.3s;
+        }
+        nav a:hover {
+            border-bottom: 1px solid white;
+        }
+        /* VISIBLE ALBUM GRID */
         .album-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -37,7 +54,7 @@
         .album-card {
             border: 1px solid white;
             padding: 1.5rem;
-            background: black;
+            transition: all 0.3s;
         }
         .album-cover {
             width: 100%;
@@ -45,10 +62,21 @@
             object-fit: cover;
             border: 1px solid white;
             margin-bottom: 1rem;
+            display: block;
+        }
+        .add-to-cart {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 1rem;
+            background: black;
+            border: 1px solid white;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
+    <!-- FIXED HEADER WITH WORKING LINKS -->
     <header>
         <div class="logo">VINYL STORE</div>
         <nav>
@@ -57,16 +85,22 @@
         </nav>
     </header>
 
+    <!-- VISIBLE ALBUM GRID -->
     <div class="album-grid">
         {% for album in albums %}
         <div class="album-card">
             <img src="{{ url_for('static', filename='images/covers/' + album.image) }}" 
                  alt="{{ album.title }}" 
                  class="album-cover">
+            
             <h3>{{ album.title }}</h3>
             <p>{{ album.artist }}</p>
             <p>${{ album.price }}</p>
-            <a href="{{ url_for('add_to_cart', album_id=album.id) }}">ADD TO CART</a>
+            
+            <button class="add-to-cart"
+                    onclick="window.location.href='{{ url_for('add_to_cart', album_id=album.id) }}'">
+                ADD TO CART
+            </button>
         </div>
         {% endfor %}
     </div>
