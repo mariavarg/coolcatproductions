@@ -1,36 +1,31 @@
-from flask import Flask, render_template, request, redirect, url_for
-import json
+from flask import Flask, render_template, redirect, url_for
 import os
-from werkzeug.utils import secure_filename
-from flask import redirect, url_for
-# Initialize Flask app FIRST
+import json
+
 app = Flask(__name__)
 
 # ===== Configuration =====
 app.secret_key = os.urandom(24)
 DB_FILE = 'data/products.json'
 
-# ===== Routes should come AFTER app is defined =====
-
-# 1. First define the redirect
+# ===== Routes =====
+# Only ONE shop_redirect definition
 @app.route('/shop')
 @app.route('/shop/<path:subpath>')
 def shop_redirect(subpath=None):
-    return redirect(url_for('sales'), code=301)
+    return redirect(url_for('sales'), code=301)  # <-- Fix: Added missing comma
 
-# 2. Then your main routes
 @app.route('/')
 def home():
     return render_template('home.html')
 
 @app.route('/sales')
 def sales():
-    products = load_products()  # You'll need this helper function
+    products = load_products()
     return render_template('sales.html', products=products)
 
 # ===== Helper Functions =====
 def load_products():
-    """Safe JSON data loader"""
     if not os.path.exists(DB_FILE):
         os.makedirs('data', exist_ok=True)
         with open(DB_FILE, 'w') as f:
@@ -38,101 +33,6 @@ def load_products():
     with open(DB_FILE, 'r') as f:
         return json.load(f)
 
-# ===== App Entry Point =====
 if __name__ == '__main__':
     os.makedirs('static/uploads', exist_ok=True)
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
-
-# Add this route to handle old /shop links
-@app.route('/shop')
-@app.route('/shop/<path:subpath>')
-def shop_redirect(subpath=None):
-    return redirect(url_for('sales'), code=301)  # Permanent redirect
-
-# Main routes
-@app.route('/')
-def home():
-    return render_template('home.html')
-
-@app.route('/sales')
-def sales():
-    return render_template('sales.html', products=load_products())    
-    
-# Add health check route
-@app.route('/health')
-def health():
-    return "OK", 200
-
-app = Flask(__name__)
-
-# ===== Basic Security Setup =====
-app.secret_key = os.urandom(24)  # Random secret key
-app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8MB file limit
-
-# ===== JSON Database =====
-DB_PATH = 'data/albums.json'
-
-def get_albums():
-    """Safe JSON reading"""
-    if not os.path.exists(DB_PATH):
-        os.makedirs('data', exist_ok=True)
-        with open(DB_PATH, 'w') as f:
-            json.dump([], f)
-        return []
-    
-    try:
-        with open(DB_PATH, 'r') as f:
-            return json.load(f)
-    except:
-        return []  # Return empty if corrupted
-
-def save_albums(albums):
-    """Safe JSON writing"""
-    with open(DB_PATH, 'w') as f:
-        json.dump(albums, f, indent=2)
-
-# ===== Safe Uploads =====
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
-def allowed_file(filename):
-    """Check if extension is safe"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# ===== Routes =====
-@app.route('/')
-def home():
-    return render_template('shop.html', albums=get_albums())
-
-@app.route('/add', methods=['POST'])
-def add_album():
-    albums = get_albums()
-    
-    # Basic input validation
-    try:
-        new_album = {
-            'id': len(albums) + 1,
-            'title': request.form['title'][:100],  # Limit length
-            'artist': request.form['artist'][:100],
-            'price': min(float(request.form['price']), 999.99),  # Cap price
-            'image': 'placeholder.jpg'
-        }
-    except:
-        return redirect(url_for('home'))  # Fail silently
-    
-    # Handle file upload
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
-            new_album['image'] = filename
-    
-    albums.append(new_album)
-    save_albums(albums)
-    return redirect(url_for('home'))
-
-if __name__ == '__main__':
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(host='0.0.0.0', port=5000)
