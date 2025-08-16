@@ -1,39 +1,36 @@
+cat > app.py <<'EOF'
 from flask import Flask, render_template
-import os
-import json
-
 app = Flask(__name__)
 
-# Configuration
-ALBUMS_FILE = os.path.join('data', 'albums.json')
-COVERS_DIR = os.path.join('static', 'images', 'covers')
-
-# Create directories if they don't exist
-os.makedirs('data', exist_ok=True)
-os.makedirs(COVERS_DIR, exist_ok=True)
-
-def load_albums():
-    try:
-        if not os.path.exists(ALBUMS_FILE):
-            # Initialize empty if file doesn't exist
-            with open(ALBUMS_FILE, 'w') as f:
-                json.dump([], f)
-            return []
-
-        with open(ALBUMS_FILE) as f:
-            albums = json.load(f)
-            
-            # Verify each album has required fields
-            required_fields = ['id', 'title', 'artist', 'image']
-            for album in albums:
-                if not all(field in album for field in required_fields):
-                    raise ValueError("Missing required album fields")
-            
-            return albums
-
-    except Exception as e:
-        print(f"ERROR LOADING ALBUMS: {str(e)}")
-        return []  # Return empty list if error occurs
+DRUNAC_INVENTORY = [
+    {
+        "id": "drc-001",
+        "title": "DRUNA C - VOL. 1",
+        "artist": "CoolCat Productions",
+        "format": "vinyl",
+        "price": 34.99,
+        "image": "druna-vol1.jpg",
+        "tracks": ["Track 1", "Track 2", "Track 3"]
+    },
+    {
+        "id": "drc-002",
+        "title": "DRUNA C - VOL. 2",
+        "artist": "CoolCat Productions", 
+        "format": "cd",
+        "price": 14.99,
+        "image": "druna-vol2.jpg",
+        "tracks": ["Track A", "Track B"]
+    },
+    {
+        "id": "drc-003",
+        "title": "DRUNA C - DIGITAL COLLECTION",
+        "artist": "CoolCat Productions",
+        "format": "mp3",
+        "price": 9.99,
+        "image": "druna-digital.jpg",
+        "tracks": ["Digital 1", "Digital 2"]
+    }
+]
 
 @app.route('/')
 def home():
@@ -41,21 +38,13 @@ def home():
 
 @app.route('/shop')
 def shop():
-    try:
-        albums = load_albums()
-        # Verify images exist
-        for album in albums:
-            img_path = os.path.join(COVERS_DIR, album['image'])
-            if not os.path.exists(img_path):
-                print(f"Missing image: {img_path}")
-        return render_template('shop.html', albums=albums)
-    except Exception as e:
-        print(f"SHOP ROUTE ERROR: {str(e)}")
-        return render_template('shop.html', albums=[])
+    return render_template('shop.html', items=DRUNAC_INVENTORY)
 
-@app.route('/checkout')
-def checkout():
-    return render_template('checkout.html')
+@app.route('/format/<fmt>')
+def format_filter(fmt):
+    filtered = [item for item in DRUNAC_INVENTORY if item['format'] == fmt]
+    return render_template('shop.html', items=filtered)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+EOF
