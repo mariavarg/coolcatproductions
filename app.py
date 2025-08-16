@@ -9,6 +9,15 @@ from flask import redirect, url_for
 @app.route('/shop/<path:subpath>')
 def shop_redirect(subpath=None):
     return redirect(url_for('sales'), code=301)  # Permanent redirect
+
+# Main routes
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/sales')
+def sales():
+    return render_template('sales.html', products=load_products())    
     
 # Add health check route
 @app.route('/health')
