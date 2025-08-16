@@ -1,5 +1,22 @@
-Flask
-Werkzeug
-pytest
-Flask==3.0.0
-gunicorn==21.2.0
+# Core Requirements
+Flask==2.3.2
+Werkzeug==2.3.6
+python-dotenv==1.0.0
+
+# File Upload & Processing
+Pillow==10.0.0  # For image processing
+
+# Database (Optional - for future expansion)
+Flask-SQLAlchemy==3.0.3
+Flask-Migrate==4.0.4
+
+# Forms (Optional - for enhanced security)
+Flask-WTF==1.0.0
+WTForms==3.0.1
+
+# Authentication (Optional)
+Flask-Login==0.6.2
+email-validator==2.0.0
+
+# Production Server
+gunicorn==20.1.0  # For deployment
