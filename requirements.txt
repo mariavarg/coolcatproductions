@@ -20,3 +20,11 @@ email-validator==2.0.0
 
 # Production Server
 gunicorn==20.1.0  # For deployment
+
+flask==2.3.2
+werkzeug==2.3.6
+pillow==9.5.0  # More stable version
+gunicorn==20.1.0
+python-dotenv==1.0.0
+pyopenssl==23.2.0
+cryptography==41.0.2
