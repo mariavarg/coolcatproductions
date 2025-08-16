@@ -1,9 +1,9 @@
 [
     {
-        "id": "unique-id-1",
-        "name": "Album Name",
-        "artist": "Artist Name",
-        "price": 9.99,
-        "image": "filename.jpg"
+        "id": "1",
+        "name": "ALBUM TITLE",
+        "price": "19.99",
+        "image": "cover.jpg",
+        "tracks": ["Song 1", "Song 2", "Song 3"]
     }
 ]
