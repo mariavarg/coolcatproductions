@@ -15,11 +15,49 @@ app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this!
 
 # File upload settings
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Add this configuration
+app.config['UPLOAD_FOLDER'] = 'static/images/covers'
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 
-# ======================
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/admin/add-album', methods=['GET', 'POST'])
+def add_album():
+    if request.method == 'POST':
+        try:
+            # Handle file upload
+            image_file = request.files['cover']
+            filename = 'default.jpg'  # Fallback image
+            
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
+            # Create new album
+            new_album = {
+                "id": str(uuid.uuid4()),
+                "title": request.form['title'],
+                "artist": request.form['artist'],
+                "year": request.form['year'],
+                "price": request.form['price'],
+                "image": filename,
+                "tracks": [t.strip() for t in request.form['tracks'].split('\n') if t.strip()]
+            }
+            
+            # Save to database
+            albums = load_albums()
+            albums.append(new_album)
+            save_albums(albums)
+            
+            flash('Album added successfully', 'success')
+            return redirect(url_for('shop'))
+        
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'error')
+    
+    return render_template('admin/add_album.html')
 # HELPER FUNCTIONS
 # ======================
 
