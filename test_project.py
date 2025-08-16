@@ -5,7 +5,7 @@ def test_calculate_price_with_vat():
     assert calculate_price_with_vat(50, 0.10) == 55.0
 
 def test_format_album_title():
-    assert format_album_title("dark side of the moon") == "Dark Side Of The Moon"
+    assert format_album_title("the loveliest dead") == "The Loveliest Dead"
 
 def test_apply_discount():
     assert apply_discount(100, 10) == 90.0
