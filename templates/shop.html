@@ -1,24 +1,4 @@
 {% extends "base.html" %}
-
-{% block content %}
-<h1>Music Shop</h1>
-
-<a href="{{ url_for('order', album_id=loop.index0) }}" class="btn btn-primary">Order</a>
-
-<div class="product">
-    <img src="{{ url_for('static', filename='images/shop_banner.jpg') }}" alt="Shop Banner" class="banner">
-
-    <h2>The Loveliest Dead</h2>
-    <p>Price: $10.00</p>
-</div>
-
-<div class="product">
-    <img src="{{ url_for('static', filename='images/compilation.jpg') }}" alt="Compilation Album">
-    <h2>Compilation Album</h2>
-    <p>Price: $12.00</p>
-</div>
-
-{% endblock %}{% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
   <h2>Our Albums</h2>
@@ -40,5 +20,3 @@
   </div>
 </div>
 {% endblock %}
-
-
