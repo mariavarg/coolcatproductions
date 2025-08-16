@@ -1,30 +1,14 @@
-# Core Requirements
-Flask==2.3.2
-Werkzeug==2.3.6
-python-dotenv==1.0.0
-
-# File Upload & Processing
-Pillow==10.0.0  # For image processing
-
-# Database (Optional - for future expansion)
-Flask-SQLAlchemy==3.0.3
-Flask-Migrate==4.0.4
-
-# Forms (Optional - for enhanced security)
-Flask-WTF==1.0.0
-WTForms==3.0.1
-
-# Authentication (Optional)
-Flask-Login==0.6.2
-email-validator==2.0.0
-
-# Production Server
-gunicorn==20.1.0  # For deployment
-
+# Core
 flask==2.3.2
 werkzeug==2.3.6
-pillow==9.5.0  # More stable version
-gunicorn==20.1.0
-python-dotenv==1.0.0
-pyopenssl==23.2.0
-cryptography==41.0.2
+
+# Security
+flask-talisman==0.8.1  # HTTPS/headers
+flask-limiter==2.8.1   # Rate limiting
+python-dotenv==1.0.0   # Environment variables
+
+# File processing
+pillow==10.0.0         # Image validation
+
+# Production
+gunicorn==20.1.0       # WSGI server
