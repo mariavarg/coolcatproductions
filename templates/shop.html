@@ -1,51 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHOP | VINYL STORE</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
+    <!-- ... (keep previous head content) ... -->
     <style>
-        /* RESET & BASE STYLES */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Sofia', cursive;
-            color: white;
-        }
-        body {
-            background: black;
-            min-height: 100vh;
-        }
+        /* ... (keep previous styles) ... */
 
-        /* HEADER */
-        header {
-            padding: 1.5rem;
-            border-bottom: 1px solid white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.8rem;
-        }
-        nav a {
-            margin-left: 1.5rem;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border 0.3s;
-        }
-        nav a:hover {
-            border-bottom: 1px solid white;
-        }
-        .cart-count {
-            margin-left: 0.3rem;
-        }
-
-        /* ALBUM GRID - SIMPLE AND VISIBLE */
+        /* VISIBLE GRID SETTINGS */
         .album-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -54,122 +14,49 @@
             max-width: 1200px;
             margin: 0 auto;
         }
+        
+        /* CLEARLY VISIBLE ALBUM CARDS */
         .album-card {
-            border: 1px solid white;
+            border: 1px solid white; /* White border */
             padding: 1.5rem;
+            background: black;
             transition: all 0.3s;
         }
-        .album-card:hover {
-            background: #111;
-        }
+        
+        /* VISIBLE IMAGE FRAMES */
         .album-cover {
             width: 100%;
             height: 250px;
             object-fit: cover;
-            border: 1px solid white;
+            border: 1px solid white; /* White border */
             margin-bottom: 1rem;
             display: block;
-        }
-        .album-title {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            border-bottom: 1px solid white;
-            padding-bottom: 0.5rem;
-        }
-        .album-price {
-            margin: 1rem 0;
-            font-size: 1.1rem;
-        }
-
-        /* TRACKLIST (HIDDEN BY DEFAULT) */
-        .tracklist {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            border-left: 1px solid white;
-            padding-left: 1rem;
-            margin-left: 1rem;
-        }
-        .album-card.active .tracklist {
-            max-height: 500px; /* Adjust based on content */
-            margin-top: 1rem;
-        }
-        .track {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #333;
-        }
-        .track:last-child {
-            border-bottom: none;
-        }
-
-        /* CART BUTTON */
-        .add-to-cart {
-            display: block;
-            width: 100%;
-            padding: 0.5rem;
-            margin-top: 1rem;
-            background: black;
-            border: 1px solid white;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .add-to-cart:hover {
-            background: white;
-            color: black;
+            background: #111; /* Fallback color */
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="logo">VINYL STORE</div>
-        <nav>
-            <a href="{{ url_for('home') }}">HOME</a>
-            <a href="{{ url_for('checkout') }}">
-                CART
-                {% if session.cart %}
-                    <span class="cart-count">({{ session.cart.values()|sum }})</span>
-                {% endif %}
-            </a>
-        </nav>
-    </header>
+    <!-- ... (keep header and navigation) ... -->
 
     <div class="album-grid">
         {% for album in albums %}
-        <div class="album-card" onclick="toggleAlbum(this)">
+        <div class="album-card">
+            <!-- Image with visible border -->
             <img src="{{ url_for('static', filename='images/covers/' + album.image) }}" 
                  alt="{{ album.title }}" 
-                 class="album-cover"
-                 onerror="this.src='{{ url_for('static', filename='images/covers/default.jpg') }}'">
+                 class="album-cover">
             
-            <h3 class="album-title">{{ album.title }}</h3>
-            <p class="album-artist">{{ album.artist }}</p>
-            <p class="album-price">${{ album.price }}</p>
+            <!-- Album info with visible text -->
+            <h3>{{ album.title }}</h3>
+            <p>{{ album.artist }}</p>
+            <p>${{ album.price }}</p>
             
-            <div class="tracklist">
-                {% for track in album.tracks %}
-                <div class="track">{{ track }}</div>
-                {% endfor %}
-            </div>
-            
-            <button class="add-to-cart" 
-                    onclick="event.stopPropagation(); window.location.href='{{ url_for('add_to_cart', album_id=album.id) }}'">
+            <button class="add-to-cart"
+                    onclick="window.location.href='{{ url_for('add_to_cart', album_id=album.id) }}'">
                 ADD TO CART
             </button>
         </div>
         {% endfor %}
     </div>
-
-    <script>
-        function toggleAlbum(clickedAlbum) {
-            // Close other open albums
-            document.querySelectorAll('.album-card').forEach(album => {
-                if (album !== clickedAlbum) {
-                    album.classList.remove('active');
-                }
-            });
-            // Toggle clicked album
-            clickedAlbum.classList.toggle('active');
-        }
-    </script>
 </body>
 </html>
