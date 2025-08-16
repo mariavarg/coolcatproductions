@@ -13,8 +13,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Fake database
 albums = [
-    {"title": "Compilation", "price": 15.0, "cover": "darkside.jpg"},
-    {"title": "The Loveliest Dead", "price": 12.0, "cover": "abbeyroad.jpg"}
+    {"title": "Compilation", "price": 15.0, "cover": "compilation.jpg"},
+    {"title": "The Loveliest Dead", "price": 12.0, "cover": "the loveliest dead.jpg"}
 ]
 
 def allowed_file(filename):
