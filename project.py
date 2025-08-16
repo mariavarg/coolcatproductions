@@ -18,7 +18,7 @@ def main():
     price = 10
     print("Base Price:", price)
     print("With VAT:", calculate_price_with_vat(price))
-    print("Formatted Title:", format_album_title("dark side of the moon"))
+    print("Formatted Title:", format_album_title("the loveliest dead"))
     print("Discounted:", apply_discount(price, 10))
 
 if __name__ == "__main__":
