@@ -19,6 +19,7 @@
             background: black;
             min-height: 100vh;
         }
+        /* FIXED HEADER WITH VISIBLE LINKS */
         header {
             padding: 1.5rem;
             border-bottom: 1px solid white;
@@ -29,6 +30,9 @@
         .logo {
             font-size: 1.8rem;
         }
+        nav {
+            display: flex; /* Ensures links stay in row */
+        }
         nav a {
             margin-left: 1.5rem;
             text-decoration: none;
@@ -38,43 +42,22 @@
         nav a:hover {
             border-bottom: 1px solid white;
         }
+        /* CART STYLING */
         .container {
             max-width: 800px;
             margin: 2rem auto;
             padding: 2rem;
             border: 1px solid white;
         }
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 1rem 0;
-            border-bottom: 1px solid #333;
-        }
-        .total {
-            margin-top: 2rem;
-            text-align: right;
-            font-size: 1.2rem;
-            padding-top: 1rem;
-            border-top: 1px solid white;
-        }
-        .checkout-btn {
-            display: block;
-            width: 100%;
-            padding: 1rem;
-            margin-top: 2rem;
-            background: white;
-            color: black;
-            border: none;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
+    <!-- FIXED HEADER WITH WORKING LINKS -->
     <header>
         <div class="logo">VINYL STORE</div>
         <nav>
             <a href="{{ url_for('home') }}">HOME</a>
-            <a href="{{ url_for('shop') }}">SHOP</a>  <!-- Fixed from SALES to SHOP -->
+            <a href="{{ url_for('shop') }}">SHOP</a>
         </nav>
     </header>
 
