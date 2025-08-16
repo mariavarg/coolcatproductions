@@ -1,11 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- ... (keep previous head content) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHOP | VINYL STORE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
     <style>
-        /* ... (keep previous styles) ... */
-
-        /* VISIBLE GRID SETTINGS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Sofia', cursive;
+            color: white;
+        }
+        body {
+            background: black;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1.5rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         .album-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -14,47 +34,39 @@
             max-width: 1200px;
             margin: 0 auto;
         }
-        
-        /* CLEARLY VISIBLE ALBUM CARDS */
         .album-card {
-            border: 1px solid white; /* White border */
+            border: 1px solid white;
             padding: 1.5rem;
             background: black;
-            transition: all 0.3s;
         }
-        
-        /* VISIBLE IMAGE FRAMES */
         .album-cover {
             width: 100%;
             height: 250px;
             object-fit: cover;
-            border: 1px solid white; /* White border */
+            border: 1px solid white;
             margin-bottom: 1rem;
-            display: block;
-            background: #111; /* Fallback color */
         }
     </style>
 </head>
 <body>
-    <!-- ... (keep header and navigation) ... -->
+    <header>
+        <div class="logo">VINYL STORE</div>
+        <nav>
+            <a href="{{ url_for('home') }}">HOME</a>
+            <a href="{{ url_for('checkout') }}">CART</a>
+        </nav>
+    </header>
 
     <div class="album-grid">
         {% for album in albums %}
         <div class="album-card">
-            <!-- Image with visible border -->
             <img src="{{ url_for('static', filename='images/covers/' + album.image) }}" 
                  alt="{{ album.title }}" 
                  class="album-cover">
-            
-            <!-- Album info with visible text -->
             <h3>{{ album.title }}</h3>
             <p>{{ album.artist }}</p>
             <p>${{ album.price }}</p>
-            
-            <button class="add-to-cart"
-                    onclick="window.location.href='{{ url_for('add_to_cart', album_id=album.id) }}'">
-                ADD TO CART
-            </button>
+            <a href="{{ url_for('add_to_cart', album_id=album.id) }}">ADD TO CART</a>
         </div>
         {% endfor %}
     </div>
