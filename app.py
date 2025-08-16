@@ -3,6 +3,45 @@ import json
 import os
 from werkzeug.utils import secure_filename
 from flask import redirect, url_for
+# Initialize Flask app FIRST
+app = Flask(__name__)
+
+# ===== Configuration =====
+app.secret_key = os.urandom(24)
+DB_FILE = 'data/products.json'
+
+# ===== Routes should come AFTER app is defined =====
+
+# 1. First define the redirect
+@app.route('/shop')
+@app.route('/shop/<path:subpath>')
+def shop_redirect(subpath=None):
+    return redirect(url_for('sales'), code=301)
+
+# 2. Then your main routes
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/sales')
+def sales():
+    products = load_products()  # You'll need this helper function
+    return render_template('sales.html', products=products)
+
+# ===== Helper Functions =====
+def load_products():
+    """Safe JSON data loader"""
+    if not os.path.exists(DB_FILE):
+        os.makedirs('data', exist_ok=True)
+        with open(DB_FILE, 'w') as f:
+            json.dump([], f)
+    with open(DB_FILE, 'r') as f:
+        return json.load(f)
+
+# ===== App Entry Point =====
+if __name__ == '__main__':
+    os.makedirs('static/uploads', exist_ok=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
 
 # Add this route to handle old /shop links
 @app.route('/shop')
