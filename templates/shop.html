@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shop | Minimal Shop</title>
+    <title>DISCOGRAPHY</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
@@ -13,64 +13,71 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            color: #000;
+            color: white;
         }
         body {
-            background: #fff;
+            background: #000;
+            min-height: 100vh;
         }
         header {
             padding: 1.5rem;
-            border-bottom: 1px solid #000;
+            border-bottom: 1px solid white;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .logo {
-            font-size: 2rem;
-            font-weight: normal;
+            font-size: 1.8rem;
         }
         nav a {
             margin-left: 1.5rem;
             text-decoration: none;
             font-size: 1.1rem;
         }
-        .products {
+        .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 2rem;
             padding: 2rem;
             max-width: 1200px;
             margin: 0 auto;
         }
-        .product {
-            border: 1px solid #000;
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .product-img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            margin-bottom: 1rem;
-            border: 1px solid #000;
-        }
-        .product-title {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-        }
-        .product-price {
-            margin-bottom: 1rem;
-        }
-        .add-to-cart {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border: 1px solid #000;
-            text-decoration: none;
+        .album {
+            border: 1px solid white;
+            padding: 1rem;
+            cursor: pointer;
             transition: all 0.3s;
         }
-        .add-to-cart:hover {
-            background: #000;
-            color: #fff;
+        .album:hover {
+            background: #111;
+        }
+        .album-cover {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            border: 1px solid white;
+        }
+        .album-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .album-year {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+        .tracklist {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #333;
+        }
+        .track {
+            padding: 0.3rem 0;
+            font-size: 0.9rem;
+        }
+        .active .tracklist {
+            display: block;
         }
         .cart-count {
             margin-left: 0.3rem;
@@ -79,11 +86,11 @@
 </head>
 <body>
     <header>
-        <div class="logo">MINIMAL</div>
+        <div class="logo">DISCOGRAPHY</div>
         <nav>
-            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('home') }}">HOME</a>
             <a href="{{ url_for('checkout') }}">
-                Cart
+                CART
                 {% if session.get('cart') %}
                     <span class="cart-count">({{ session.cart.values()|sum }})</span>
                 {% endif %}
@@ -91,18 +98,32 @@
         </nav>
     </header>
 
-    <div class="products">
+    <div class="gallery">
         {% for product in products %}
-        <div class="product">
+        <div class="album" onclick="this.classList.toggle('active')">
             <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image != 'default.jpg' else url_for('static', filename='images/default.jpg') }}" 
-                 alt="{{ product.name }}" class="product-img">
-            <h3 class="product-title">{{ product.name }}</h3>
-            <p class="product-price">${{ product.price }}</p>
-            <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="add-to-cart">
-                Add to Cart
-            </a>
+                 alt="{{ product.name }}" class="album-cover">
+            <h3 class="album-title">{{ product.name }}</h3>
+            <p class="album-year">2023</p>
+            
+            <div class="tracklist">
+                {% for track in product.get('tracks', ['Track 1', 'Track 2', 'Track 3']) %}
+                <div class="track">{{ track }}</div>
+                {% endfor %}
+            </div>
         </div>
         {% endfor %}
     </div>
+
+    <script>
+        // Close other albums when opening a new one
+        document.querySelectorAll('.album').forEach(album => {
+            album.addEventListener('click', function() {
+                document.querySelectorAll('.album').forEach(a => {
+                    if(a !== this) a.classList.remove('active');
+                });
+            });
+        });
+    </script>
 </body>
 </html>
