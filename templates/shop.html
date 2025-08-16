@@ -1,119 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Shop</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .album-card {
-            transition: transform 0.2s;
-            margin-bottom: 20px;
-            height: 100%;
-        }
-        .album-img-container {
-            height: 250px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f8f9fa;
-        }
-        .album-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-    </style>
-</head>
-<body>
-    <div class="container py-4">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Responsive Album Grid -->
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for album in albums %}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <img src="{{ url_for('static', filename='images/' + album.image) }}" 
+                     class="card-img-top img-fluid" 
+                     alt="{{ album.title }}"
+                     style="height: 200px; object-fit: cover;"
+                     onerror="this.src='{{ url_for('static', filename='images/placeholder.jpg') }}'">
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ album.title }}</h5>
+                    <p class="card-text text-muted">{{ album.artist }}</p>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-primary fw-bold">${{ "%.2f"|format(album.price) }}</span>
+                        <button class="btn btn-sm btn-outline-primary">Add to Cart</button>
                     </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <h1 class="text-center mb-4">Available Albums</h1>
-        
-        {% if not albums %}
-            <div class="alert alert-info">
-                No albums found. <a href="{{ url_for('upload_album') }}" class="alert-link">Upload one?</a>
+                </div>
             </div>
-        {% else %}
-            <!-- Album Grid -->
-            <div class="row row-cols-1 row-cols-md-3 g-4">
-                {% for album in albums %}
-                    <div class="col">
-                        <div class="card album-card">
-                            <div class="album-img-container">
-                                <img src="{{ url_for('static', filename='images/albums/' + album.image) }}" 
-                                     class="album-img" 
-                                     alt="{{ album.title }}"
-                                     onerror="this.src='{{ url_for('static', filename='images/placeholder.jpg') }}'">
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title">{{ album.title }}</h5>
-                                <p class="card-text text-muted">{{ album.artist }}</p>
-                            </div>
-                            <div class="card-footer bg-transparent">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="price">${{ "%.2f"|format(album.price) }}</span>
-                                    <button class="btn btn-sm btn-primary">Add to Cart</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-
-            <!-- Pagination -->
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if page > 1 %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('shop', page=page-1) }}" aria-label="Previous">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">&laquo;</span>
-                        </li>
-                    {% endif %}
-
-                    {% for p in range(1, total_pages + 1) %}
-                        <li class="page-item {% if p == page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('shop', page=p) }}">{{ p }}</a>
-                        </li>
-                    {% endfor %}
-
-                    {% if page < total_pages %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('shop', page=page+1) }}" aria-label="Next">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">&raquo;</span>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
+        </div>
+        {% endfor %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <!-- Responsive Add Form -->
+    <div class="mt-5 p-3 bg-light rounded">
+        <h3 class="mb-4">Add New Album</h3>
+        <form method="POST" action="{{ url_for('add_album') }}" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="title" class="form-control" placeholder="Title" required>
+            </div>
+            <div class="col-md-4">
+                <input type="text" name="artist" class="form-control" placeholder="Artist" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="price" class="form-control" placeholder="Price" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
