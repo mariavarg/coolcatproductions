@@ -1,88 +1,43 @@
+cat > templates/shop.html <<'EOF'
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>SHOP</title>
+    <title>DrunaC Store</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Sofia', cursive;
-            color: white;
-        }
         body {
-            background: black;
-            min-height: 100vh;
+            background: #000;
+            color: #0ff;
+            font-family: 'Courier New', monospace;
         }
-        header {
+        .product {
+            border: 1px solid #0ff;
+            margin: 1rem;
             padding: 1rem;
-            border-bottom: 1px solid white;
-            display: flex;
-            justify-content: space-between;
+            width: 300px;
+            display: inline-block;
         }
-        nav a {
-            margin-left: 1rem;
-            color: white;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-        }
-        nav a:hover, nav a:focus {
-            border-bottom: 1px solid white;
-        }
-        .album-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-            padding: 1rem;
-        }
-        .album-card {
-            border: 1px solid white;
-            padding: 1rem;
-        }
-        .album-cover {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-            border: 1px solid white;
-            margin-bottom: 0.5rem;
-        }
-        .error-message {
-            padding: 2rem;
-            text-align: center;
-            color: white;
-        }
-        *:focus {
-            outline: 2px solid white;
+        .format-tag {
+            background: #0ff;
+            color: #000;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.8rem;
         }
     </style>
 </head>
 <body>
     <header>
-        <div>VINYL STORE</div>
-        <nav>
-            <a href="/" accesskey="h">HOME</a>
-            <a href="/checkout" accesskey="c">CART</a>
-        </nav>
+        <a href="/">← BACK TO HOME</a>
     </header>
 
-    <div class="album-grid">
-        {% if albums %}
-            {% for album in albums %}
-            <div class="album-card" tabindex="0">
-                <img src="{{ url_for('static', filename='images/covers/' + album.image) }}"
-                     alt="{{ The Loveliest Dead }}"
-                     class="album-cover">
-                <h3>{{ "The Loveliest Dead" }}</h3>
-                <p>{{ "Compilation" }}</p>
-                <p>${{ album.price }}</p>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="error-message">
-                <p>No albums found. Please check your data files.</p>
-            </div>
-        {% endif %}
+    {% for item in items %}
+    <div class="product" tabindex="0">
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.artist }}</p>
+        <span class="format-tag">{{ item.format|upper }}</span>
+        <p>${{ "%.2f"|format(item.price) }}</p>
+        <button>ADD TO CART</button>
     </div>
+    {% endfor %}
 </body>
 </html>
+EOF
