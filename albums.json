@@ -1,10 +1,9 @@
 [
-  {
-    "album": "Cool Cat Compilation Vol. 1",
-    "artist": "Cool Cat Productions",
-    "price": 12.50,
-    "name": "Jane Smith",
-    "email": "jane@example.com",
-    "address": "456 Broadway, New York"
-  }
+    {
+        "id": "unique-id-1",
+        "name": "Album Name",
+        "artist": "Artist Name",
+        "price": 9.99,
+        "image": "filename.jpg"
+    }
 ]
