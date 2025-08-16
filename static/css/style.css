@@ -134,3 +134,15 @@ footer {
     padding: 15px;
     margin-top: 20px;
 }
+
+.card-img-top {
+  object-fit: cover;
+  height: 250px;  /* consistent album cover height */
+  border-radius: 5px;
+}
+.card {
+  transition: transform 0.2s ease-in-out;
+}
+.card:hover {
+  transform: scale(1.03);
+}
