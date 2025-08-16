@@ -1,14 +1,2 @@
-# Core
 flask==2.3.2
 werkzeug==2.3.6
-
-# Security
-flask-talisman==0.8.1  # HTTPS/headers
-flask-limiter==2.8.1   # Rate limiting
-python-dotenv==1.0.0   # Environment variables
-
-# File processing
-pillow==10.0.0         # Image validation
-
-# Production
-gunicorn==20.1.0       # WSGI server
