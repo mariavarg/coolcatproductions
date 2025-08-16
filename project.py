@@ -1,46 +1,61 @@
-from flask import Flask
-app = Flask(__name__)
+import json
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash
+from werkzeug.utils import secure_filename
 
-@app.route("/order/<int:album_id>", methods=["GET", "POST"])
-def order(album_id):
-    # Load albums
+app = Flask(__name__)
+app.secret_key = "super-secret-key"  # 🔒 change to env var later
+
+ALBUMS_FILE = "albums.json"
+UPLOAD_FOLDER = "static/images/albums/"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route("/shop")
+def shop():
     with open(ALBUMS_FILE, "r") as f:
         albums = json.load(f)
+    return render_template("shop.html", albums=albums)
 
-    try:
-        album = albums[album_id]
-    except IndexError:
-        flash("Album not found.", "danger")
-        return redirect(url_for("shop"))
 
+@app.route("/admin/upload", methods=["GET", "POST"])
+def upload_album():
     if request.method == "POST":
-        customer_name = request.form["name"]
-        customer_email = request.form["email"]
-        address = request.form["address"]
+        title = request.form["title"]
+        artist = request.form["artist"]
+        price = request.form["price"]
 
-        # Order details
-        order_data = {
-            "album": album["title"],
-            "artist": album["artist"],
-            "price": album["price"],
-            "name": customer_name,
-            "email": customer_email,
-            "address": address,
-        }
+        file = request.files["image"]
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(filepath)
 
-        # Load existing orders.json or create new list
-        if os.path.exists("orders.json"):
-            with open("orders.json", "r") as f:
-                orders = json.load(f)
+            # Load existing albums
+            with open(ALBUMS_FILE, "r") as f:
+                albums = json.load(f)
+
+            # Add new album
+            new_album = {
+                "title": title,
+                "artist": artist,
+                "price": float(price),
+                "image": filename,
+            }
+            albums.append(new_album)
+
+            # Save back to JSON
+            with open(ALBUMS_FILE, "w") as f:
+                json.dump(albums, f, indent=2)
+
+            flash("Album uploaded successfully!", "success")
+            return redirect(url_for("shop"))
         else:
-            orders = []
+            flash("Invalid file type. Only images allowed.", "danger")
 
-        orders.append(order_data)
-
-        with open("orders.json", "w") as f:
-            json.dump(orders, f, indent=2)
-
-        flash("✅ Order placed successfully! We'll contact you soon.", "success")
-        return redirect(url_for("shop"))
-
-    return render_template("order.html", album=album, album_id=album_id)
+    return render_template("upload.html")
