@@ -2,7 +2,14 @@ from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
 from werkzeug.utils import secure_filename
+from flask import redirect, url_for
 
+# Add this route to handle old /shop links
+@app.route('/shop')
+@app.route('/shop/<path:subpath>')
+def shop_redirect(subpath=None):
+    return redirect(url_for('sales'), code=301)  # Permanent redirect
+    
 # Add health check route
 @app.route('/health')
 def health():
