@@ -7,6 +7,16 @@ app = Flask(__name__)
 # JSON database setup
 DB_FILE = 'data/albums.json'
 
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(f"static/images/{filename}")
+            return {"status": "success", "filename": filename}
+    return {"status": "error"}
+
 def load_albums():
     """Load albums from JSON file"""
     if not os.path.exists(DB_FILE):
