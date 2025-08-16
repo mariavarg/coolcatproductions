@@ -1,0 +1,2 @@
+mkdir -p static/images/covers
+touch static/images/covers/cyber-dawn.jpg
