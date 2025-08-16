@@ -3,59 +3,66 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
-app.secret_key = "super-secret-key"  # 🔒 change to env var later
+"""
+project.py - Helper functions for album pricing and formatting
+"""
 
-ALBUMS_FILE = "albums.json"
-UPLOAD_FOLDER = "static/images/albums/"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+def calculate_price_with_vat(price, vat_rate=0.2):
+    """
+    Calculate price including VAT (Value Added Tax)
+    
+    Args:
+        price (float): Base price before tax
+        vat_rate (float): VAT rate (default 20%)
+    
+    Returns:
+        float: Price including VAT rounded to 2 decimals
+    """
+    try:
+        return round(float(price) * (1 + float(vat_rate)), 2)
+    except (TypeError, ValueError):
+        return 0.00  # Fallback for invalid inputs
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+def format_album_title(title):
+    """
+    Format album title to standard capitalization
+    
+    Args:
+        title (str): Raw title string
+    
+    Returns:
+        str: Title in Title Case (e.g., "the dark side" → "The Dark Side")
+    """
+    if not isinstance(title, str):
+        return str(title)
+    return title.title()
 
 
-@app.route("/shop")
-def shop():
-    with open(ALBUMS_FILE, "r") as f:
-        albums = json.load(f)
-    return render_template("shop.html", albums=albums)
+def apply_discount(price, discount_percent):
+    """
+    Apply percentage discount to a price
+    
+    Args:
+        price (float): Original price
+        discount_percent (float): Discount percentage (e.g., 10 for 10%)
+    
+    Returns:
+        float: Discounted price rounded to 2 decimals
+    """
+    try:
+        return round(float(price) * (1 - float(discount_percent)/100), 2)
+    except (TypeError, ValueError):
+        return float(price)  # Return original if discount is invalid
 
 
-@app.route("/admin/upload", methods=["GET", "POST"])
-def upload_album():
-    if request.method == "POST":
-        title = request.form["title"]
-        artist = request.form["artist"]
-        price = request.form["price"]
-
-        file = request.files["image"]
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            file.save(filepath)
-
-            # Load existing albums
-            with open(ALBUMS_FILE, "r") as f:
-                albums = json.load(f)
-
-            # Add new album
-            new_album = {
-                "title": title,
-                "artist": artist,
-                "price": float(price),
-                "image": filename,
-            }
-            albums.append(new_album)
-
-            # Save back to JSON
-            with open(ALBUMS_FILE, "w") as f:
-                json.dump(albums, f, indent=2)
-
-            flash("Album uploaded successfully!", "success")
-            return redirect(url_for("shop"))
-        else:
-            flash("Invalid file type. Only images allowed.", "danger")
-
-    return render_template("upload.html")
+# Optional: Add test cases when run directly
+if __name__ == "__main__":
+    # Test VAT calculation
+    print(f"£10 + VAT: £{calculate_price_with_vat(10)}")  # Should show £12.00
+    
+    # Test title formatting
+    print(f"Formatted title: {format_album_title('the BEST album')}")  # "The Best Album"
+    
+    # Test discount
+    print(f"£50 with 10% off: £{apply_discount(50, 10)}")  # Should show £45.00
