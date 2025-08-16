@@ -5,13 +5,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")  # Use environment variable in production
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")  # Change in production
 
 # Configuration
 ALBUMS_FILE = os.path.join(os.getcwd(), "albums.json")
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "static", "images", "albums")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
-ALBUMS_PER_PAGE = 6  # Number of albums per page
+ALBUMS_PER_PAGE = 6
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
@@ -28,7 +28,6 @@ def initialize_albums_file():
             json.dump([], f)
 
 def save_albums(albums):
-    """Save albums to JSON file with error handling"""
     try:
         with open(ALBUMS_FILE, "w") as f:
             json.dump(albums, f, indent=2)
@@ -38,7 +37,6 @@ def save_albums(albums):
         return False
 
 def load_albums():
-    """Load albums from JSON file with error handling"""
     initialize_albums_file()
     try:
         with open(ALBUMS_FILE, "r") as f:
@@ -53,17 +51,20 @@ def load_albums():
 
 @app.route("/")
 def home():
-    return redirect(url_for("shop"))
+    """Landing page that doesn't redirect"""
+    return render_template("index.html")
 
 @app.route("/shop")
+def shop():
+    """Main shop view without parameters"""
+    return redirect(url_for("shop_page", page=1))
+
 @app.route("/shop/<int:page>")
-def shop(page=1):
+def shop_page(page=1):
+    """Paginated shop view"""
     try:
         albums = load_albums()
-        total_albums = len(albums)
-        total_pages = ceil(total_albums / ALBUMS_PER_PAGE) or 1  # Ensure at least 1 page
-        
-        # Validate page number
+        total_pages = ceil(len(albums) / ALBUMS_PER_PAGE) or 1
         page = max(1, min(page, total_pages))
         
         start_idx = (page - 1) * ALBUMS_PER_PAGE
@@ -76,15 +77,14 @@ def shop(page=1):
             total_pages=total_pages
         )
     except Exception as e:
-        app.logger.error(f"Shop route error: {str(e)}")
-        flash("Failed to load albums. Please try again later.", "danger")
+        app.logger.error(f"Shop error: {str(e)}")
+        flash("Failed to load albums", "danger")
         return redirect(url_for("shop"))
 
 @app.route("/admin/upload", methods=["GET", "POST"])
 def upload_album():
     if request.method == "POST":
         try:
-            # Validate form data
             title = request.form.get("title", "").strip()
             artist = request.form.get("artist", "").strip()
             price = request.form.get("price", "0")
@@ -101,7 +101,6 @@ def upload_album():
                 flash("Invalid price format", "danger")
                 return redirect(url_for("upload_album"))
             
-            # Handle file upload
             if "image" not in request.files:
                 flash("No file selected", "danger")
                 return redirect(url_for("upload_album"))
@@ -115,7 +114,6 @@ def upload_album():
                 filename = secure_filename(file.filename)
                 filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 
-                # Ensure unique filename
                 counter = 1
                 while os.path.exists(filepath):
                     name, ext = os.path.splitext(filename)
@@ -125,19 +123,17 @@ def upload_album():
                 
                 file.save(filepath)
                 
-                # Add new album
                 albums = load_albums()
-                new_album = {
+                albums.append({
                     "title": title,
                     "artist": artist,
                     "price": price,
                     "image": filename,
-                }
-                albums.append(new_album)
+                })
                 
                 if save_albums(albums):
                     flash("Album uploaded successfully!", "success")
-                    return redirect(url_for("shop"))
+                    return redirect(url_for("shop_page", page=1))
                 else:
                     flash("Failed to save album data", "danger")
             else:
