@@ -4,40 +4,48 @@ import json
 import uuid
 from werkzeug.utils import secure_filename
 
+# Initialize Flask app
 app = Flask(__name__)
 
 # ======================
-# BASIC SECURITY SETUP (For Beginners)
+# BASIC CONFIGURATION
 # ======================
 
-# Generate a random secret key (do this ONCE and keep it secret!)
-# In production, use: export SECRET_KEY="your-random-string-here"
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-me-in-production')
+# Secret key for sessions (in production, use environment variable)
+app.secret_key = 'your-secret-key-here'  # Change this!
+
+# File upload settings
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ======================
-# DATABASE SETUP (Simple JSON)
+# HELPER FUNCTIONS
 # ======================
-
-DB_FILE = 'data/products.json'
 
 def load_products():
     """Load products from JSON file"""
-    if not os.path.exists(DB_FILE):
+    if not os.path.exists('data/products.json'):
         os.makedirs('data', exist_ok=True)
-        with open(DB_FILE, 'w') as f:
+        with open('data/products.json', 'w') as f:
             json.dump([], f)
         return []
     
-    with open(DB_FILE, 'r') as f:
+    with open('data/products.json', 'r') as f:
         return json.load(f)
 
 def save_products(products):
     """Save products to JSON file"""
-    with open(DB_FILE, 'w') as f:
+    with open('data/products.json', 'w') as f:
         json.dump(products, f, indent=2)
 
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # ======================
-# ROUTES (Simplified for Beginners)
+# ROUTES
 # ======================
 
 @app.route('/')
@@ -50,19 +58,17 @@ def home():
 def shop():
     """Product listing page"""
     products = load_products()
-    cart_count = len(session.get('cart', {}))
+    cart_count = sum(session.get('cart', {}).values())
     return render_template('shop.html', products=products, cart_count=cart_count)
 
 @app.route('/add-to-cart/<product_id>')
 def add_to_cart(product_id):
-    """Add item to cart (basic version)"""
+    """Add item to cart"""
     if 'cart' not in session:
         session['cart'] = {}
     
     products = load_products()
-    product_exists = any(p['id'] == product_id for p in products)
-    
-    if product_exists:
+    if any(p['id'] == product_id for p in products):
         session['cart'][product_id] = session['cart'].get(product_id, 0) + 1
         session.modified = True
         flash('Item added to cart!', 'success')
@@ -78,14 +84,16 @@ def checkout():
     products = {p['id']: p for p in load_products()}
     
     cart_items = []
-    total = 0
+    total = 0.0
     
     for product_id, quantity in cart.items():
         if product_id in products:
-            item = products[product_id]
-            item['quantity'] = quantity
-            cart_items.append(item)
-            total += float(item['price']) * quantity
+            product = products[product_id]
+            cart_items.append({
+                'details': product,
+                'quantity': quantity
+            })
+            total += float(product['price']) * quantity
     
     return render_template('checkout.html', cart=cart_items, total=total)
 
@@ -99,35 +107,46 @@ def remove_from_cart(product_id):
     return redirect(url_for('checkout'))
 
 # ======================
-# ADMIN SECTION (Basic)
+# ADMIN ROUTES
 # ======================
 
 @app.route('/admin/add-product', methods=['GET', 'POST'])
 def add_product():
-    """Simple product addition form"""
+    """Add new product"""
     if request.method == 'POST':
         try:
+            # Handle file upload
+            image_file = request.files['image']
+            filename = 'default.jpg'
+            
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
+            # Create new product
             new_product = {
                 'id': str(uuid.uuid4()),
-                'name': request.form['name'][:100],  # Limit length
+                'name': request.form['name'],
                 'price': "{:.2f}".format(float(request.form['price'])),
-                'description': request.form.get('description', '')[:500],
-                'image': 'default.jpg'  # Basic version - no file upload
+                'description': request.form.get('description', ''),
+                'image': filename
             }
             
+            # Save to database
             products = load_products()
             products.append(new_product)
             save_products(products)
             
-            flash('Product added!', 'success')
+            flash('Product added successfully!', 'success')
             return redirect(url_for('shop'))
-        except:
-            flash('Error adding product', 'error')
+        
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'error')
     
     return render_template('admin/add_product.html')
 
 # ======================
-# ERROR HANDLING (Basic)
+# ERROR HANDLERS
 # ======================
 
 @app.errorhandler(404)
@@ -139,6 +158,18 @@ def page_not_found(e):
 # ======================
 
 if __name__ == '__main__':
+    # Create necessary folders
     os.makedirs('data', exist_ok=True)
     os.makedirs('static/uploads', exist_ok=True)
-    app.run(debug=True, port=5000)  # Debug mode for development only!
+    os.makedirs('static/images', exist_ok=True)
+    
+    # Create default product image if not exists
+    if not os.path.exists('static/images/default.jpg'):
+        from PIL import Image, ImageDraw
+        img = Image.new('RGB', (400, 400), color=(220, 220, 220))
+        d = ImageDraw.Draw(img)
+        d.text((100, 180), "No Image", fill=(100, 100, 100))
+        img.save('static/images/default.jpg')
+    
+    # Run the app
+    app.run(debug=True, port=5000)
