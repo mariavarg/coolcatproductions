@@ -3,62 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHOP | RECORD STORE</title>
+    <title>SHOP | VINYL STORE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
     <style>
+        /* RESET & BASE STYLES */
         * {
-            font-family: 'Sofia', cursive;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            font-family: 'Sofia', cursive;
             color: white;
         }
         body {
-            background: #000;
+            background: black;
             min-height: 100vh;
         }
-        
-        /* VISIBLE GRID STYLES */
-        .gallery {
+
+        /* HEADER */
+        header {
+            padding: 1.5rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.8rem;
+        }
+        nav a {
+            margin-left: 1.5rem;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border 0.3s;
+        }
+        nav a:hover {
+            border-bottom: 1px solid white;
+        }
+        .cart-count {
+            margin-left: 0.3rem;
+        }
+
+        /* ALBUM GRID - SIMPLE AND VISIBLE */
+        .album-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 2rem;
             padding: 2rem;
             max-width: 1200px;
             margin: 0 auto;
-            border: 1px solid white; /* Outer grid border */
         }
-        
-        .album {
-            border: 1px solid white !important; /* Force white border */
+        .album-card {
+            border: 1px solid white;
             padding: 1.5rem;
-            background: #000;
             transition: all 0.3s;
         }
-        
+        .album-card:hover {
+            background: #111;
+        }
         .album-cover {
             width: 100%;
             height: 250px;
             object-fit: cover;
-            border: 1px solid white !important;
-            display: block; /* Ensures image is visible */
-            background: #111; /* Fallback if image missing */
+            border: 1px solid white;
+            margin-bottom: 1rem;
+            display: block;
         }
-        
-        /* Rest of your styles... */
+        .album-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid white;
+            padding-bottom: 0.5rem;
+        }
+        .album-price {
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        /* TRACKLIST (HIDDEN BY DEFAULT) */
+        .tracklist {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            border-left: 1px solid white;
+            padding-left: 1rem;
+            margin-left: 1rem;
+        }
+        .album-card.active .tracklist {
+            max-height: 500px; /* Adjust based on content */
+            margin-top: 1rem;
+        }
+        .track {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #333;
+        }
+        .track:last-child {
+            border-bottom: none;
+        }
+
+        /* CART BUTTON */
+        .add-to-cart {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 1rem;
+            background: black;
+            border: 1px solid white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .add-to-cart:hover {
+            background: white;
+            color: black;
+        }
     </style>
 </head>
 <body>
-    <div class="gallery">
+    <header>
+        <div class="logo">VINYL STORE</div>
+        <nav>
+            <a href="{{ url_for('home') }}">HOME</a>
+            <a href="{{ url_for('checkout') }}">
+                CART
+                {% if session.cart %}
+                    <span class="cart-count">({{ session.cart.values()|sum }})</span>
+                {% endif %}
+            </a>
+        </nav>
+    </header>
+
+    <div class="album-grid">
         {% for album in albums %}
-        <div class="album" onclick="this.classList.toggle('active')">
-            <!-- Image will now be clearly visible with white border -->
+        <div class="album-card" onclick="toggleAlbum(this)">
             <img src="{{ url_for('static', filename='images/covers/' + album.image) }}" 
                  alt="{{ album.title }}" 
                  class="album-cover"
                  onerror="this.src='{{ url_for('static', filename='images/covers/default.jpg') }}'">
-                 
+            
             <h3 class="album-title">{{ album.title }}</h3>
             <p class="album-artist">{{ album.artist }}</p>
             <p class="album-price">${{ album.price }}</p>
@@ -76,5 +158,18 @@
         </div>
         {% endfor %}
     </div>
+
+    <script>
+        function toggleAlbum(clickedAlbum) {
+            // Close other open albums
+            document.querySelectorAll('.album-card').forEach(album => {
+                if (album !== clickedAlbum) {
+                    album.classList.remove('active');
+                }
+            });
+            // Toggle clicked album
+            clickedAlbum.classList.toggle('active');
+        }
+    </script>
 </body>
 </html>
