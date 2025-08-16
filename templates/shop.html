@@ -1,76 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Shop</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Mobile-first responsive design */
-        .album-card {
-            margin-bottom: 20px;
-            transition: transform 0.2s;
-        }
-        .album-card:hover {
-            transform: scale(1.02);
-        }
-        .album-img {
-            height: 200px;
-            object-fit: cover;
-            width: 100%;
-        }
-        @media (max-width: 576px) {
-            .form-control {
-                margin-bottom: 10px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-3">
-        <h1 class="mb-4">Music Shop</h1>
-        
-        <!-- Album Grid -->
-        <div class="row">
-            {% for album in albums %}
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card album-card">
-                    <img src="{{ url_for('static', filename='uploads/' + album.image) }}"
-                         class="album-img card-img-top"
-                         alt="{{ album.title }}"
-                         onerror="this.src='{{ url_for('static', filename='images/placeholder.jpg') }}'">
-                    <div class="card-body">
-                        <h5>{{ album.title }}</h5>
-                        <p class="text-muted">{{ album.artist }}</p>
-                        <p class="price">${{ "%.2f"|format(album.price) }}</p>
-                    </div>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center my-4">Music Catalog</h1>
+    
+    <!-- Responsive Grid -->
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for product in products %}
+        <div class="col">
+            <div class="card h-100 border-0 bg-transparent">
+                <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image else url_for('static', filename='images/placeholder.jpg') }}"
+                     class="card-img-top img-fluid"
+                     style="height: 200px; object-fit: cover;"
+                     alt="{{ product.name }}">
+                
+                <div class="card-body text-center">
+                    <h5>{{ product.name }}</h5>
+                    <p class="text-muted">{{ product.artist }}</p>
+                    <p class="price">${{ "%.2f"|format(product.price) }}</p>
+                    <a href="{{ url_for('add_to_cart', product_id=product.id) }}" 
+                       class="btn btn-dark w-100">
+                       Add to Cart
+                    </a>
                 </div>
             </div>
-            {% endfor %}
         </div>
-
-        <!-- Add Album Form -->
-        <div class="mt-5 p-3 border rounded bg-light">
-            <h3>Add New Album</h3>
-            <form method="POST" action="{{ url_for('add_album') }}" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <input type="text" name="title" class="form-control" placeholder="Album Title" required maxlength="100">
-                </div>
-                <div class="mb-3">
-                    <input type="text" name="artist" class="form-control" placeholder="Artist" required maxlength="100">
-                </div>
-                <div class="mb-3">
-                    <input type="number" step="0.01" name="price" class="form-control" placeholder="Price" min="0" max="999.99" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Album Cover (optional)</label>
-                    <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
-                </div>
-                <button type="submit" class="btn btn-primary">Add Album</button>
-            </form>
-        </div>
+        {% endfor %}
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+</div>
+{% endblock %}
