@@ -2,57 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SHOP - VINYL STORE</title>
+    <title>SHOP</title>
     <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             font-family: 'Sofia', cursive;
+            color: white;
         }
-        body { 
-            background: black; 
-            color: white; 
+        body {
+            background: black;
             min-height: 100vh;
         }
-        header { 
-            padding: 1rem; 
-            border-bottom: 1px solid white; 
-            display: flex; 
-            justify-content: space-between; 
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
         }
-        nav a { 
-            margin-left: 1rem; 
-            color: white; 
-            text-decoration: none; 
+        nav a {
+            margin-left: 1rem;
+            color: white;
+            text-decoration: none;
         }
-        .album-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
-            gap: 1rem; 
-            padding: 1rem; 
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
         }
-        .album-card { 
-            border: 1px solid white; 
-            padding: 1rem; 
+        .album-card {
+            border: 1px solid white;
+            padding: 1rem;
         }
-        .album-cover { 
-            width: 100%; 
-            height: 200px; 
-            object-fit: cover; 
-            border: 1px solid white; 
-            margin-bottom: 0.5rem; 
+        .album-cover {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid white;
+            margin-bottom: 0.5rem;
         }
-        button { 
-            background: black; 
-            color: white; 
-            border: 1px solid white; 
-            padding: 0.5rem; 
-            margin-top: 0.5rem; 
-            width: 100%; 
-        }
-        *:focus { 
-            outline: 2px solid white; 
+        *:focus {
+            outline: 2px solid white;
         }
     </style>
 </head>
@@ -60,20 +52,313 @@
     <header>
         <div>VINYL STORE</div>
         <nav>
-            <a href="/" accesskey="h">HOME [H]</a>
-            <a href="/checkout" accesskey="c">CART [C]</a>
+            <a href="/" accesskey="h">HOME</a>
+            <a href="/checkout" accesskey="c">CART</a>
         </nav>
     </header>
 
     <div class="album-grid">
         {% for album in albums %}
         <div class="album-card" tabindex="0">
+            <!-- Using YOUR cover images -->
             <img src="/static/images/covers/{{ album.image }}" 
-                 alt="{{ album.title }}" 
+                 alt="{{ album.title }}"
                  class="album-cover">
             <h3>{{ album.title }}</h3>
-            <p>{{ album.artist }}</p>
-            <button tabindex="0">ADD TO CART</button>
+            <p>{{ album.artist }} ({{ album.year }})</p>
+            <p>${{ album.price }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHOP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Sofia', cursive;
+            color: white;
+        }
+        body {
+            background: black;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
+        }
+        nav a {
+            margin-left: 1rem;
+            color: white;
+            text-decoration: none;
+        }
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .album-card {
+            border: 1px solid white;
+            padding: 1rem;
+        }
+        .album-cover {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid white;
+            margin-bottom: 0.5rem;
+        }
+        *:focus {
+            outline: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>VINYL STORE</div>
+        <nav>
+            <a href="/" accesskey="h">HOME</a>
+            <a href="/checkout" accesskey="c">CART</a>
+        </nav>
+    </header>
+
+    <div class="album-grid">
+        {% for album in albums %}
+        <div class="album-card" tabindex="0">
+            <!-- Using YOUR cover images -->
+            <img src="/static/images/covers/{{ album.image }}" 
+                 alt="{{ album.title }}"
+                 class="album-cover">
+            <h3>{{ album.title }}</h3>
+            <p>{{ album.artist }} ({{ album.year }})</p>
+            <p>${{ album.price }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHOP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Sofia', cursive;
+            color: white;
+        }
+        body {
+            background: black;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
+        }
+        nav a {
+            margin-left: 1rem;
+            color: white;
+            text-decoration: none;
+        }
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .album-card {
+            border: 1px solid white;
+            padding: 1rem;
+        }
+        .album-cover {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid white;
+            margin-bottom: 0.5rem;
+        }
+        *:focus {
+            outline: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>VINYL STORE</div>
+        <nav>
+            <a href="/" accesskey="h">HOME</a>
+            <a href="/checkout" accesskey="c">CART</a>
+        </nav>
+    </header>
+
+    <div class="album-grid">
+        {% for album in albums %}
+        <div class="album-card" tabindex="0">
+            <!-- Using YOUR cover images -->
+            <img src="/static/images/covers/{{ album.image }}" 
+                 alt="{{ album.title }}"
+                 class="album-cover">
+            <h3>{{ album.title }}</h3>
+            <p>{{ album.artist }} ({{ album.year }})</p>
+            <p>${{ album.price }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHOP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Sofia', cursive;
+            color: white;
+        }
+        body {
+            background: black;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
+        }
+        nav a {
+            margin-left: 1rem;
+            color: white;
+            text-decoration: none;
+        }
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .album-card {
+            border: 1px solid white;
+            padding: 1rem;
+        }
+        .album-cover {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid white;
+            margin-bottom: 0.5rem;
+        }
+        *:focus {
+            outline: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>VINYL STORE</div>
+        <nav>
+            <a href="/" accesskey="h">HOME</a>
+            <a href="/checkout" accesskey="c">CART</a>
+        </nav>
+    </header>
+
+    <div class="album-grid">
+        {% for album in albums %}
+        <div class="album-card" tabindex="0">
+            <!-- Using YOUR cover images -->
+            <img src="/static/images/covers/{{ album.image }}" 
+                 alt="{{ album.title }}"
+                 class="album-cover">
+            <h3>{{ album.title }}</h3>
+            <p>{{ album.artist }} ({{ album.year }})</p>
+            <p>${{ album.price }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHOP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Sofia', cursive;
+            color: white;
+        }
+        body {
+            background: black;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid white;
+            display: flex;
+            justify-content: space-between;
+        }
+        nav a {
+            margin-left: 1rem;
+            color: white;
+            text-decoration: none;
+        }
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .album-card {
+            border: 1px solid white;
+            padding: 1rem;
+        }
+        .album-cover {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid white;
+            margin-bottom: 0.5rem;
+        }
+        *:focus {
+            outline: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>VINYL STORE</div>
+        <nav>
+            <a href="/" accesskey="h">HOME</a>
+            <a href="/checkout" accesskey="c">CART</a>
+        </nav>
+    </header>
+
+    <div class="album-grid">
+        {% for album in albums %}
+        <div class="album-card" tabindex="0">
+            <!-- Using YOUR cover images -->
+            <img src="/static/images/covers/{{ album.image }}" 
+                 alt="{{ album.title }}"
+                 class="album-cover">
+            <h3>{{ album.title }}</h3>
+            <p>{{ album.artist }} ({{ album.year }})</p>
+            <p>${{ album.price }}</p>
         </div>
         {% endfor %}
     </div>
