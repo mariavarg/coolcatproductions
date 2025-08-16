@@ -2,79 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOME | VINYL STORE</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
+    <title>HOME - VINYL STORE</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
             font-family: 'Sofia', cursive;
-            color: white;
         }
-        body {
-            background: black;
+        body { 
+            background: black; 
+            color: white; 
             min-height: 100vh;
         }
-        header {
-            padding: 1.5rem;
-            border-bottom: 1px solid white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        header { 
+            padding: 1rem; 
+            border-bottom: 1px solid white; 
+            display: flex; 
+            justify-content: space-between; 
         }
-        .logo {
-            font-size: 1.8rem;
+        nav a { 
+            margin-left: 1rem; 
+            color: white; 
+            text-decoration: none; 
         }
-        nav a {
-            margin-left: 1.5rem;
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border 0.3s;
+        main { 
+            padding: 2rem; 
+            text-align: center; 
         }
-        nav a:hover {
-            border-bottom: 1px solid white;
+        .shop-btn { 
+            display: inline-block; 
+            margin-top: 1rem; 
+            padding: 0.5rem 1rem; 
+            border: 1px solid white; 
+            color: white; 
+            text-decoration: none; 
         }
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 2rem;
-        }
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 2rem;
-        }
-        .shop-btn {
-            padding: 1rem 2rem;
-            border: 1px solid white;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: all 0.3s;
-        }
-        .shop-btn:hover {
-            background: white;
-            color: black;
+        *:focus { 
+            outline: 2px solid white; 
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="logo">VINYL STORE</div>
+        <div>VINYL STORE</div>
         <nav>
-            <a href="{{ url_for('shop') }}">SHOP</a>  <!-- Changed from SALES to SHOP -->
-            <a href="{{ url_for('checkout') }}">CART</a>
+            <a href="/shop" accesskey="s">SHOP [S]</a>
+            <a href="/checkout" accesskey="c">CART [C]</a>
         </nav>
     </header>
     <main>
-        <h1>ESSENTIAL RECORDS</h1>
-        <a href="{{ url_for('shop') }}" class="shop-btn">ENTER SHOP</a>  <!-- Consistent naming -->
+        <h1>WELCOME</h1>
+        <a href="/shop" class="shop-btn" tabindex="0">ENTER STORE</a>
     </main>
 </body>
 </html>
