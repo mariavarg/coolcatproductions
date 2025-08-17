@@ -83,6 +83,40 @@ def save_products(products):
         logger.error(f"Error saving products: {str(e)}")
         return False
 
+# Helper function to get cart details
+def get_cart_details():
+    cart_items = session.get('cart', [])
+    products = load_products()
+    cart_products = []
+    subtotal = 0.0
+    
+    for item in cart_items:
+        product = next((p for p in products if p['id'] == item['id']), None)
+        if product:
+            # Use sale price if available
+            price = product['sale_price'] if product.get('on_sale', False) else product['price']
+            item_total = price * item['quantity']
+            subtotal += item_total
+            cart_products.append({
+                'id': product['id'],
+                'name': product['title'],
+                'artist': product['artist'],
+                'price': price,
+                'image': product['image'],
+                'quantity': item['quantity'],
+                'item_total': item_total
+            })
+    
+    vat = subtotal * VAT_RATE
+    total = subtotal + vat
+    
+    return {
+        'cart_items': cart_products,
+        'subtotal': subtotal,
+        'vat': vat,
+        'total': total
+    }
+
 # Admin authentication
 def admin_required(f):
     @wraps(f)
@@ -112,10 +146,13 @@ def add_security_headers(response):
 # Context processor to inject global data
 @app.context_processor
 def inject_global_data():
+    cart_details = get_cart_details()
     return {
         'brand': BRAND_NAME,
         'current_year': datetime.datetime.now().year,
-        'cart_count': len(session.get('cart', []))
+        'cart_count': len(session.get('cart', [])),
+        'cart_total': cart_details['total'],
+        'cart_items': cart_details['cart_items']
     }
 
 # Initialize cart in session
@@ -164,38 +201,13 @@ def product(product_id):
 @app.route('/cart')
 def cart():
     try:
-        cart_items = session.get('cart', [])
-        products = load_products()
-        
-        cart_products = []
-        subtotal = 0
-        
-        for item in cart_items:
-            product = next((p for p in products if p['id'] == item['id']), None)
-            if product:
-                # Use sale price if available
-                price = product['sale_price'] if product.get('on_sale', False) else product['price']
-                item_total = price * item['quantity']
-                subtotal += item_total
-                cart_products.append({
-                    'id': product['id'],
-                    'name': product['title'],
-                    'artist': product['artist'],
-                    'price': price,
-                    'image': product['image'],
-                    'quantity': item['quantity'],
-                    'item_total': item_total
-                })
-        
-        vat = subtotal * VAT_RATE
-        total = subtotal + vat
-        
+        cart_details = get_cart_details()
         return render_template(
             'cart.html', 
-            cart=cart_products, 
-            subtotal=subtotal,
-            vat=vat,
-            total=total,
+            cart=cart_details['cart_items'], 
+            subtotal=cart_details['subtotal'],
+            vat=cart_details['vat'],
+            total=cart_details['total'],
             vat_rate=VAT_RATE*100
         )
     except Exception as e:
