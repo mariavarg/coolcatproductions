@@ -10,18 +10,10 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Initialize Flask app
 app = Flask(__name__, static_folder='static')
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "100 per hour"]  # Increased limits
-)
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)  # Try 5001, 8000, etc.
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -30,92 +22,37 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
+# App configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-fallback-key')
 app.config['UPLOAD_FOLDER'] = 'static/uploads/covers'
 app.config['ALLOWED_EXTENSIONS'] = {'jpg', 'jpeg', 'png', 'webp'}
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
-
-# Create uploads directory if missing
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Create directories if they don't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
 os.makedirs('data/backups', exist_ok=True)
 
+# Initialize extensions
 csrf = CSRFProtect(app)
-
-# Branding configuration
-BRAND_NAME = "Cool Cat Productions-Druna C."
-
-# Initialize rate limiter
 limiter = Limiter(
+    app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
+    default_limits=["200 per day", "100 per hour"]
 )
-limiter.init_app(app)
 
-# VAT Configuration
+# Constants
+BRAND_NAME = "Cool Cat Productions-Druna C."
 VAT_RATE = 0.20  # 20% VAT
 
-# Admin credentials setup
+# Admin credentials
 ADMIN_USER = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASS_HASH = generate_password_hash(os.environ.get('ADMIN_PASSWORD', 'securepassword'))
 
-@app.route('/admin/add_album', methods=['GET', 'POST'])
-@admin_required
-def add_album():
-    if request.method == 'POST':
-        try:
-            # Create uploads directory if it doesn't exist
-            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-            
-            # Handle file upload
-            cover_image = request.files['cover_image']
-            if cover_image and allowed_file(cover_image.filename):
-                filename = secure_filename(f"{str(uuid.uuid4())}.{cover_image.filename.split('.')[-1]}")
-                cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            else:
-                flash('Invalid image file', 'error')
-                return redirect(request.url)
-            
-            # Create new album
-            new_album = {
-                'id': str(uuid.uuid4()),
-                'title': request.form['title'],
-                'artist': request.form['artist'],
-                'format': request.form['format'],
-                'image': f"uploads/covers/{filename}",
-                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
-                'date_added': datetime.datetime.now().isoformat()
-            }
-            
-            # Load existing albums
-            try:
-                with open('data/albums.json', 'r') as f:
-                    albums = json.load(f)
-            except:
-                albums = []
-            
-            # Add new album and save
-            albums.append(new_album)
-            with open('data/albums.json', 'w') as f:
-                json.dump(albums, f, indent=2)
-            
-            flash('Album added successfully!', 'success')
-            return redirect(url_for('shop'))
-            
-        except Exception as e:
-            flash(f'Error adding album: {str(e)}', 'error')
-            return redirect(request.url)
-    
-    return render_template('admin/add_album.html')
-
+# Helper functions
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'webp'}
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def load_products():
     try:
@@ -129,7 +66,6 @@ def load_products():
             try:
                 return json.load(f)
             except json.JSONDecodeError:
-                # Reset file if corrupted
                 with open(file_path, 'w') as f:
                     json.dump([], f)
                 return []
@@ -146,7 +82,17 @@ def save_products(products):
         logger.error(f"Error saving products: {str(e)}")
         return False
 
-# Helper function to get cart details
+def load_albums():
+    try:
+        with open('data/albums.json', 'r') as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_albums(albums):
+    with open('data/albums.json', 'w') as f:
+        json.dump(albums, f, indent=2)
+
 def get_cart_details():
     cart_items = session.get('cart', [])
     products = load_products()
@@ -156,7 +102,6 @@ def get_cart_details():
     for item in cart_items:
         product = next((p for p in products if p['id'] == item['id']), None)
         if product:
-            # Use sale price if available
             price = product['sale_price'] if product.get('on_sale', False) else product['price']
             item_total = price * item['quantity']
             subtotal += item_total
@@ -180,7 +125,7 @@ def get_cart_details():
         'total': total
     }
 
-# Admin authentication
+# Authentication decorator
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -206,7 +151,14 @@ def add_security_headers(response):
         response.headers[key] = value
     return response
 
-# Context processor to inject global data
+# Cache control for static files
+@app.after_request
+def add_cache_headers(response):
+    if request.path.startswith('/static/'):
+        response.cache_control.max_age = 3600
+    return response
+
+# Global template variables
 @app.context_processor
 def inject_global_data():
     cart_details = get_cart_details()
@@ -218,64 +170,13 @@ def inject_global_data():
         'cart_items': cart_details['cart_items']
     }
 
-# Initialize cart in session
+# Initialize cart
 @app.before_request
 def initialize_cart():
     if 'cart' not in session:
         session['cart'] = []
 
 # Routes
-
-# Add these new routes to your existing app.py
-
-@app.route('/add_album', methods=['GET', 'POST'])
-@admin_required
-def add_album():
-    if request.method == 'POST':
-        # Get form data
-        title = request.form['title']
-        artist = request.form['artist']
-        format_type = request.form['format']  # 'CD' or 'MP3'
-        tracks = [t.strip() for t in request.form['tracks'].split('\n') if t.strip()]
-        
-        # Handle file upload
-        cover_image = request.files['cover_image']
-        filename = f"album_{str(uuid.uuid4())[:8]}.{cover_image.filename.split('.')[-1]}"
-        cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        # Create album
-        new_album = {
-            'id': str(uuid.uuid4()),
-            'title': title,
-            'artist': artist,
-            'format': format_type,
-            'image': f"uploads/covers/{filename}",
-            'tracks': tracks,
-            'date_added': datetime.datetime.now().isoformat()
-        }
-        
-        # Save to JSON
-        albums = load_albums()
-        albums.append(new_album)
-        save_albums(albums)
-        
-        flash('Album added successfully!', 'success')
-        return redirect(url_for('shop'))
-    
-    return render_template('admin/add_album.html')
-
-# New helper functions
-def load_albums():
-    try:
-        with open('data/albums.json', 'r') as f:
-            return json.load(f)
-    except:
-        return []
-
-def save_albums(albums):
-    with open('data/albums.json', 'w') as f:
-        json.dump(albums, f, indent=2)
-
 @app.route('/')
 def home():
     try:
@@ -288,21 +189,23 @@ def home():
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'), 
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+                             'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/shop')
-# Replace your shop() route with this:
 @app.route('/shop')
 def shop():
     try:
-        # Load from JSON database
-        with open('data/albums.json', 'r') as f:
-            albums = json.load(f)
-        return render_template('shop.html', albums=albums)
+        # Try albums.json first, fall back to products.json
+        try:
+            with open('data/albums.json', 'r') as f:
+                albums = json.load(f)
+                return render_template('shop.html', albums=albums)
+        except FileNotFoundError:
+            products = load_products()
+            return render_template('shop.html', albums=products)
     except Exception as e:
-        print(f"Error loading shop: {str(e)}")  # Check Render logs for this
+        logger.error(f"Shop loading error: {str(e)}")
         return render_template('error.html', message='Shop loading failed'), 500
-        
+
 @app.route('/product/<product_id>')
 def product(product_id):
     try:
@@ -338,13 +241,11 @@ def add_to_cart(product_id):
         quantity = int(request.form.get('quantity', 1))
         cart = session.get('cart', [])
         
-        # Check if product exists
         products = load_products()
         if not any(p['id'] == product_id for p in products):
             flash('Product not found', 'error')
             return redirect(url_for('shop'))
         
-        # Update quantity if already in cart
         found = False
         for item in cart:
             if item['id'] == product_id:
@@ -352,12 +253,11 @@ def add_to_cart(product_id):
                 found = True
                 break
         
-        # Add new item if not found
         if not found:
             cart.append({'id': product_id, 'quantity': quantity})
         
         session['cart'] = cart
-        flash(f'Item added to cart!', 'success')
+        flash('Item added to cart!', 'success')
         return redirect(url_for('product', product_id=product_id))
     except Exception as e:
         logger.error(f"Add to cart error: {str(e)}")
@@ -383,6 +283,11 @@ def remove_from_cart(product_id):
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+@app.route('/checkout')
+def checkout():
+    flash('Checkout functionality coming soon!', 'info')
+    return redirect(url_for('cart'))
 
 # Admin routes
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -414,7 +319,6 @@ def admin_logout():
 def add_product():
     try:
         if request.method == 'POST':
-            # Get form data
             title = request.form.get('title', '').strip()
             artist = request.form.get('artist', '').strip()
             format_type = request.form.get('format', '').strip()
@@ -423,7 +327,6 @@ def add_product():
             sale_price = float(request.form.get('sale_price', 0)) if on_sale else None
             tracks = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
             
-            # Handle file upload
             cover_image = request.files.get('cover_image')
             filename = None
             if cover_image and allowed_file(cover_image.filename):
@@ -431,7 +334,6 @@ def add_product():
                 cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 filename = f"uploads/covers/{filename}"
             
-            # Create product object
             product = {
                 'id': str(uuid.uuid4()),
                 'title': title,
@@ -445,7 +347,6 @@ def add_product():
                 'created_at': datetime.datetime.now().isoformat()
             }
             
-            # Save to products
             products = load_products()
             products.append(product)
             save_products(products)
@@ -459,29 +360,45 @@ def add_product():
         flash('Error adding product', 'error')
         return render_template('admin/add_product.html')
 
-# Checkout route (placeholder)
-@app.route('/checkout')
-def checkout():
-    flash('Checkout functionality coming soon!', 'info')
-    return redirect(url_for('cart'))
-
-@app.after_request
-def add_cache_headers(response):
-    if request.path.startswith('/static/'):
-        response.cache_control.max_age = 3600  # Cache static files for 1 hour
-    return response
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
 @app.route('/admin/add_album', methods=['GET', 'POST'])
+@admin_required
 def add_album():
     if request.method == 'POST':
-        # Uses app.config['UPLOAD_FOLDER'] here
-        pass
-    # ...
+        try:
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            
+            cover_image = request.files['cover_image']
+            if cover_image and allowed_file(cover_image.filename):
+                filename = secure_filename(f"{str(uuid.uuid4())}.{cover_image.filename.split('.')[-1]}")
+                cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            else:
+                flash('Invalid image file', 'error')
+                return redirect(request.url)
+            
+            new_album = {
+                'id': str(uuid.uuid4()),
+                'title': request.form['title'],
+                'artist': request.form['artist'],
+                'format': request.form['format'],
+                'image': f"uploads/covers/{filename}",
+                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
+                'date_added': datetime.datetime.now().isoformat()
+            }
+            
+            albums = load_albums()
+            albums.append(new_album)
+            save_albums(albums)
+            
+            flash('Album added successfully!', 'success')
+            return redirect(url_for('shop'))
+            
+        except Exception as e:
+            flash(f'Error adding album: {str(e)}', 'error')
+            return redirect(request.url)
+    
+    return render_template('admin/add_album.html')
 
+# Run the app
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
