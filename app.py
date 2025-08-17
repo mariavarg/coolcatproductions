@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import logging
 from functools import wraps
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -8,6 +9,10 @@ from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -19,12 +24,16 @@ app.config['ALLOWED_EXTENSIONS'] = {'jpg', 'jpeg', 'png', 'webp'}
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 csrf = CSRFProtect(app)
 
-# Fixed Rate Limiting initialization
+# Ensure upload and data directories exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('data', exist_ok=True)
+
+# Initialize rate limiter
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"]
 )
-limiter.init_app(app)  # Properly attach the app using init_app
+limiter.init_app(app)
 
 # VAT Configuration
 VAT_RATE = 0.20  # 20% VAT
@@ -34,24 +43,32 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def load_products():
-    if not os.path.exists('data/products.json'):
-        os.makedirs('data', exist_ok=True)
-        with open('data/products.json', 'w') as f:
-            json.dump([], f)
+    try:
+        if not os.path.exists('data/products.json'):
+            with open('data/products.json', 'w') as f:
+                json.dump([], f)
+            return []
+        
+        with open('data/products.json', 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading products: {str(e)}")
         return []
-    
-    with open('data/products.json', 'r') as f:
-        return json.load(f)
 
 def save_products(products):
-    with open('data/products.json', 'w') as f:
-        json.dump(products, f, indent=2)
+    try:
+        with open('data/products.json', 'w') as f:
+            json.dump(products, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving products: {str(e)}")
+        return False
 
 # Admin authentication
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('admin_logged_in') != True:
+        if not session.get('admin_logged_in'):
             flash('Admin access required', 'error')
             return redirect(url_for('home'))
         return f(*args, **kwargs)
@@ -76,111 +93,147 @@ def add_security_headers(response):
 # Routes
 @app.route('/')
 def home():
-    return render_template('index.html', featured=load_products()[:3])
+    try:
+        return render_template('index.html', featured=load_products()[:3])
+    except Exception as e:
+        logger.error(f"Error in home route: {str(e)}")
+        flash('An error occurred while loading the home page', 'error')
+        return render_template('error.html'), 500
 
 @app.route('/shop')
 def shop():
-    return render_template('shop.html', products=load_products())
+    try:
+        return render_template('shop.html', products=load_products())
+    except Exception as e:
+        logger.error(f"Error in shop route: {str(e)}")
+        flash('An error occurred while loading products', 'error')
+        return render_template('error.html'), 500
 
 @app.route('/product/<product_id>')
 def product(product_id):
-    products = load_products()
-    product = next((p for p in products if p['id'] == product_id), None)
-    if product:
-        return render_template('product.html', product=product)
-    flash('Product not found', 'error')
-    return redirect(url_for('shop'))
+    try:
+        products = load_products()
+        product = next((p for p in products if p['id'] == product_id), None)
+        if product:
+            return render_template('product.html', product=product)
+        flash('Product not found', 'error')
+        return redirect(url_for('shop'))
+    except Exception as e:
+        logger.error(f"Error in product route: {str(e)}")
+        flash('An error occurred while loading the product', 'error')
+        return render_template('error.html'), 500
 
 @app.route('/add-to-cart/<product_id>')
 def add_to_cart(product_id):
-    if 'cart' not in session:
-        session['cart'] = {}
-    
-    session['cart'][product_id] = session['cart'].get(product_id, 0) + 1
-    session.modified = True
-    flash('Item added to cart', 'success')
-    return redirect(url_for('shop'))
+    try:
+        if 'cart' not in session:
+            session['cart'] = {}
+        
+        session['cart'][product_id] = session['cart'].get(product_id, 0) + 1
+        session.modified = True
+        flash('Item added to cart', 'success')
+        return redirect(url_for('shop'))
+    except Exception as e:
+        logger.error(f"Error adding to cart: {str(e)}")
+        flash('An error occurred while adding to cart', 'error')
+        return redirect(url_for('shop'))
 
 @app.route('/cart')
 def cart():
-    cart_items = []
-    subtotal = 0.0
-    
-    products = {p['id']: p for p in load_products()}
-    for product_id, quantity in session.get('cart', {}).items():
-        if product_id in products:
-            product = products[product_id]
-            price = product.get('sale_price', product['price'])
-            item_total = float(price) * quantity
-            subtotal += item_total
-            
-            cart_items.append({
-                'id': product_id,
-                'details': product,
-                'quantity': quantity,
-                'item_total': item_total
-            })
-    
-    vat = subtotal * VAT_RATE
-    total = subtotal + vat
-    
-    return render_template('cart.html', 
-                          cart=cart_items, 
-                          subtotal=subtotal,
-                          vat=vat,
-                          total=total)
+    try:
+        cart_items = []
+        subtotal = 0.0
+        
+        products = {p['id']: p for p in load_products()}
+        for product_id, quantity in session.get('cart', {}).items():
+            if product_id in products:
+                product = products[product_id]
+                price = product.get('sale_price', product['price'])
+                item_total = float(price) * quantity
+                subtotal += item_total
+                
+                cart_items.append({
+                    'id': product_id,
+                    'details': product,
+                    'quantity': quantity,
+                    'item_total': item_total
+                })
+        
+        vat = subtotal * VAT_RATE
+        total = subtotal + vat
+        
+        return render_template('cart.html', 
+                              cart=cart_items, 
+                              subtotal=subtotal,
+                              vat=vat,
+                              total=total)
+    except Exception as e:
+        logger.error(f"Error loading cart: {str(e)}")
+        flash('An error occurred while loading your cart', 'error')
+        return render_template('error.html'), 500
 
 @app.route('/remove-from-cart/<product_id>')
 def remove_from_cart(product_id):
-    if product_id in session.get('cart', {}):
-        session['cart'].pop(product_id)
-        session.modified = True
-        flash('Item removed from cart', 'info')
-    return redirect(url_for('cart'))
+    try:
+        if 'cart' in session and product_id in session['cart']:
+            session['cart'].pop(product_id)
+            session.modified = True
+            flash('Item removed from cart', 'info')
+        return redirect(url_for('cart'))
+    except Exception as e:
+        logger.error(f"Error removing from cart: {str(e)}")
+        flash('An error occurred while removing from cart', 'error')
+        return redirect(url_for('cart'))
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def admin_login():
-    if request.method == 'POST':
-        if request.form.get('password') == os.environ.get('ADMIN_PASSWORD'):
-            session['admin_logged_in'] = True
-            return redirect(url_for('add_product'))
-        flash('Invalid credentials', 'error')
-    return render_template('admin/login.html')
+    try:
+        if request.method == 'POST':
+            admin_password = os.environ.get('ADMIN_PASSWORD')
+            if admin_password and request.form.get('password') == admin_password:
+                session['admin_logged_in'] = True
+                return redirect(url_for('add_product'))
+            flash('Invalid credentials', 'error')
+        return render_template('admin/login.html')
+    except Exception as e:
+        logger.error(f"Admin login error: {str(e)}")
+        flash('An error occurred during login', 'error')
+        return render_template('admin/login.html'), 500
 
 @app.route('/admin/add-product', methods=['GET', 'POST'])
 @admin_required
 @limiter.limit("10 per minute")
 def add_product():
-    if request.method == 'POST':
-        try:
+    try:
+        if request.method == 'POST':
             # Handle file upload
             image_file = request.files['cover_image']
             filename = 'default.jpg'
             
-            if image_file and allowed_file(image_file.filename):
+            if image_file and image_file.filename != '' and allowed_file(image_file.filename):
                 filename = secure_filename(image_file.filename)
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image_file.save(image_path)
             
             # Get form data
-            tracks = [t.strip() for t in request.form['tracks'].split('\n') if t.strip()]
+            tracks = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
             on_sale = 'on_sale' in request.form
             
             # Price validation
             try:
-                price = float(request.form['price'])
-                sale_price = float(request.form['sale_price']) if on_sale and request.form['sale_price'] else None
-            except ValueError:
+                price = float(request.form.get('price', 0))
+                sale_price = float(request.form.get('sale_price', 0)) if on_sale and request.form.get('sale_price') else None
+            except (ValueError, TypeError):
                 flash('Invalid price format. Please enter numbers only.', 'error')
                 return render_template('admin/add_product.html')
             
             # Create new product
             new_product = {
                 'id': str(uuid.uuid4()),
-                'title': request.form['title'],
-                'artist': request.form['artist'],
-                'format': request.form['format'],
+                'title': request.form.get('title', ''),
+                'artist': request.form.get('artist', ''),
+                'format': request.form.get('format', 'CD'),
                 'price': price,
                 'sale_price': sale_price,
                 'image': filename,
@@ -191,33 +244,52 @@ def add_product():
             # Save to database
             products = load_products()
             products.append(new_product)
-            save_products(products)
-            
-            flash('Product added successfully', 'success')
-            return redirect(url_for('shop'))
+            if save_products(products):
+                flash('Product added successfully', 'success')
+                return redirect(url_for('shop'))
+            else:
+                flash('Failed to save product', 'error')
         
-        except Exception as e:
-            flash(f'Error: {str(e)}', 'error')
-    
-    return render_template('admin/add_product.html')
+        return render_template('admin/add_product.html')
+    except Exception as e:
+        logger.error(f"Error adding product: {str(e)}")
+        flash('An error occurred while adding the product', 'error')
+        return render_template('admin/add_product.html'), 500
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    if request.method == 'POST':
-        # Process payment and shipping
-        session.pop('cart', None)
-        flash('Order placed successfully!', 'success')
-        return redirect(url_for('home'))
-    
-    return render_template('checkout.html')
+    try:
+        if request.method == 'POST':
+            # Process payment and shipping
+            session.pop('cart', None)
+            flash('Order placed successfully!', 'success')
+            return redirect(url_for('home'))
+        
+        return render_template('checkout.html')
+    except Exception as e:
+        logger.error(f"Checkout error: {str(e)}")
+        flash('An error occurred during checkout', 'error')
+        return render_template('error.html'), 500
 
 @app.route('/admin/logout')
 def admin_logout():
-    session.pop('admin_logged_in', None)
-    return redirect(url_for('home'))
+    try:
+        session.pop('admin_logged_in', None)
+        return redirect(url_for('home'))
+    except Exception as e:
+        logger.error(f"Logout error: {str(e)}")
+        flash('An error occurred during logout', 'error')
+        return redirect(url_for('home'))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
 
 if __name__ == '__main__':
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
