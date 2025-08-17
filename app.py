@@ -41,6 +41,16 @@ limiter = Limiter(
     default_limits=["200 per day", "100 per hour"]
 )
 
+# Add this static files route HERE
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    """Ensure static files are served correctly with caching"""
+    cache_timeout = app.get_send_file_max_age(filename)
+    return send_from_directory(
+        app.static_folder,
+        filename,
+        cache_timeout=cache_timeout
+    )
 # Constants
 BRAND_NAME = "Cool Cat Productions-Druna C."
 VAT_RATE = 0.20  # 20% VAT
