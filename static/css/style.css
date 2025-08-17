@@ -80,11 +80,3 @@ main {
   text-align: center;
 }
 
-/* ===== DEBUG TEST ===== */
-.debug-test {
-  border: 2px solid lime;
-  padding: 20px;
-  margin: 20px 0;
-  text-align: center;
-  font-size: 1.2rem;
-}
