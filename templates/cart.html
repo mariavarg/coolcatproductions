@@ -1,76 +1,87 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1>Your Shopping Cart</h1>
+<section class="cart-container">
+    <h1>Your Music Cart</h1>
     
     {% if not cart %}
-    <div class="alert alert-info text-center">
-        Your cart is empty. <a href="{{ url_for('shop') }}" class="alert-link">Browse our store</a>
+    <div class="empty-cart">
+        <p>Your cart is empty</p>
+        <a href="{{ url_for('shop') }}" class="btn">Browse Music</a>
     </div>
     {% else %}
-    <div class="table-responsive">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Total</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in cart %}
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <img src="{{ url_for('static', filename=item.image) }}" 
-                                 class="img-thumbnail me-3" 
-                                 style="width: 80px; height: 80px; object-fit: cover;" 
-                                 alt="{{ item.name }}">
-                            <div>
-                                <h5 class="mb-0">{{ item.name }}</h5>
-                                <p class="mb-0 text-muted">by {{ item.artist }}</p>
-                            </div>
+    <table class="cart-table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in cart %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('product', product_id=item.id) }}" class="cart-item">
+                        <img src="{{ url_for('static', filename=item.image) }}" 
+                             alt="{{ item.name }}" 
+                             class="cart-item-image">
+                        <div>
+                            <h3>{{ item.name }}</h3>
+                            <p>{{ item.artist }}</p>
                         </div>
-                    </td>
-                    <td>£{{ item.price }}</td>
-                    <td>{{ item.quantity }}</td>
-                    <td>£{{ "%.2f"|format(item.item_total) }}</td>
-                    <td>
-                        <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" 
-                           class="btn btn-sm btn-danger">
-                            Remove
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                    <td>£{{ "%.2f"|format(subtotal) }}</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="text-end"><strong>VAT ({{ vat_rate|int }}%):</strong></td>
-                    <td>£{{ "%.2f"|format(vat) }}</td>
-                    <td></td>
-                </tr>
-                <tr class="fw-bold">
-                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                    <td>£{{ "%.2f"|format(total) }}</td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
+                    </a>
+                </td>
+                <td>£{{ "%.2f"|format(item.price) }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>£{{ "%.2f"|format(item.item_total) }}</td>
+                <td>
+                    <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" 
+                       class="btn btn-remove">Remove</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                <td>£{{ "%.2f"|format(subtotal) }}</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="3" class="text-end"><strong>VAT ({{ vat_rate|int }}%):</strong></td>
+                <td>£{{ "%.2f"|format(vat) }}</td>
+                <td></td>
+            </tr>
+            <tr class="fw-bold">
+                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                <td>£{{ "%.2f"|format(total) }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="cart-summary">
+        <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>£{{ "%.2f"|format(subtotal) }}</span>
+        </div>
+        <div class="summary-row">
+            <span>VAT ({{ vat_rate|int }}%):</span>
+            <span>£{{ "%.2f"|format(vat) }}</span>
+        </div>
+        <div class="summary-row total">
+            <span>Total:</span>
+            <span>£{{ "%.2f"|format(total) }}</span>
+        </div>
     </div>
-    
-    <div class="d-flex justify-content-center mt-4">
-        <a href="{{ url_for('shop') }}" class="btn btn-outline-primary me-3">Continue Shopping</a>
-        <a href="{{ url_for('checkout') }}" class="btn btn-primary">Proceed to Checkout</a>
+
+    <div class="cart-actions">
+        <a href="{{ url_for('shop') }}" class="btn">Continue Shopping</a>
+        <a href="{{ url_for('checkout') }}" class="btn btn-checkout">Proceed to Checkout</a>
     </div>
     {% endif %}
-</div>
+</section>
 {% endblock %}
