@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Shop{% endblock %}
-
 {% block content %}
-    <h2>All Releases</h2>
-    
-    <div class="products-grid">
-        {% for product in products %}
-            <div class="product-card">
-                <img src="{{ url_for('static', filename=product.image) }}" alt="{{ product.title }}">
-                <h3>{{ product.title }}</h3>
-                <p>{{ product.artist }}</p>
-                <p class="price">
-                    {% if product.on_sale %}
-                        <span class="sale-price">${{ "%.2f"|format(product.sale_price) }}</span>
-                        <span class="original-price">${{ "%.2f"|format(product.price) }}</span>
-                    {% else %}
-                        ${{ "%.2f"|format(product.price) }}
-                    {% endif %}
-                </p>
-                <a href="{{ url_for('product', product_id=product.id) }}" class="btn">View Details</a>
+<section class="music-grid">
+    {% if current_user.is_admin %}
+    <div class="admin-controls">
+        <a href="{{ url_for('add_album') }}" class="btn">+ Add New Album</a>
+    </div>
+    {% endif %}
+
+    <div class="album-grid">
+        {% for album in albums %}
+        <div class="album-card" data-album-id="{{ album.id }}">
+            <div class="album-cover-container">
+                <img src="{{ url_for('static', filename=album.image) }}" alt="{{ album.title }}" class="album-cover">
+                <span class="album-format">{{ album.format }}</span>
             </div>
+            <div class="album-info">
+                <h3 class="album-title">{{ album.title }}</h3>
+                <p class="album-artist">{{ album.artist }}</p>
+            </div>
+        </div>
         {% endfor %}
     </div>
+</section>
 {% endblock %}
