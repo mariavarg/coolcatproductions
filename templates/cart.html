@@ -2,11 +2,11 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4 text-center">Your Shopping Cart</h1>
+    <h1>Your Shopping Cart</h1>
     
     {% if not cart %}
     <div class="alert alert-info text-center">
-        Your cart is empty. <a href="/shop" class="alert-link">Browse our store</a>
+        Your cart is empty. <a href="{{ url_for('shop') }}" class="alert-link">Browse our store</a>
     </div>
     {% else %}
     <div class="table-responsive">
@@ -67,9 +67,9 @@
         </table>
     </div>
     
-    <div class="d-flex justify-content-between mt-4">
-        <a href="/shop" class="btn btn-outline-primary">Continue Shopping</a>
-        <a href="/checkout" class="btn btn-success">Proceed to Checkout</a>
+    <div class="d-flex justify-content-center mt-4">
+        <a href="{{ url_for('shop') }}" class="btn btn-outline-primary me-3">Continue Shopping</a>
+        <a href="{{ url_for('checkout') }}" class="btn btn-primary">Proceed to Checkout</a>
     </div>
     {% endif %}
 </div>
