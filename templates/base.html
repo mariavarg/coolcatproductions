@@ -9,6 +9,18 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     </head>
+    <!-- ⚠️ Add this before </body> -->
+<script>
+// Simple request throttling
+let lastCall = 0;
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.album-card')) {
+        const now = Date.now();
+        if (now - lastCall < 1000) return;  // 1-second delay
+        lastCall = now;
+    }
+});
+</script>
 <body>
     <header>
         <h1>{{ brand }}</h1>
