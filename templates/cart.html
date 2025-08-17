@@ -1,38 +1,76 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
 {% block content %}
-<section class="cart-container">
-    <h1>Your Shopping Cart</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">Your Shopping Cart</h1>
     
-    {% if cart %}
-    <div class="cart-items">
-        {% for item in cart %}
-        <div class="cart-item">
-            <div class="cart-item-details">
-                <h3>{{ item.details.title }}</h3>
-                <p>{{ item.details.artist }} | {{ item.details.format|upper }}</p>
-            </div>
-            <div class="cart-item-quantity">
-                <span>Qty: {{ item.quantity }}</span>
-            </div>
-            <div class="cart-item-price">
-                ${{ "%.2f"|format(item.item_total) }}
-            </div>
-            <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" class="btn">Remove</a>
-        </div>
-        {% endfor %}
+    {% if not cart %}
+    <div class="alert alert-info">
+        Your cart is empty. <a href="/shop">Browse our store</a>
     </div>
-    
-    <div class="totals">
-        <p>Subtotal: ${{ "%.2f"|format(subtotal) }}</p>
-        <p>VAT (20%): ${{ "%.2f"|format(vat) }}</p>
-        <p class="total">Total: ${{ "%.2f"|format(total) }}</p>
-    </div>
-    
-    <a href="{{ url_for('checkout') }}" class="btn">Proceed to Checkout</a>
     {% else %}
-    <p>Your cart is empty</p>
-    <a href="{{ url_for('shop') }}" class="btn">Continue Shopping</a>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ url_for('static', filename='uploads/covers/' + item.details.image) }}" 
+                                 class="img-thumbnail me-3" 
+                                 style="width: 80px; height: 80px; object-fit: cover;" 
+                                 alt="{{ item.details.title }}">
+                            <div>
+                                <h5 class="mb-0">{{ item.details.title }}</h5>
+                                <p class="mb-0 text-muted">by {{ item.details.artist }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td>£{{ item.details.sale_price if item.details.on_sale else item.details.price }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>£{{ "%.2f"|format(item.item_total) }}</td>
+                    <td>
+                        <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" 
+                           class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                    <td>£{{ "%.2f"|format(subtotal) }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="text-end"><strong>VAT (20%):</strong></td>
+                    <td>£{{ "%.2f"|format(vat) }}</td>
+                    <td></td>
+                </tr>
+                <tr class="fw-bold">
+                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                    <td>£{{ "%.2f"|format(total) }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <div class="d-flex justify-content-between mt-4">
+        <a href="/shop" class="btn btn-outline-primary">Continue Shopping</a>
+        <a href="/checkout" class="btn btn-success">Proceed to Checkout</a>
+    </div>
     {% endif %}
-</section>
+</div>
 {% endblock %}
