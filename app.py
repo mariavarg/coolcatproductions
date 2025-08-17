@@ -44,6 +44,11 @@ limiter = Limiter(
 )
 limiter.init_app(app)
 
+# Routes
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 # VAT Configuration
 VAT_RATE = 0.20  # 20% VAT
 
