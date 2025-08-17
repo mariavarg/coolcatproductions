@@ -19,6 +19,30 @@
         </nav>
     </header>
 
+    <script>
+// Modal functionality with format display
+document.querySelectorAll('.album-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const albumId = this.dataset.albumId;
+        fetch(`/album/${albumId}`)
+            .then(response => response.text())
+            .then(html => {
+                const modalContent = document.getElementById('modalAlbumContent');
+                modalContent.innerHTML = html;
+                
+                // Add format badge to modal
+                const format = this.querySelector('.album-format').textContent;
+                const formatBadge = document.createElement('div');
+                formatBadge.className = 'album-format';
+                formatBadge.textContent = format;
+                modalContent.querySelector('.album-detail').prepend(formatBadge);
+                
+                document.getElementById('albumModal').style.display = 'block';
+            });
+    });
+});
+</script>
+
     <main>
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
