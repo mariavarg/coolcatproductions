@@ -3,6 +3,7 @@ import json
 import uuid
 import logging
 import re
+import traceback
 from functools import wraps
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -49,21 +50,14 @@ def allowed_file(filename):
 def repair_json(json_str):
     """Attempt to repair common JSON formatting issues"""
     try:
-        # Attempt to parse the JSON directly
         return json.loads(json_str)
     except json.JSONDecodeError as e:
         logger.warning(f"JSON repair needed: {str(e)}")
         try:
-            # Try fixing common issues
-            # 1. Replace single quotes with double quotes
-            # 2. Remove trailing commas
-            # 3. Escape unescaped quotes
             repaired = json_str.replace("'", '"')
             repaired = re.sub(r',\s*}', '}', repaired)
             repaired = re.sub(r',\s*]', ']', repaired)
             repaired = re.sub(r'(?<!\\)"', r'\"', repaired)
-            
-            # Try parsing again
             return json.loads(repaired)
         except Exception as e2:
             logger.error(f"JSON repair failed: {str(e2)}")
@@ -73,33 +67,24 @@ def load_products():
     try:
         file_path = 'data/products.json'
         
-        # Create file if it doesn't exist
         if not os.path.exists(file_path):
             with open(file_path, 'w') as f:
                 json.dump([], f)
             return []
         
-        # Load and validate JSON
         with open(file_path, 'r') as f:
             try:
                 return json.load(f)
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error: {str(e)} - attempting repair")
-                
-                # Read file content for repair
                 f.seek(0)
                 content = f.read()
-                
-                # Attempt to repair JSON
                 repaired = repair_json(content)
-                
-                # Save repaired version
                 with open(file_path, 'w') as outfile:
                     json.dump(repaired, outfile, indent=2)
-                
                 return repaired
     except Exception as e:
-        logger.error(f"Critical error loading products: {str(e)}")
+        logger.error(f"Critical error loading products: {str(e)}\n{traceback.format_exc()}")
         return []
 
 def save_products(products):
@@ -149,9 +134,8 @@ def home():
         featured = load_products()[:3]
         return render_template('index.html', featured=featured)
     except Exception as e:
-        logger.error(f"Error in home route: {str(e)}")
-        flash('An error occurred while loading the home page', 'error')
-        return render_template('error.html'), 500
+        logger.error(f"Error in home route: {str(e)}\n{traceback.format_exc()}")
+        return render_template('error.html', message='Home page loading failed'), 500
 
 @app.route('/shop')
 def shop():
@@ -160,8 +144,7 @@ def shop():
         return render_template('shop.html', products=products)
     except Exception as e:
         logger.error(f"Error in shop route: {str(e)}")
-        flash('An error occurred while loading products', 'error')
-        return render_template('error.html'), 500
+        return render_template('error.html', message='Shop loading failed'), 500
 
 @app.route('/product/<product_id>')
 def product(product_id):
@@ -174,8 +157,7 @@ def product(product_id):
         return redirect(url_for('shop'))
     except Exception as e:
         logger.error(f"Error in product route: {str(e)}")
-        flash('An error occurred while loading the product', 'error')
-        return render_template('error.html'), 500
+        return render_template('error.html', message='Product loading failed'), 500
 
 @app.route('/add-to-cart/<product_id>')
 def add_to_cart(product_id):
@@ -189,7 +171,7 @@ def add_to_cart(product_id):
         return redirect(url_for('shop'))
     except Exception as e:
         logger.error(f"Error adding to cart: {str(e)}")
-        flash('An error occurred while adding to cart', 'error')
+        flash('Failed to add item to cart', 'error')
         return redirect(url_for('shop'))
 
 @app.route('/cart')
@@ -223,8 +205,7 @@ def cart():
                               total=total)
     except Exception as e:
         logger.error(f"Error loading cart: {str(e)}")
-        flash('An error occurred while loading your cart', 'error')
-        return render_template('error.html'), 500
+        return render_template('error.html', message='Cart loading failed'), 500
 
 @app.route('/remove-from-cart/<product_id>')
 def remove_from_cart(product_id):
@@ -236,7 +217,7 @@ def remove_from_cart(product_id):
         return redirect(url_for('cart'))
     except Exception as e:
         logger.error(f"Error removing from cart: {str(e)}")
-        flash('An error occurred while removing from cart', 'error')
+        flash('Failed to remove item from cart', 'error')
         return redirect(url_for('cart'))
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -252,8 +233,7 @@ def admin_login():
         return render_template('admin/login.html')
     except Exception as e:
         logger.error(f"Admin login error: {str(e)}")
-        flash('An error occurred during login', 'error')
-        return render_template('admin/login.html'), 500
+        return render_template('admin/login.html', error=True), 500
 
 @app.route('/admin/add-product', methods=['GET', 'POST'])
 @admin_required
@@ -307,14 +287,12 @@ def add_product():
         return render_template('admin/add_product.html')
     except Exception as e:
         logger.error(f"Error adding product: {str(e)}")
-        flash('An error occurred while adding the product', 'error')
-        return render_template('admin/add_product.html'), 500
+        return render_template('admin/add_product.html', error=True), 500
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     try:
         if request.method == 'POST':
-            # Process payment and shipping
             session.pop('cart', None)
             flash('Order placed successfully!', 'success')
             return redirect(url_for('home'))
@@ -322,8 +300,7 @@ def checkout():
         return render_template('checkout.html')
     except Exception as e:
         logger.error(f"Checkout error: {str(e)}")
-        flash('An error occurred during checkout', 'error')
-        return render_template('error.html'), 500
+        return render_template('error.html', message='Checkout failed'), 500
 
 @app.route('/admin/logout')
 def admin_logout():
@@ -332,7 +309,7 @@ def admin_logout():
         return redirect(url_for('home'))
     except Exception as e:
         logger.error(f"Logout error: {str(e)}")
-        flash('An error occurred during logout', 'error')
+        flash('Logout failed', 'error')
         return redirect(url_for('home'))
 
 @app.errorhandler(404)
