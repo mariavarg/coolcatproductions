@@ -1,4 +1,4 @@
-/* Cookie Consent Styles */
+/* Cookie Consent Styles (UNCHANGED) */
 .cookie-consent {
     position: fixed;
     bottom: 20px;
@@ -75,4 +75,128 @@
 @keyframes fadeIn {
     from { opacity: 0; bottom: 0; }
     to { opacity: 1; bottom: 20px; }
+}
+
+/* NEW CART STYLES (ADDED BELOW YOUR EXISTING STYLES) */
+/* Minimal cart styles - won't affect your cookie consent */
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.cart-table th, 
+.cart-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #2a3b52;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.cart-item img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #2a8be0;
+}
+
+.cart-summary {
+    width: 300px;
+    margin-left: auto;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #0d1a30;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    color: #e0f0ff;
+}
+
+.summary-row.total {
+    font-weight: bold;
+    font-size: 1.1em;
+    border-top: 1px solid #2a3b52;
+    margin-top: 10px;
+    padding-top: 15px;
+}
+
+.cart-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.empty-cart {
+    text-align: center;
+    padding: 40px 0;
+    color: #e0f0ff;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #2a8be0;
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background: #4da8ff;
+    transform: scale(1.05);
+}
+
+.btn-remove {
+    background: #c0392b;
+}
+
+.btn-remove:hover {
+    background: #e74c3c;
+}
+
+.btn-checkout {
+    background: #27ae60;
+}
+
+.btn-checkout:hover {
+    background: #2ecc71;
+}
+
+.flash-messages {
+    margin: 15px 0;
+}
+
+.flash {
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: #0d1a30;
+    border: 1px solid #2a8be0;
+    color: #e0f0ff;
+}
+
+.flash.success {
+    border-color: #27ae60;
+}
+
+.flash.error {
+    border-color: #c0392b;
+}
+
+.flash.info {
+    border-color: #f39c12;
 }
