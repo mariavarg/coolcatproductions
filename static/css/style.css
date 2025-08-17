@@ -1,4 +1,6 @@
 /* Cookie Consent Styles (UNCHANGED) */
+/* Your existing CSS content remains exactly the same */
+/* Cookie Consent Styles (UNCHANGED) */
 .cookie-consent {
     position: fixed;
     bottom: 20px;
@@ -15,6 +17,9 @@
     display: none; /* Hidden by default */
     animation: fadeIn 0.5s ease-out;
 }
+
+/* Rest of your CSS remains the same */
+/* ... */
 
 .cookie-content {
     display: flex;
