@@ -17,7 +17,67 @@
     display: none; /* Hidden by default */
     animation: fadeIn 0.5s ease-out;
 }
+/* ADMIN FORM STYLES */
+.admin-form {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
 
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+    color: #ffffff;
+}
+
+.form-group input[type="text"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #2a8be0;
+    border-radius: 5px;
+    color: white;
+    font-family: 'Sofia', cursive;
+}
+
+.form-group textarea {
+    min-height: 200px;
+    resize: vertical;
+}
+
+.form-group input[type="file"] {
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px dashed #2a8be0;
+    border-radius: 5px;
+    color: white;
+}
+
+.btn {
+    background-color: #2a8be0;
+    color: white;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: 'Sofia', cursive;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #4da8ff;
+    transform: translateY(-2px);
+}
 /* Rest of your CSS remains the same */
 /* ... */
 
