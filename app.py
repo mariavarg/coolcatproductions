@@ -44,11 +44,6 @@ limiter = Limiter(
 )
 limiter.init_app(app)
 
-# Routes
-@app.route('/privacy')
-def privacy():
-    return render_template('privacy.html')
-
 # VAT Configuration
 VAT_RATE = 0.20  # 20% VAT
 
@@ -116,8 +111,15 @@ def add_security_headers(response):
 def inject_global_data():
     return {
         'brand': BRAND_NAME,
-        'current_year': datetime.datetime.now().year
+        'current_year': datetime.datetime.now().year,
+        'cart_count': len(session.get('cart', []))
     }
+
+# Initialize cart in session
+@app.before_request
+def initialize_cart():
+    if 'cart' not in session:
+        session['cart'] = []
 
 # Routes
 @app.route('/')
@@ -156,7 +158,95 @@ def product(product_id):
         logger.error(f"Product route error: {str(e)}")
         return render_template('error.html', message='Product loading failed'), 500
 
-# ... (other routes remain the same) ...
+@app.route('/cart')
+def cart():
+    try:
+        cart_items = session.get('cart', [])
+        products = load_products()
+        
+        cart_products = []
+        subtotal = 0
+        
+        for item in cart_items:
+            product = next((p for p in products if p['id'] == item['id']), None)
+            if product:
+                item_total = product['price'] * item['quantity']
+                subtotal += item_total
+                cart_products.append({
+                    'id': product['id'],
+                    'name': product['name'],
+                    'price': product['price'],
+                    'image': product['image'],
+                    'quantity': item['quantity'],
+                    'item_total': item_total
+                })
+        
+        vat = subtotal * VAT_RATE
+        total = subtotal + vat
+        
+        return render_template(
+            'cart.html', 
+            cart=cart_products, 
+            subtotal=subtotal,
+            vat=vat,
+            total=total,
+            vat_rate=VAT_RATE*100
+        )
+    except Exception as e:
+        logger.error(f"Cart route error: {str(e)}")
+        return render_template('error.html', message='Cart loading failed'), 500
+
+@app.route('/add_to_cart/<product_id>', methods=['POST'])
+def add_to_cart(product_id):
+    try:
+        quantity = int(request.form.get('quantity', 1))
+        cart = session.get('cart', [])
+        
+        # Check if product exists
+        products = load_products()
+        if not any(p['id'] == product_id for p in products):
+            flash('Product not found', 'error')
+            return redirect(url_for('shop'))
+        
+        # Update quantity if already in cart
+        found = False
+        for item in cart:
+            if item['id'] == product_id:
+                item['quantity'] += quantity
+                found = True
+                break
+        
+        # Add new item if not found
+        if not found:
+            cart.append({'id': product_id, 'quantity': quantity})
+        
+        session['cart'] = cart
+        flash(f'Item added to cart!', 'success')
+        return redirect(url_for('product', product_id=product_id))
+    except Exception as e:
+        logger.error(f"Add to cart error: {str(e)}")
+        return render_template('error.html', message='Could not add to cart'), 500
+
+@app.route('/remove_from_cart/<product_id>')
+def remove_from_cart(product_id):
+    try:
+        cart = session.get('cart', [])
+        new_cart = [item for item in cart if item['id'] != product_id]
+        
+        if len(new_cart) < len(cart):
+            session['cart'] = new_cart
+            flash('Item removed from cart', 'info')
+        else:
+            flash('Item not found in cart', 'error')
+            
+        return redirect(url_for('cart'))
+    except Exception as e:
+        logger.error(f"Remove from cart error: {str(e)}")
+        return render_template('error.html', message='Could not remove item'), 500
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
