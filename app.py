@@ -370,9 +370,11 @@ def add_product():
         flash('Error adding product', 'error')
         return render_template('admin/add_product.html')
 
+#
 @app.route('/admin/add_album', methods=['GET', 'POST'])
 @admin_required
 def add_album():
+    #
     if request.method == 'POST':
         try:
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
