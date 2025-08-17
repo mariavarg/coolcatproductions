@@ -4,4 +4,8 @@ Flask-WTF==1.2.1
 Flask-Limiter==3.5.1
 Werkzeug==3.0.1
 gunicorn==21.2.0
-gunicorn app:app
+flask
+python-dotenv
+flask-wtf
+werkzeug
+gunicorn  # <-- Just the package name, no "app:app"
