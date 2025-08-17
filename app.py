@@ -1,30 +1,13 @@
 import os
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
 
 # Initialize Flask app
 app = Flask(__name__)
-
-# Load environment variables
-load_dotenv()
-
-# Configuration
-app.config.update(
-    SECRET_KEY=os.environ.get('SECRET_KEY') or os.urandom(24).hex(),
-    ENV=os.environ.get('FLASK_ENV', 'production'),
-    DEBUG=os.environ.get('FLASK_ENV') == 'development',
-    SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:///app.db'),
-    SQLALCHEMY_TRACK_MODIFICATIONS=False
-)
-
-# Initialize extensions
-db = SQLAlchemy(app)
-CORS(app)  # Remove if not needed
 
 # Configure logging
 logging.basicConfig(
@@ -33,45 +16,61 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Log all requests
-@app.before_request
-def log_request():
-    logger.info(f"{request.method} {request.path} - IP: {request.remote_addr}")
+# Load environment variables
+load_dotenv()
 
-# Health check endpoint
+# Configuration
+app.config.update(
+    SECRET_KEY=os.environ.get('SECRET_KEY', os.urandom(24).hex()),
+    DEBUG=os.environ.get('DEBUG', 'False').lower() == 'true'
+)
+
+# JSON file for data storage
+DATA_FILE = "data.json"
+
+def load_data():
+    """Load data from JSON file"""
+    try:
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"users": [], "posts": []}  # Default structure
+
+def save_data(data):
+    """Save data to JSON file"""
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+# Example route storing data in JSON
+@app.route('/add_user', methods=['POST'])
+def add_user():
+    data = load_data()
+    new_user = {
+        "id": len(data["users"]) + 1,
+        "username": request.form.get("username"),
+        "email": request.form.get("email")
+    }
+    data["users"].append(new_user)
+    save_data(data)
+    return jsonify({"message": "User added", "user": new_user}), 201
+
+@app.route('/get_users')
+def get_users():
+    data = load_data()
+    return jsonify(data["users"])
+
+# Health check endpoint (updated to check JSON instead of DB)
 @app.route('/health')
 def health_check():
     try:
-        # Test database connection
-        db.engine.execute("SELECT 1")
+        load_data()  # Test JSON read
         return jsonify({"status": "healthy"}), 200
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return jsonify({"status": "unhealthy"}), 500
 
-# Debug routes (only in development)
-if app.debug and app.config['ENV'] == 'development':
-    @app.route('/debug')
-    def debug_info():
-        return jsonify({
-            "session": dict(session),
-            "config": {k: v for k, v in app.config.items() if not k.startswith('SECRET')}
-        })
-
-# Error handlers
-@app.errorhandler(404)
-def not_found(e):
-    if request.accept_mimetypes.accept_json:
-        return jsonify({"error": "Not found"}), 404
-    return render_template('404.html'), 404
-
-@app.errorhandler(500)
-def internal_error(e):
-    logger.error(f"Server error: {str(e)}")
-    return render_template('500.html'), 500
-
-# Your existing routes here...
+# Rest of your routes...
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=app.debug)
