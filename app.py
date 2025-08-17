@@ -112,7 +112,7 @@ def add_album():
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+           filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png', 'webp'}
 
 def load_products():
     try:
