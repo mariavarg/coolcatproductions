@@ -2,11 +2,11 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4 text-center">Music Shop</h1>
+    <h1>Music Shop</h1>
     
-    <div class="row">
+    <div class="row justify-content-center">
         {% for product in products %}
-        <div class="col-md-4 mb-4">
+        <div class="col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
                 <a href="{{ url_for('product', product_id=product.id) }}">
                     <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
@@ -19,7 +19,7 @@
                     <p class="card-text">
                         {% if product.on_sale %}
                         <span class="text-muted text-decoration-line-through">£{{ product.price }}</span>
-                        <span class="text-danger fw-bold">£{{ product.sale_price }}</span>
+                        <span class="text-primary fw-bold">£{{ product.sale_price }}</span>
                         {% else %}
                         <span class="fw-bold">£{{ product.price }}</span>
                         {% endif %}
