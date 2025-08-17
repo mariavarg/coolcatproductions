@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ brand }}</title>
-    <!-- ⚠️ Make sure this link is EXACTLY like this: -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.1">
-</head>
+    <!-- Use absolute path to CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- For Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
+
+    {% block content %}{% endblock %}
     <!-- ⚠️ Add this before </body> -->
 <script>
 // Simple request throttling
@@ -18,7 +21,7 @@ document.addEventListener('click', (e) => {
         lastCall = now;
     }
 });
-</script>
+</script></head>
 <body>
     <header>
         <h1>{{ brand }}</h1>
