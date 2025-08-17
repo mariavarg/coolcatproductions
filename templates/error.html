@@ -1,58 +1,12 @@
-{% extends "base.html" %}
-
-{% block title %}Error - Music Shop{% endblock %}
+{% extends "layout.html" %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <div class="error-card p-5 rounded shadow">
-                <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 4rem;"></i>
-                <h1 class="mt-4">{% block error_title %}Oops! Something went wrong{% endblock %}</h1>
-                
-                <div class="error-details mt-4 p-4 bg-light rounded">
-                    <p class="lead">
-                        {% block error_message %}
-                            We encountered an error while processing your request.
-                        {% endblock %}
-                    </p>
-                    
-                    {% if error %}
-                    <div class="alert alert-secondary mt-3">
-                        <small class="text-muted">Technical details:</small>
-                        <code class="d-block mt-2">{{ error }}</code>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="error-actions mt-5">
-                    <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg me-3">
-                        <i class="bi bi-house-door"></i> Return Home
-                    </a>
-                    <a href="{{ url_for('shop') }}" class="btn btn-outline-secondary btn-lg">
-                        <i class="bi bi-music-note-list"></i> Browse Albums
-                    </a>
-                </div>
-            </div>
-        </div>
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h1>Error</h1>
+        <p>{{ message }}</p>
+        <p>We're sorry, but something went wrong.</p>
+        <a href="/" class="btn btn-primary">Return to Homepage</a>
     </div>
 </div>
-
-<style>
-    .error-card {
-        background-color: white;
-        border-top: 5px solid #dc3545;
-    }
-    
-    @media (max-width: 768px) {
-        .error-card {
-            padding: 2rem !important;
-        }
-        
-        .error-actions .btn {
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-    }
-</style>
 {% endblock %}
