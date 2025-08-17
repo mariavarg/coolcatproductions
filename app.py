@@ -373,7 +373,7 @@ def add_product():
 
 @app.route('/admin/add_album', methods=['GET', 'POST'])
 @admin_required
-#def add_album():
+def add_album():
        if request.method == 'POST':
         try:
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
