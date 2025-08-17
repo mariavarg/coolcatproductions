@@ -51,6 +51,7 @@ def static_files(filename):
         filename,
         cache_timeout=cache_timeout
     )
+
 # Constants
 BRAND_NAME = "Cool Cat Productions-Druna C."
 VAT_RATE = 0.20  # 20% VAT
@@ -370,11 +371,10 @@ def add_product():
         flash('Error adding product', 'error')
         return render_template('admin/add_product.html')
 
-
 @app.route('/admin/add_album', methods=['GET', 'POST'])
 @admin_required
 def add_album():
-       if request.method == 'POST':
+    if request.method == 'POST':
         try:
             os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
             
@@ -414,4 +414,3 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
-    
