@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="product-detail">
+    <div class="product-image-container">
+        <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
+             alt="{{ product.title }}" class="product-image-large">
+    </div>
+    
+    <div class="product-info">
+        {% if product.on_sale %}
+            <div class="sale-badge">SALE</div>
+        {% endif %}
+        
+        <h1>{{ product.title }}</h1>
+        <p class="product-artist">{{ product.artist }}</p>
+        <p class="product-format">{{ product.format|upper }}</p>
+        
+        <div class="product-price">
+            {% if product.on_sale %}
+                <span class="original-price">${{ product.price }}</span>
+                <span class="sale-price">${{ product.sale_price }}</span>
+            {% else %}
+                <span>${{ product.price }}</span>
+            {% endif %}
+        </div>
+        
+        <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn">Add to Cart</a>
+        
+        <div class="tracklist">
+            <h3>Tracklist</h3>
+            <ul>
+                {% for track in product.tracks %}
+                <li class="track">{{ track }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</section>
+{% endblock %}
