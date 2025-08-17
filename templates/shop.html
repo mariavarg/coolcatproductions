@@ -1,39 +1,23 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1>Music Shop</h1>
+<section class="home-hero">
+    <h1>Music Collection</h1>
+    <p>Explore all releases</p>
     
-    <div class="row justify-content-center">
+    <div class="grid">
         {% for product in products %}
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100">
-                <a href="{{ url_for('product', product_id=product.id) }}">
-                    <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
-                         class="card-img-top album-cover" 
-                         alt="{{ product.title }} cover">
-                </a>
-                <div class="card-body text-center">
-                    <h5 class="card-title">{{ product.title }}</h5>
-                    <p class="card-text">by {{ product.artist }}</p>
-                    <p class="card-text">
-                        {% if product.on_sale %}
-                        <span class="text-muted text-decoration-line-through">£{{ product.price }}</span>
-                        <span class="text-primary fw-bold">£{{ product.sale_price }}</span>
-                        {% else %}
-                        <span class="fw-bold">£{{ product.price }}</span>
-                        {% endif %}
-                    </p>
-                    <a href="{{ url_for('add_to_cart', product_id=product.id) }}" 
-                       class="btn btn-primary">Add to Cart</a>
-                </div>
+        <a href="{{ url_for('product', product_id=product.id) }}" class="grid-item">
+            <img src="{{ url_for('static', filename=product.image) }}" 
+                 alt="{{ product.title }}" 
+                 class="album-cover">
+            <div class="album-info">
+                <h3 class="album-title">{{ product.title }}</h3>
+                <p class="album-artist">{{ product.artist }}</p>
+                <p class="album-price">£{{ "%.2f"|format(product.price) }}</p>
             </div>
-        </div>
-        {% else %}
-        <div class="col-12">
-            <div class="alert alert-info text-center">No products available yet</div>
-        </div>
+        </a>
         {% endfor %}
     </div>
-</div>
+</section>
 {% endblock %}
