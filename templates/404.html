@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h1 class="h2 mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        404 Page Not Found
+                    </h1>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <img src="{{ url_for('static', filename='images/404-illustration.svg') }}" 
+                             alt="Lost cat illustration" 
+                             class="img-fluid" 
+                             style="max-height: 200px;">
+                    </div>
+                    
+                    <p class="lead">Oops! The page you're looking for has gone missing.</p>
+                    <p>It seems the content you requested couldn't be found. Maybe it was moved or never existed.</p>
+                    
+                    <div class="alert alert-info mt-4">
+                        <h2 class="h4">Try these instead:</h2>
+                        <div class="d-flex justify-content-center gap-3 mt-3">
+                            <a href="{{ url_for('shop') }}" class="btn btn-outline-primary">
+                                <i class="bi bi-music-note-list"></i> Browse Shop
+                            </a>
+                            <a href="{{ url_for('home') }}" class="btn btn-outline-primary">
+                                <i class="bi bi-house-door"></i> Home Page
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <form action="{{ url_for('shop') }}" method="GET" class="d-flex">
+                            <input type="search" 
+                                   class="form-control me-2" 
+                                   placeholder="Search our shop..." 
+                                   name="q">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>If you believe this is an error, please <a href="{{ url_for('contact') }}">contact us</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
