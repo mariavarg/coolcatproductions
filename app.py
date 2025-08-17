@@ -130,7 +130,7 @@ def save_products(products):
 def get_product_by_id(product_id):
     """Get a single product by its ID."""
     products = load_products()
-    return next((p for p in products if p['id'] == product_id), None
+    return next((p for p in products if p['id'] == product_id), None)
 
 def get_cart_details():
     """Calculate cart details including totals."""
