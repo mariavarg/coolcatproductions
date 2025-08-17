@@ -1,149 +1,136 @@
 import os
 import json
-from flask import Flask, request, jsonify, redirect, url_for, render_template, abort
-from werkzeug.utils import secure_filename
+from datetime import datetime
+from flask import Flask, render_template, url_for, flash, session, redirect, request, abort
 from werkzeug.security import generate_password_hash, check_password_hash
-import logging
-from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
 
-# Initialize Flask app
 app = Flask(__name__)
-
-# Load environment variables
-load_dotenv()
 
 # Configuration
 app.config.update(
-    SECRET_KEY=os.environ.get('SECRET_KEY', os.urandom(24).hex()),
-    DEBUG=os.environ.get('DEBUG', 'False').lower() == 'true',
-    DATA_FILE='data.json',
-    UPLOAD_FOLDER='uploads',
-    ALLOWED_EXTENSIONS={'txt', 'pdf', 'png', 'jpg'}
+    SECRET_KEY=os.environ.get('SECRET_KEY', 'dev-key-123'),
+    BRAND_NAME="VinylVault",
+    ADMIN_USERNAME=os.environ.get('ADMIN_USER', 'admin'),
+    ADMIN_PASSWORD_HASH=generate_password_hash(os.environ.get('ADMIN_PASS', 'music123')),
+    PRODUCTS_FILE='data/products.json',
+    CART_FILE='data/cart.json',
+    UPLOAD_FOLDER='static/uploads',
+    ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'gif'},
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Ensure upload folder exists
+# Ensure directories exist
+os.makedirs('templates/admin', exist_ok=True)
+os.makedirs('data', exist_ok=True)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# JSON Data Helpers
-def load_data():
-    """Load data from JSON file or return default structure"""
-    try:
-        with open(app.config['DATA_FILE'], 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {
-            "users": [],
-            "posts": [],
-            "files": []
-        }
-
-def save_data(data):
-    """Save data to JSON file"""
-    with open(app.config['DATA_FILE'], 'w') as f:
-        json.dump(data, f, indent=2)
-
-# Routes
-@app.route('/')
-def home():
-    """Homepage with API instructions"""
-    return render_template('index.html')
-
-@app.route('/api/health')
-def health_check():
-    """Health check endpoint"""
-    try:
-        data = load_data()  # Test JSON access
-        return jsonify({
-            "status": "healthy",
-            "users": len(data['users']),
-            "posts": len(data['posts'])
-        }), 200
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return jsonify({"status": "unhealthy"}), 500
-
-@app.route('/api/users', methods=['GET', 'POST'])
-def users():
-    """User management endpoint"""
-    data = load_data()
-    
-    if request.method == 'POST':
-        new_user = {
-            "id": len(data['users']) + 1,
-            "username": request.json.get('username'),
-            "email": request.json.get('email'),
-            "password": generate_password_hash(request.json.get('password'))
-        }
-        data['users'].append(new_user)
-        save_data(data)
-        return jsonify(new_user), 201
-    
-    return jsonify(data['users'])
-
-@app.route('/api/users/<int:user_id>', methods=['GET', 'DELETE'])
-def user_detail(user_id):
-    """Single user operations"""
-    data = load_data()
-    user = next((u for u in data['users'] if u['id'] == user_id), None)
-    
-    if not user:
-        abort(404, description="User not found")
-    
-    if request.method == 'DELETE':
-        data['users'] = [u for u in data['users'] if u['id'] != user_id]
-        save_data(data)
-        return jsonify({"message": "User deleted"}), 200
-    
-    return jsonify(user)
-
-# File Upload Example
+# Helper functions
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    """File upload endpoint"""
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        data = load_data()
-        data['files'].append({
-            "id": len(data['files']) + 1,
-            "name": filename,
-            "path": f"/uploads/{filename}"
-        })
-        save_data(data)
-        
-        return jsonify({"message": "File uploaded successfully"}), 201
-    
-    return jsonify({"error": "File type not allowed"}), 400
+def get_cart_count():
+    try:
+        with open(app.config['CART_FILE']) as f:
+            return len(json.load(f))
+    except:
+        return 0
 
-# Error Handlers
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify(error=str(e)), 404
+def load_products():
+    try:
+        with open(app.config['PRODUCTS_FILE']) as f:
+            return json.load(f)
+    except:
+        return []
 
-@app.errorhandler(500)
-def internal_error(e):
-    logger.error(f"Server error: {str(e)}")
-    return jsonify(error="Internal server error"), 500
+def save_products(products):
+    with open(app.config['PRODUCTS_FILE'], 'w') as f:
+        json.dump(products, f, indent=2)
+
+# Context processors
+@app.context_processor
+def inject_globals():
+    return {
+        'brand': app.config['BRAND_NAME'],
+        'current_year': datetime.now().year,
+        'cart_count': get_cart_count(),
+        'cache_buster': datetime.now().timestamp()
+    }
+
+# Routes
+@app.route('/')
+def home():
+    products = load_products()[:4]  # Show 4 featured products
+    return render_template('index.html', featured_products=products)
+
+@app.route('/shop')
+def shop():
+    products = load_products()
+    return render_template('shop.html', products=products)
+
+@app.route('/cart')
+def cart():
+    try:
+        with open(app.config['CART_FILE']) as f:
+            cart_items = json.load(f)
+        return render_template('cart.html', cart_items=cart_items)
+    except:
+        return render_template('cart.html', cart_items=[])
+
+# Admin routes
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        if (request.form['username'] == app.config['ADMIN_USERNAME'] and 
+            check_password_hash(app.config['ADMIN_PASSWORD_HASH'], request.form['password'])):
+            session['admin_logged_in'] = True
+            flash('Logged in successfully', 'success')
+            return redirect(url_for('add_product'))
+        flash('Invalid credentials', 'danger')
+    return render_template('admin/login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('home'))
+
+@app.route('/admin/add-product', methods=['GET', 'POST'])
+def add_product():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if request.method == 'POST':
+        # Handle file upload
+        cover_image = request.files['cover_image']
+        filename = None
+        
+        if cover_image and allowed_file(cover_image.filename):
+            filename = secure_filename(cover_image.filename)
+            cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        # Create new product
+        products = load_products()
+        new_product = {
+            'id': len(products) + 1,
+            'title': request.form['title'],
+            'artist': request.form['artist'],
+            'format': request.form['format'],
+            'price': float(request.form['price']),
+            'on_sale': 'on_sale' in request.form,
+            'sale_price': float(request.form['sale_price']) if request.form['sale_price'] else None,
+            'image': f"uploads/{filename}" if filename else None,
+            'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
+            'date_added': datetime.now().strftime("%Y-%m-%d")
+        }
+        
+        products.append(new_product)
+        save_products(products)
+        flash('Product added successfully', 'success')
+        return redirect(url_for('shop'))
+    
+    return render_template('admin/add_product.html')
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
