@@ -1,21 +1,39 @@
-cat > templates/shop.html <<'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>DrunaC Shop</title>
-    <style>
-        body { background: #000; color: #0f0; font-family: monospace; }
-        .product { border: 1px solid #0f0; margin: 1rem; padding: 1rem; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block content %}
+<section class="shop-header">
+    <h1>Music Collection</h1>
+    <div class="filters">
+        <button data-filter="all" class="active">All</button>
+        <button data-filter="vinyl">Vinyl</button>
+        <button data-filter="cd">CD</button>
+        <button data-filter="mp3">Digital</button>
+    </div>
+</section>
+
+<div class="product-grid">
     {% for product in products %}
-    <div class="product">
-        <h2>{{ product.title }}</h2>
-        <p>{{ product.format|upper }} • ${{ product.price }}</p>
+    <div class="product-card" data-format="{{ product.format }}">
+        {% if product.on_sale %}
+            <div class="sale-badge">SALE</div>
+        {% endif %}
+        <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
+             alt="{{ product.title }}" class="product-image">
+        <h3 class="product-title">{{ product.title }}</h3>
+        <p class="product-artist">{{ product.artist }}</p>
+        <div class="product-price">
+            {% if product.on_sale %}
+                <span class="original-price">${{ product.price }}</span>
+                <span class="sale-price">${{ product.sale_price }}</span>
+            {% else %}
+                <span>${{ product.price }}</span>
+            {% endif %}
+        </div>
+        <div class="product-actions">
+            <a href="{{ url_for('product', product_id=product.id) }}" class="btn">Details</a>
+            <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn">Add to Cart</a>
+        </div>
     </div>
     {% endfor %}
-    <a href="/" accesskey="h">HOME [H]</a>
-</body>
-</html>
-EOF
+</div>
+{% endblock %}
