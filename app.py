@@ -24,6 +24,7 @@ def home():
 def shop():
     return render_template('shop.html', products=DRUNAC_INVENTORY)
 
+# Required for Render
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))  # Required for Render
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
