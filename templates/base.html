@@ -4,24 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ brand }}</title>
-    <!-- Use absolute path to CSS -->
+    <!-- CSS Links -->
     <link rel="stylesheet" href="/static/css/style.css">
-    <!-- For Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
-
-    {% block content %}{% endblock %}
-    <!-- ⚠️ Add this before </body> -->
-<script>
-// Simple request throttling
-let lastCall = 0;
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.album-card')) {
-        const now = Date.now();
-        if (now - lastCall < 1000) return;  // 1-second delay
-        lastCall = now;
-    }
-});
-</script></head>
+</head>
 <body>
     <header>
         <h1>{{ brand }}</h1>
@@ -31,30 +17,6 @@ document.addEventListener('click', (e) => {
             <a href="{{ url_for('cart') }}">Cart ({{ cart_count }})</a>
         </nav>
     </header>
-
-    <script>
-// Modal functionality with format display
-document.querySelectorAll('.album-card').forEach(card => {
-    card.addEventListener('click', function() {
-        const albumId = this.dataset.albumId;
-        fetch(`/album/${albumId}`)
-            .then(response => response.text())
-            .then(html => {
-                const modalContent = document.getElementById('modalAlbumContent');
-                modalContent.innerHTML = html;
-                
-                // Add format badge to modal
-                const format = this.querySelector('.album-format').textContent;
-                const formatBadge = document.createElement('div');
-                formatBadge.className = 'album-format';
-                formatBadge.textContent = format;
-                modalContent.querySelector('.album-detail').prepend(formatBadge);
-                
-                document.getElementById('albumModal').style.display = 'block';
-            });
-    });
-});
-</script>
 
     <main>
         <!-- Flash messages -->
@@ -91,6 +53,40 @@ document.querySelectorAll('.album-card').forEach(card => {
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- All JavaScript at bottom -->
+    <script>
+    // Request throttling
+    let lastCall = 0;
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.album-card')) {
+            const now = Date.now();
+            if (now - lastCall < 1000) return;
+            lastCall = now;
+        }
+    });
+
+    // Modal functionality
+    document.querySelectorAll('.album-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const albumId = this.dataset.albumId;
+            fetch(`/album/${albumId}`)
+                .then(response => response.text())
+                .then(html => {
+                    const modalContent = document.getElementById('modalAlbumContent');
+                    modalContent.innerHTML = html;
+                    
+                    const format = this.querySelector('.album-format').textContent;
+                    const formatBadge = document.createElement('div');
+                    formatBadge.className = 'album-format';
+                    formatBadge.textContent = format;
+                    modalContent.querySelector('.album-detail').prepend(formatBadge);
+                    
+                    document.getElementById('albumModal').style.display = 'block';
+                });
+        });
+    });
+    </script>
+    
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
