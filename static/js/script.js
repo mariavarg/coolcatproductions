@@ -1,27 +1,48 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Mobile menu toggle
     const menuToggle = document.querySelector('.menu-toggle');
-    if (menuToggle) {
+    const nav = document.querySelector('nav');
+    
+    if (menuToggle && nav) {
         menuToggle.addEventListener('click', () => {
-            document.querySelector('nav').classList.toggle('active');
+            nav.classList.toggle('active');
+            menuToggle.innerHTML = nav.classList.contains('active') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target) && !menuToggle.contains(e.target)) {
+                nav.classList.remove('active');
+                menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            }
         });
     }
     
-    // Close flash messages
-    const flashMessages = document.querySelectorAll('.flash');
-    flashMessages.forEach(flash => {
+    // Flash messages
+    document.querySelectorAll('.flash').forEach(flash => {
         setTimeout(() => {
             flash.style.opacity = '0';
             setTimeout(() => flash.remove(), 300);
-        }, 4500);
+        }, 5000);
+        
+        flash.querySelector('.flash-close')?.addEventListener('click', () => {
+            flash.remove();
+        });
     });
     
     // Tracklist accordion
-    const trackHeaders = document.querySelectorAll('.track-header');
-    trackHeaders.forEach(header => {
+    document.querySelectorAll('.track-header').forEach(header => {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('i');
+        
+        content.style.display = 'none';
+        
         header.addEventListener('click', () => {
-            const content = header.nextElementSibling;
-            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            const willShow = content.style.display === 'none';
+            content.style.display = willShow ? 'block' : 'none';
+            icon.className = willShow ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
         });
     });
 });
