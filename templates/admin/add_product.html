@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="admin-container">
+    <h1>Add New Product</h1>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Album Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="artist">Artist</label>
+            <input type="text" id="artist" name="artist" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="format">Format</label>
+            <select id="format" name="format" required>
+                <option value="vinyl">Vinyl</option>
+                <option value="cd">CD</option>
+                <option value="mp3">Digital (MP3)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="price">Regular Price ($)</label>
+            <input type="number" id="price" name="price" step="0.01" min="0" required>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="on_sale" name="on_sale"> On Sale
+            </label>
+        </div>
+        
+        <div class="form-group" id="sale-price-group" style="display:none;">
+            <label for="sale_price">Sale Price ($)</label>
+            <input type="number" id="sale_price" name="sale_price" step="0.01" min="0">
+        </div>
+        
+        <div class="form-group">
+            <label for="cover_image">Cover Image</label>
+            <input type="file" id="cover_image" name="cover_image" accept="image/*">
+        </div>
+        
+        <div class="form-group">
+            <label for="tracks">Tracks (one per line)</label>
+            <textarea id="tracks" name="tracks" rows="5" required></textarea>
+        </div>
+        
+        <button type="submit">Add Product</button>
+    </form>
+</section>
+
+<script>
+    document.getElementById('on_sale').addEventListener('change', function() {
+        document.getElementById('sale-price-group').style.display = 
+            this.checked ? 'block' : 'none';
+    });
+</script>
+{% endblock %}
