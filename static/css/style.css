@@ -1,148 +1,331 @@
-/* ===== GLOBAL STYLES ===== */
-body {
-    font-family: Sofia, sans-serif;
+:root {
+    --bg-color: #000;
+    --text-color: #fff;
+    --accent-color: #fff;
+    --sale-color: #ff5252;
+    --success-color: #4CAF50;
+    --error-color: #f44336;
+}
+
+* {
     margin: 0;
     padding: 0;
-    background-color: #f9f9f9;
-    color: #333;
+    box-sizing: border-box;
+    font-family: 'Sofia', cursive;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: var(--accent-color);
+    text-decoration: none;
 }
 
 header {
-    background-color: #222;
-    color: white;
-    padding: 15px;
-    text-align: center;
+    border-bottom: 1px solid var(--accent-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-header h1 {
-    margin: 0;
+.logo {
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
 }
 
 nav {
-    margin-top: 10px;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
 }
 
 nav a {
-    color: white;
-    margin: 0 10px;
-    text-decoration: none;
+    position: relative;
+    padding: 0.5rem 0;
 }
 
-nav a:hover {
-    text-decoration: underline;
+nav a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--accent-color);
+    transition: width 0.3s;
+}
+
+nav a:hover::after {
+    width: 100%;
 }
 
 main {
-    padding: 20px;
+    flex: 1;
+    padding: 2rem;
 }
 
-/* Banner styling */
-.banner {
-    width: 500px;
-    height: auto;
+footer {
+    border-top: 1px solid var(--accent-color);
+    padding: 1rem;
+    text-align: center;
+}
+
+/* Responsive Grid */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.product-card {
+    border: 1px solid var(--accent-color);
+    padding: 1.5rem;
+    transition: transform 0.3s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+}
+
+.product-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border: 1px solid var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.product-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.product-artist {
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.product-price {
+    margin-top: auto;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.original-price {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.sale-price {
+    color: var(--sale-color);
+    font-weight: bold;
+}
+
+.sale-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--sale-color);
+    color: var(--bg-color);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Product Detail */
+.product-detail {
+    max-width: 800px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.tracklist {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--accent-color);
+    padding-top: 1rem;
+}
+
+.track {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #333;
+}
+
+.track:last-child {
+    border-bottom: none;
+}
+
+/* Cart & Checkout */
+.cart-container, 
+.checkout-container,
+.admin-container {
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid var(--accent-color);
+    padding: 2rem;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid #333;
+    align-items: center;
+}
+
+.cart-item-details {
+    flex: 2;
+}
+
+.cart-item-price {
+    flex: 1;
+    text-align: right;
+}
+
+.totals {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--accent-color);
+    text-align: right;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
     display: block;
-    max-height: 500px; /* μπορείς να αλλάξεις το ύψος αν θέλεις */
-    object-fit: contain; /* δείχνει όλη την εικόνα χωρίς κοψίματα */
-    background-color: #000; /* χρώμα φόντου γύρω από την εικόνα */
+    margin-bottom: 0.5rem;
 }
 
-/* ===== FLASH MESSAGES ===== */
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--accent-color);
+}
+
+button, .btn {
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--accent-color);
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-block;
+    text-align: center;
+}
+
+button:hover, .btn:hover {
+    background: var(--accent-color);
+    color: var(--bg-color);
+}
+
+.flash-messages {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    max-width: 400px;
+}
+
 .flash {
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--accent-color);
+    animation: fadeIn 0.3s, fadeOut 0.3s 4.7s;
 }
 
 .flash.success {
-    background-color: #4CAF50;
-    color: white;
+    background: rgba(0, 0, 0, 0.8);
+    border-color: var(--success-color);
+    color: var(--success-color);
 }
 
-.flash.danger {
-    background-color: #f44336;
-    color: white;
+.flash.error {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: var(--error-color);
+    color: var(--error-color);
 }
 
-/* ===== ALBUM LIST ===== */
-.album-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.album-card {
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    width: 200px;
-    padding: 10px;
-    text-align: center;
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
-.album-card img {
-    max-width: 100%;
-    border-radius: 5px;
+/* Responsive Design */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    nav {
+        margin-top: 1rem;
+        justify-content: center;
+    }
+    
+    .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    
+    .product-detail {
+        grid-template-columns: 1fr;
+    }
+    
+    .cart-container, 
+    .checkout-container,
+    .admin-container {
+        padding: 1rem;
+    }
 }
 
-.album-card h3 {
-    margin: 10px 0 5px;
-}
-
-.album-card a {
-    display: inline-block;
-    margin-top: 5px;
-    background: #222;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    text-decoration: none;
-}
-
-.album-card a:hover {
-    background: #444;
-}
-
-/* ===== FORMS ===== */
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 300px;
-}
-
-input, button {
-    padding: 8px;
-    font-size: 14px;
-}
-
-button {
-    background: #222;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #444;
-}
-
-/* ===== FOOTER ===== */
-footer {
-    background: #222;
-    color: white;
-    text-align: center;
-    padding: 15px;
-    margin-top: 20px;
-}
-
-.card-img-top {
-  object-fit: cover;
-  height: 250px;  /* consistent album cover height */
-  border-radius: 5px;
-}
-.card {
-  transition: transform 0.2s ease-in-out;
-}
-.card:hover {
-  transform: scale(1.03);
+@media (max-width: 480px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    nav {
+        gap: 0.5rem;
+    }
+    
+    .cart-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .cart-item-price {
+        text-align: left;
+        margin-top: 0.5rem;
+    }
+    
+    .flash-messages {
+        left: 1rem;
+        right: 1rem;
+        max-width: none;
+    }
 }
