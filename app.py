@@ -15,6 +15,11 @@ from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, static_folder='static')
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "100 per hour"]  # Increased limits
+)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)  # Try 5001, 8000, etc.
 
