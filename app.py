@@ -267,7 +267,7 @@ def admin_login():
                 return redirect(url_for('home'))
             else:
                 flash('Invalid credentials', 'error')
-        return render_template('partials/login.html')
+        return render_template('admin/login.html')
     except Exception as e:
         logger.error(f"Admin login error: {str(e)}")
         return render_template('error.html', message='Admin login failed'), 500
@@ -322,11 +322,11 @@ def add_product():
             flash('Product added successfully', 'success')
             return redirect(url_for('product', product_id=product['id']))
         
-        return render_template('partials/add_product.html')
+        return render_template('admin/add_product.html')
     except Exception as e:
         logger.error(f"Add product error: {str(e)}")
         flash('Error adding product', 'error')
-        return render_template('partials/add_product.html')
+        return render_template('admin/add_product.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
