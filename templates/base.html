@@ -4,22 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ brand }}</title>
-    <!-- CSS Links -->
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
         <h1>{{ brand }}</h1>
         <nav>
-            <a href="{{ url_for('home') }}">Home</a>
-            <a href="{{ url_for('shop') }}">Shop</a>
-            <a href="{{ url_for('cart') }}">Cart ({{ cart_count }})</a>
+            <a href="{{ url_for('home') }}" class="btn">Home</a>
+            <a href="{{ url_for('shop') }}" class="btn">Shop</a>
+            <a href="{{ url_for('cart') }}" class="btn">Cart ({{ cart_count }})</a>
         </nav>
     </header>
 
     <main>
-        <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages">
@@ -30,63 +28,22 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Main content -->
         {% block content %}{% endblock %}
     </main>
 
     <footer>
-        <p>&copy; {{ current_year }} {{ brand }}. All rights reserved.</p>
-        <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+        <p>&copy; {{ current_year }} {{ brand }}</p>
     </footer>
 
-    <!-- Cookie consent banner -->
-    <div class="cookie-consent">
-        <div class="cookie-content">
-            <div class="cookie-text">
-                We use cookies to ensure you get the best experience on our website. 
-                <a href="{{ url_for('privacy') }}">Learn more</a>
-            </div>
-            <div class="cookie-buttons">
-                <button class="cookie-btn cookie-accept">Accept</button>
-                <button class="cookie-btn cookie-reject">Reject</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- All JavaScript at bottom -->
     <script>
-    // Request throttling
-    let lastCall = 0;
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.album-card')) {
-            const now = Date.now();
-            if (now - lastCall < 1000) return;
-            lastCall = now;
-        }
-    });
-
-    // Modal functionality
+    // Simple modal functionality
     document.querySelectorAll('.album-card').forEach(card => {
         card.addEventListener('click', function() {
             const albumId = this.dataset.albumId;
-            fetch(`/album/${albumId}`)
-                .then(response => response.text())
-                .then(html => {
-                    const modalContent = document.getElementById('modalAlbumContent');
-                    modalContent.innerHTML = html;
-                    
-                    const format = this.querySelector('.album-format').textContent;
-                    const formatBadge = document.createElement('div');
-                    formatBadge.className = 'album-format';
-                    formatBadge.textContent = format;
-                    modalContent.querySelector('.album-detail').prepend(formatBadge);
-                    
-                    document.getElementById('albumModal').style.display = 'block';
-                });
+            // You'll implement this later
+            console.log('Album clicked:', albumId);
         });
     });
     </script>
-    
-    <script src="/static/js/main.js"></script>
 </body>
 </html>
