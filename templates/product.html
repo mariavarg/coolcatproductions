@@ -1,45 +1,30 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <img src="{{ url_for('static', filename=product.image) }}" 
-                 class="img-fluid"
-                 alt="{{ product.title }} cover">
-        </div>
-        <div class="col-lg-8 product-details">
-            <h1>{{ product.title }}</h1>
-            <h2>by {{ product.artist }}</h2>
-            
-            <div class="my-4">
-                <h3>
-                    {% if product.on_sale %}
-                    <span class="text-muted text-decoration-line-through">£{{ product.price }}</span>
-                    <span class="text-primary">£{{ product.sale_price }}</span>
-                    {% else %}
-                    <span>£{{ product.price }}</span>
-                    {% endif %}
-                </h3>
-                
-                <p class="lead"><strong>Format:</strong> {{ product.format }}</p>
-                
-                <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}">
-                    <button type="submit" class="btn btn-primary btn-lg">Add to Cart</button>
-                </form>
-            </div>
-            
-            <div class="mt-5">
-                <h3>Track List</h3>
-                <ol class="list-group">
-                    {% for track in product.tracks %}
-                    <li class="list-group-item text-center">{{ track }}</li>
-                    {% else %}
-                    <li class="list-group-item text-center">No tracks available</li>
-                    {% endfor %}
-                </ol>
-            </div>
-        </div>
+<section class="product-detail">
+    <img src="{{ url_for('static', filename=product.image) }}" 
+         alt="{{ product.title }} cover" 
+         class="product-image">
+    
+    <h1>{{ product.title }}</h1>
+    <h2>{{ product.artist }}</h2>
+    
+    <div class="product-info">
+        <p><strong>Format:</strong> {{ product.format }}</p>
+        <p><strong>Price:</strong> £{{ "%.2f"|format(product.price) }}</p>
+        
+        <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}">
+            <button type="submit" class="btn">Add to Cart</button>
+        </form>
     </div>
-</div>
+    
+    <div class="track-list-container">
+        <h3>Track List</h3>
+        <ul class="track-list">
+            {% for track in product.tracks %}
+            <li>{{ track }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</section>
 {% endblock %}
