@@ -118,38 +118,61 @@ def save_json_file(filepath, data):
             pass
         return False
 
+# Product management functions
+def load_products():
+    """Load all products from the products.json file."""
+    return load_json_file('data/products.json', default=[])
+
+def save_products(products):
+    """Save products to the products.json file."""
+    return save_json_file('data/products.json', products)
+
+def get_product_by_id(product_id):
+    """Get a single product by its ID."""
+    products = load_products()
+    return next((p for p in products if p['id'] == product_id), None
+
 def get_cart_details():
     """Calculate cart details including totals."""
-    cart_items = session.get('cart', [])
-    products = load_products()
-    cart_products = []
-    subtotal = 0.0
-    
-    for item in cart_items:
-        product = next((p for p in products if p['id'] == item['id']), None)
-        if product:
-            price = product['sale_price'] if product.get('on_sale', False) else product['price']
-            item_total = price * item['quantity']
-            subtotal += item_total
-            cart_products.append({
-                'id': product['id'],
-                'name': product['title'],
-                'artist': product['artist'],
-                'price': price,
-                'image': product['image'],
-                'quantity': item['quantity'],
-                'item_total': item_total
-            })
-    
-    vat = subtotal * VAT_RATE
-    total = subtotal + vat
-    
-    return {
-        'cart_items': cart_products,
-        'subtotal': subtotal,
-        'vat': vat,
-        'total': total
-    }
+    try:
+        cart_items = session.get('cart', [])
+        products = load_products()
+        cart_products = []
+        subtotal = 0.0
+        
+        for item in cart_items:
+            product = next((p for p in products if p['id'] == item['id']), None)
+            if product:
+                price = product['sale_price'] if product.get('on_sale', False) else product['price']
+                item_total = price * item['quantity']
+                subtotal += item_total
+                cart_products.append({
+                    'id': product['id'],
+                    'name': product['title'],
+                    'artist': product['artist'],
+                    'price': price,
+                    'image': product['image'],
+                    'quantity': item['quantity'],
+                    'item_total': item_total
+                })
+        
+        vat = subtotal * VAT_RATE
+        total = subtotal + vat
+        
+        return {
+            'cart_items': cart_products,
+            'subtotal': subtotal,
+            'vat': vat,
+            'total': total
+        }
+    except Exception as e:
+        logger.error(f"Error getting cart details: {str(e)}")
+        return {
+            'cart_items': [],
+            'subtotal': 0.0,
+            'vat': 0.0,
+            'total': 0.0
+        }
 
 # Admin credentials management
 def load_admin_credentials():
@@ -234,16 +257,27 @@ def internal_server_error(e):
 # Context processors
 @app.context_processor
 def inject_global_data():
-    """Inject global template variables."""
-    cart_details = get_cart_details()
-    return {
-        'brand': BRAND_NAME,
-        'current_year': datetime.datetime.now().year,
-        'cart_count': len(session.get('cart', [])),
-        'cart_total': cart_details['total'],
-        'cart_items': cart_details['cart_items'],
-        'cache_buster': CACHE_BUSTER
-    }
+    """Inject global template variables with error handling."""
+    try:
+        cart_details = get_cart_details()
+        return {
+            'brand': BRAND_NAME,
+            'current_year': datetime.datetime.now().year,
+            'cart_count': len(session.get('cart', [])),
+            'cart_total': cart_details.get('total', 0),
+            'cart_items': cart_details.get('cart_items', []),
+            'cache_buster': CACHE_BUSTER
+        }
+    except Exception as e:
+        logger.error(f"Error in context processor: {str(e)}")
+        return {
+            'brand': BRAND_NAME,
+            'current_year': datetime.datetime.now().year,
+            'cart_count': 0,
+            'cart_total': 0,
+            'cart_items': [],
+            'cache_buster': CACHE_BUSTER
+        }
 
 # Before request setup
 @app.before_request
