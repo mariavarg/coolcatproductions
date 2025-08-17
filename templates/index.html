@@ -1,35 +1,33 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
 {% block content %}
-<section class="hero">
-    <h1>Welcome to Druna C</h1>
-    <p>Premium Cyberpunk Sounds</p>
-    <a href="{{ url_for('shop') }}" class="btn">Explore Collection</a>
-</section>
+<div class="container mt-5">
+    <div class="jumbotron">
+        <h1 class="display-4">Welcome to {{ brand }}!</h1>
+        <p class="lead">Your destination for exclusive music releases and merchandise.</p>
+    </div>
 
-<section class="featured">
-    <h2>Featured Releases</h2>
-    <div class="product-grid">
+    <h2 class="mb-4">Featured Releases</h2>
+    <div class="row">
         {% for product in featured %}
-        <div class="product-card">
-            {% if product.on_sale %}
-                <div class="sale-badge">SALE</div>
-            {% endif %}
-            <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
-                 alt="{{ product.title }}" class="product-image">
-            <h3 class="product-title">{{ product.title }}</h3>
-            <p class="product-artist">{{ product.artist }}</p>
-            <div class="product-price">
-                {% if product.on_sale %}
-                    <span class="original-price">${{ product.price }}</span>
-                    <span class="sale-price">${{ product.sale_price }}</span>
-                {% else %}
-                    <span>${{ product.price }}</span>
-                {% endif %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <!-- Clickable album cover -->
+                <a href="{{ url_for('product', product_id=product.id) }}">
+                    <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
+                         class="card-img-top" 
+                         alt="{{ product.title }} cover">
+                </a>
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.title }}</h5>
+                    <p class="card-text">by {{ product.artist }}</p>
+                    <p class="card-text">£{{ product.price }}</p>
+                    <a href="{{ url_for('add_to_cart', product_id=product.id) }}" 
+                       class="btn btn-primary">Add to Cart</a>
+                </div>
             </div>
-            <a href="{{ url_for('product', product_id=product.id) }}" class="btn">View Details</a>
         </div>
         {% endfor %}
     </div>
-</section>
+</div>
 {% endblock %}
