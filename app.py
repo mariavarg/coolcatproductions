@@ -49,13 +49,8 @@ limiter.init_app(app)
 VAT_RATE = 0.20  # 20% VAT
 
 # Admin credentials setup
-def setup_admin():
-    admin_user = os.environ.get('ADMIN_USERNAME', 'admin')
-    admin_pass = os.environ.get('ADMIN_PASSWORD', 'securepassword')
-    return {
-        'username': admin_user,
-        'password': generate_password_hash(admin_pass)
-    }
+ADMIN_USER = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASS_HASH = generate_password_hash(os.environ.get('ADMIN_PASSWORD', 'securepassword'))
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -263,18 +258,16 @@ def privacy():
 def admin_login():
     try:
         if request.method == 'POST':
-            admin_credentials = setup_admin()
-            username = request.form.get('username')
-            password = request.form.get('password')
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
             
-            if username == admin_credentials['username'] and \
-               check_password_hash(admin_credentials['password'], password):
+            if username == ADMIN_USER and check_password_hash(ADMIN_PASS_HASH, password):
                 session['admin_logged_in'] = True
                 flash('Admin login successful', 'success')
                 return redirect(url_for('home'))
             else:
                 flash('Invalid credentials', 'error')
-        return render_template('admin_login.html')
+        return render_template('partials/login.html')
     except Exception as e:
         logger.error(f"Admin login error: {str(e)}")
         return render_template('error.html', message='Admin login failed'), 500
@@ -284,6 +277,56 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     flash('Admin logged out', 'info')
     return redirect(url_for('home'))
+
+@app.route('/admin/add_product', methods=['GET', 'POST'])
+@admin_required
+def add_product():
+    try:
+        if request.method == 'POST':
+            # Get form data
+            title = request.form.get('title', '').strip()
+            artist = request.form.get('artist', '').strip()
+            format_type = request.form.get('format', '').strip()
+            price = float(request.form.get('price', 0))
+            on_sale = 'on_sale' in request.form
+            sale_price = float(request.form.get('sale_price', 0)) if on_sale else None
+            tracks = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
+            
+            # Handle file upload
+            cover_image = request.files.get('cover_image')
+            filename = None
+            if cover_image and allowed_file(cover_image.filename):
+                filename = secure_filename(cover_image.filename)
+                cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                filename = f"uploads/covers/{filename}"
+            
+            # Create product object
+            product = {
+                'id': str(uuid.uuid4()),
+                'title': title,
+                'artist': artist,
+                'format': format_type,
+                'price': price,
+                'on_sale': on_sale,
+                'sale_price': sale_price,
+                'image': filename,
+                'tracks': tracks,
+                'created_at': datetime.datetime.now().isoformat()
+            }
+            
+            # Save to products
+            products = load_products()
+            products.append(product)
+            save_products(products)
+            
+            flash('Product added successfully', 'success')
+            return redirect(url_for('product', product_id=product['id']))
+        
+        return render_template('partials/add_product.html')
+    except Exception as e:
+        logger.error(f"Add product error: {str(e)}")
+        flash('Error adding product', 'error')
+        return render_template('partials/add_product.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
