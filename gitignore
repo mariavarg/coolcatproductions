@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+instance/
+.DS_Store
+static/uploads/
+data/products.json
