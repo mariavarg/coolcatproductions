@@ -239,14 +239,18 @@ def favicon():
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route('/shop')
+# Replace your shop() route with this:
+@app.route('/shop')
 def shop():
     try:
-        products = load_products()
-        return render_template('shop.html', products=products)
+        # Load from JSON database
+        with open('data/albums.json', 'r') as f:
+            albums = json.load(f)
+        return render_template('shop.html', albums=albums)
     except Exception as e:
-        logger.error(f"Shop route error: {str(e)}")
+        print(f"Error loading shop: {str(e)}")  # Check Render logs for this
         return render_template('error.html', message='Shop loading failed'), 500
-
+        
 @app.route('/product/<product_id>')
 def product(product_id):
     try:
