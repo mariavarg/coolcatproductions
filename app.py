@@ -1,8 +1,10 @@
-cat > app.py <<'EOF'
 from flask import Flask, render_template
+import os
+
 app = Flask(__name__)
 
-DRUNAC_CATALOG = [
+# DrunaC Catalog
+DRUNAC_INVENTORY = [
     {
         "id": "DCR-001",
         "title": "CYBER DAWN VINYL",
@@ -20,8 +22,8 @@ def home():
 
 @app.route('/shop')
 def shop():
-    return render_template('shop.html', products=DRUNAC_CATALOG)
+    return render_template('shop.html', products=DRUNAC_INVENTORY)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
-EOF
+    port = int(os.environ.get("PORT", 10000))  # Required for Render
+    app.run(host="0.0.0.0", port=port)
