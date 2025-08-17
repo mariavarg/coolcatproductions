@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}  <!-- Changed from layout.html to base.html -->
 
 {% block content %}
 <div class="container mt-5">
@@ -25,23 +25,24 @@
                 <tr>
                     <td>
                         <div class="d-flex align-items-center">
-                            <img src="{{ url_for('static', filename='uploads/covers/' + item.details.image) }}" 
+                            <!-- Fixed image path -->
+                            <img src="{{ url_for('static', filename=item.image) }}" 
                                  class="img-thumbnail me-3" 
                                  style="width: 80px; height: 80px; object-fit: cover;" 
-                                 alt="{{ item.details.title }}">
+                                 alt="{{ item.name }}">
                             <div>
-                                <h5 class="mb-0">{{ item.details.title }}</h5>
-                                <p class="mb-0 text-muted">by {{ item.details.artist }}</p>
+                                <h5 class="mb-0">{{ item.name }}</h5>
+                                <p class="mb-0 text-muted">by {{ item.artist }}</p>
                             </div>
                         </div>
                     </td>
-                    <td>£{{ item.details.sale_price if item.details.on_sale else item.details.price }}</td>
+                    <td>£{{ item.price }}</td>
                     <td>{{ item.quantity }}</td>
                     <td>£{{ "%.2f"|format(item.item_total) }}</td>
                     <td>
                         <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" 
                            class="btn btn-sm btn-danger">
-                            <i class="fas fa-trash"></i>
+                            Remove
                         </a>
                     </td>
                 </tr>
@@ -54,7 +55,7 @@
                     <td></td>
                 </tr>
                 <tr>
-                    <td colspan="3" class="text-end"><strong>VAT (20%):</strong></td>
+                    <td colspan="3" class="text-end"><strong>VAT ({{ vat_rate|int }}%):</strong></td>
                     <td>£{{ "%.2f"|format(vat) }}</td>
                     <td></td>
                 </tr>
