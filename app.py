@@ -61,6 +61,55 @@ VAT_RATE = 0.20  # 20% VAT
 ADMIN_USER = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASS_HASH = generate_password_hash(os.environ.get('ADMIN_PASSWORD', 'securepassword'))
 
+@app.route('/admin/add_album', methods=['GET', 'POST'])
+@admin_required
+def add_album():
+    if request.method == 'POST':
+        try:
+            # Create uploads directory if it doesn't exist
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            
+            # Handle file upload
+            cover_image = request.files['cover_image']
+            if cover_image and allowed_file(cover_image.filename):
+                filename = secure_filename(f"{str(uuid.uuid4())}.{cover_image.filename.split('.')[-1]}")
+                cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            else:
+                flash('Invalid image file', 'error')
+                return redirect(request.url)
+            
+            # Create new album
+            new_album = {
+                'id': str(uuid.uuid4()),
+                'title': request.form['title'],
+                'artist': request.form['artist'],
+                'format': request.form['format'],
+                'image': f"uploads/covers/{filename}",
+                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
+                'date_added': datetime.datetime.now().isoformat()
+            }
+            
+            # Load existing albums
+            try:
+                with open('data/albums.json', 'r') as f:
+                    albums = json.load(f)
+            except:
+                albums = []
+            
+            # Add new album and save
+            albums.append(new_album)
+            with open('data/albums.json', 'w') as f:
+                json.dump(albums, f, indent=2)
+            
+            flash('Album added successfully!', 'success')
+            return redirect(url_for('shop'))
+            
+        except Exception as e:
+            flash(f'Error adding album: {str(e)}', 'error')
+            return redirect(request.url)
+    
+    return render_template('admin/add_album.html')
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
