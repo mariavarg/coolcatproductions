@@ -1,15 +1,11 @@
 [
-  {
-    "id": "1",
-    "title": "THE LOVELIEST DEAD",
-    "artist": "THE LOVELIEST DEAD",
-    "year": "2025",
-    "price": "24.99",
-    "image": "The Loveliest Dead.jpg",  <!-- YOUR IMAGE FILENAME HERE -->
-    "tracks": [
-      "1. The Loveliest Dead",
-      "2. Embers in My Voice",
-      "3. White Nights"
-    ]
-  }
+    {
+        "id": "1",
+        "title": "Sample Album",
+        "artist": "Sample Artist",
+        "price": 19.99,
+        "image": "uploads/covers/sample.jpg",
+        "tracks": ["Track 1", "Track 2"],
+        "description": "Sample album description"
+    }
 ]
