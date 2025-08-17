@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
-
 {% block content %}
+    <div class="debug-test">
+        CSS TEST - If you see this with green border, styles are working!
+    </div>
+
     <section class="hero">
         <h2>Welcome to {{ brand }}</h2>
         <p>Your destination for exclusive music releases</p>
@@ -10,13 +12,16 @@
 
     <section class="featured">
         <h3>Featured Releases</h3>
-        <div class="featured-grid">
+        <div class="album-grid">
             {% for product in featured %}
-                <div class="product-card">
-                    <img src="{{ url_for('static', filename=product.image) }}" alt="{{ product.title }}">
-                    <h4>{{ product.title }}</h4>
-                    <p>{{ product.artist }}</p>
-                    <a href="{{ url_for('product', product_id=product.id) }}" class="btn">View Details</a>
+                <div class="album-card" data-album-id="{{ product.id }}">
+                    <img src="{{ url_for('static', filename=product.image) }}" 
+                         alt="{{ product.title }}" 
+                         class="album-cover">
+                    <div class="album-info">
+                        <h4>{{ product.title }}</h4>
+                        <p>{{ product.artist }}</p>
+                    </div>
                 </div>
             {% endfor %}
         </div>
