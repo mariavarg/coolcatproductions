@@ -3,18 +3,8 @@
 {% block title %}Home - {{ super() }}{% endblock %}
 
 {% block content %}
-<div class="row">
-    {% for product in featured %}
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top" alt="{{ product.title }}">
-            <div class="card-body">
-                <h5 class="card-title">{{ product.title }}</h5>
-                <p class="card-text">{{ product.artist }}</p>
-                <a href="{{ url_for('product', product_id=product.id) }}" class="btn btn-primary">View Details</a>
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-</div>
+<section class="hero">
+    <h1>Welcome to {{ brand }}</h1>
+    <p>Your premier music destination</p>
+</section>
 {% endblock %}
