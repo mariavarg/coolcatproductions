@@ -2,11 +2,11 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="mb-4">Your Shopping Cart</h1>
+    <h1 class="mb-4 text-center">Your Shopping Cart</h1>
     
     {% if not cart %}
-    <div class="alert alert-info">
-        Your cart is empty. <a href="/shop">Browse our store</a>
+    <div class="alert alert-info text-center">
+        Your cart is empty. <a href="/shop" class="alert-link">Browse our store</a>
     </div>
     {% else %}
     <div class="table-responsive">
