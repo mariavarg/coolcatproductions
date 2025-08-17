@@ -1,34 +1,24 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <h1>Privacy Policy</h1>
-            
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h3>Cookie Usage</h3>
-                    <p>We use cookies to improve your experience on our website. Cookies are small text files stored on your device that help us:</p>
-                    <ul>
-                        <li>Remember your preferences</li>
-                        <li>Provide essential site functionality</li>
-                        <li>Analyze site traffic (if you accept analytics cookies)</li>
-                    </ul>
-                    
-                    <h3>Cookie Types</h3>
-                    <p><strong>Essential Cookies:</strong> These are required for the website to function properly and cannot be disabled.</p>
-                    <p><strong>Analytics Cookies:</strong> These help us understand how visitors interact with our website. You can choose to accept or reject these.</p>
-                    
-                    <h3>Your Choices</h3>
-                    <p>You can manage your cookie preferences at any time by clicking the cookie icon in the bottom corner of the page.</p>
-                    
-                    <div class="text-center mt-4">
-                        <a href="{{ url_for('home') }}" class="btn btn-primary">Back to Home</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    <article class="privacy-policy">
+        <h2>Privacy Policy</h2>
+        
+        <section>
+            <h3>Information We Collect</h3>
+            <p>We collect information you provide directly to us when you make a purchase, create an account, or contact us for support.</p>
+        </section>
+        
+        <section>
+            <h3>How We Use Your Information</h3>
+            <p>We use the information we collect to process transactions, improve our services, and communicate with you.</p>
+        </section>
+        
+        <section>
+            <h3>Cookies</h3>
+            <p>We use cookies to enhance your experience on our website. You can control cookies through your browser settings.</p>
+        </section>
+    </article>
 {% endblock %}
