@@ -1,40 +1,41 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
 
 {% block content %}
-<section class="product-detail">
-    <div class="product-image-container">
-        <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
-             alt="{{ product.title }}" class="product-image-large">
-    </div>
-    
-    <div class="product-info">
-        {% if product.on_sale %}
-            <div class="sale-badge">SALE</div>
-        {% endif %}
-        
-        <h1>{{ product.title }}</h1>
-        <p class="product-artist">{{ product.artist }}</p>
-        <p class="product-format">{{ product.format|upper }}</p>
-        
-        <div class="product-price">
-            {% if product.on_sale %}
-                <span class="original-price">${{ product.price }}</span>
-                <span class="sale-price">${{ product.sale_price }}</span>
-            {% else %}
-                <span>${{ product.price }}</span>
-            {% endif %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+            <img src="{{ url_for('static', filename='uploads/covers/' + product.image) }}" 
+                 class="img-fluid rounded"
+                 alt="{{ product.title }} cover">
         </div>
-        
-        <a href="{{ url_for('add_to_cart', product_id=product.id) }}" class="btn">Add to Cart</a>
-        
-        <div class="tracklist">
-            <h3>Tracklist</h3>
-            <ul>
-                {% for track in product.tracks %}
-                <li class="track">{{ track }}</li>
-                {% endfor %}
-            </ul>
+        <div class="col-md-6">
+            <h1>{{ product.title }}</h1>
+            <h2>by {{ product.artist }}</h2>
+            <p class="lead">
+                {% if product.on_sale %}
+                <span class="text-muted text-decoration-line-through">£{{ product.price }}</span>
+                £{{ product.sale_price }}
+                {% else %}
+                £{{ product.price }}
+                {% endif %}
+            </p>
+            <p><strong>Format:</strong> {{ product.format }}</p>
+            
+            <div class="mb-4">
+                <a href="{{ url_for('add_to_cart', product_id=product.id) }}" 
+                   class="btn btn-primary btn-lg">Add to Cart</a>
+            </div>
+            
+            <!-- Track list display -->
+            <div class="mt-5">
+                <h3>Track List</h3>
+                <ol class="list-group">
+                    {% for track in product.tracks %}
+                    <li class="list-group-item">{{ track }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
         </div>
     </div>
-</section>
+</div>
 {% endblock %}
