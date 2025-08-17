@@ -166,6 +166,57 @@ def initialize_cart():
         session['cart'] = []
 
 # Routes
+
+# Add these new routes to your existing app.py
+
+@app.route('/add_album', methods=['GET', 'POST'])
+@admin_required
+def add_album():
+    if request.method == 'POST':
+        # Get form data
+        title = request.form['title']
+        artist = request.form['artist']
+        format_type = request.form['format']  # 'CD' or 'MP3'
+        tracks = [t.strip() for t in request.form['tracks'].split('\n') if t.strip()]
+        
+        # Handle file upload
+        cover_image = request.files['cover_image']
+        filename = f"album_{str(uuid.uuid4())[:8]}.{cover_image.filename.split('.')[-1]}"
+        cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        # Create album
+        new_album = {
+            'id': str(uuid.uuid4()),
+            'title': title,
+            'artist': artist,
+            'format': format_type,
+            'image': f"uploads/covers/{filename}",
+            'tracks': tracks,
+            'date_added': datetime.datetime.now().isoformat()
+        }
+        
+        # Save to JSON
+        albums = load_albums()
+        albums.append(new_album)
+        save_albums(albums)
+        
+        flash('Album added successfully!', 'success')
+        return redirect(url_for('shop'))
+    
+    return render_template('admin/add_album.html')
+
+# New helper functions
+def load_albums():
+    try:
+        with open('data/albums.json', 'r') as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_albums(albums):
+    with open('data/albums.json', 'w') as f:
+        json.dump(albums, f, indent=2)
+
 @app.route('/')
 def home():
     try:
