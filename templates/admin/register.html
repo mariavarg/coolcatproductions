@@ -1,40 +1,116 @@
 {% extends "base.html" %}
 
+{% block title %}Admin Registration{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
+<div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-center">Admin Registration</h3>
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title text-center mb-0">Admin Registration</h3>
                 </div>
                 <div class="card-body">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
                             {% endfor %}
                         {% endif %}
                     {% endwith %}
-                    
-                    <form method="POST" action="{{ url_for('admin_register') }}">
-                        <div class="form-group">
-                            <label for="username">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
+
+                    <form method="POST" action="{{ url_for('admin_register') }}" novalidate>
+                        {{ form.hidden_tag() }}  <!-- CSRF Token -->
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" 
+                                   class="form-control {{ 'is-invalid' if form.username.errors }}" 
+                                   id="username" 
+                                   name="username" 
+                                   value="{{ form.username.data or '' }}"
+                                   required
+                                   minlength="4"
+                                   maxlength="20">
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" 
+                                   class="form-control {{ 'is-invalid' if form.password.errors }}" 
+                                   id="password" 
+                                   name="password" 
+                                   required
+                                   minlength="8">
+                            <div class="form-text">Minimum 8 characters</div>
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                        <div class="form-group">
-                            <label for="confirm_password">Confirm Password</label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" 
+                                   class="form-control {{ 'is-invalid' if form.confirm_password.errors }}" 
+                                   id="confirm_password" 
+                                   name="confirm_password" 
+                                   required>
+                            {% if form.confirm_password.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.confirm_password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                        <button type="submit" class="btn btn-primary btn-block">Register</button>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-person-plus me-2"></i>Register
+                            </button>
+                            <a href="{{ url_for('admin_login') }}" class="btn btn-outline-secondary">
+                                Already have an account? Login
+                            </a>
+                        </div>
                     </form>
+                </div>
+                <div class="card-footer text-muted text-center">
+                    <small>Secure admin portal - {{ BRAND_NAME }}</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Client-side validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+        return false;
+    }
+    
+    return true;
+});
+</script>
 {% endblock %}
