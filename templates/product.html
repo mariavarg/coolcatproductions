@@ -1,10 +1,9 @@
-{% extends "base.html" %}  <!-- Changed from layout.html to base.html -->
+{% extends "base.html" %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Fixed image path -->
             <img src="{{ url_for('static', filename=product.image) }}" 
                  class="img-fluid"
                  alt="{{ product.title }} cover">
@@ -25,8 +24,9 @@
                 
                 <p class="lead"><strong>Format:</strong> {{ product.format }}</p>
                 
-                <a href="{{ url_for('add_to_cart', product_id=product.id) }}" 
-                   class="btn btn-primary btn-lg">Add to Cart</a>
+                <form method="POST" action="{{ url_for('add_to_cart', product_id=product.id) }}">
+                    <button type="submit" class="btn btn-primary btn-lg">Add to Cart</button>
+                </form>
             </div>
             
             <div class="mt-5">
