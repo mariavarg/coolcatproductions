@@ -409,6 +409,12 @@ def checkout():
     flash('Checkout functionality coming soon!', 'info')
     return redirect(url_for('cart'))
 
+@app.after_request
+def add_cache_headers(response):
+    if request.path.startswith('/static/'):
+        response.cache_control.max_age = 3600  # Cache static files for 1 hour
+    return response
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
