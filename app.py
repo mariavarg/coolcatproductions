@@ -24,6 +24,9 @@ app.config['ALLOWED_EXTENSIONS'] = {'jpg', 'jpeg', 'png', 'webp'}
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
 csrf = CSRFProtect(app)
 
+# Branding configuration
+BRAND_NAME = "Cool Cat Productions-Druna C."
+
 # Ensure upload and data directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('data', exist_ok=True)
@@ -89,6 +92,11 @@ def add_security_headers(response):
     for key, value in headers.items():
         response.headers[key] = value
     return response
+
+# Context processor to inject brand name into all templates
+@app.context_processor
+def inject_brand():
+    return {'brand': BRAND_NAME}
 
 # Routes
 @app.route('/')
