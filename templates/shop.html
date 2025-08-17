@@ -1,22 +1,23 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
-  <h2>Our Albums</h2>
-  <div class="row">
-    {% for album in albums %}
-    <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
-      <div class="card h-100">
-        <img src="{{ url_for('static', filename='images/albums/' + album['cover']) }}"
-             class="card-img-top img-fluid" alt="{{ album['title'] }}">
-        <div class="card-body">
-          <h5 class="card-title">{{ album['title'] }}</h5>
-          <p class="card-text"><strong>{{ album['artist'] }}</strong></p>
-          <p class="card-text text-success">${{ album['price'] }}</p>
-          <a href="{{ url_for('order', album_id=loop.index0) }}" class="btn btn-primary">Order</a>
-        </div>
-      </div>
+<section class="home-hero">
+    <h1>Music Collection</h1>
+    <p>Explore all releases</p>
+    
+    <div class="grid">
+        {% for product in products %}
+        <a href="{{ url_for('product', product_id=product.id) }}" class="grid-item">
+            <img src="{{ url_for('static', filename=product.image) }}" 
+                 alt="{{ product.title }}" 
+                 class="album-cover">
+            <div class="album-info">
+                <h3 class="album-title">{{ product.title }}</h3>
+                <p class="album-artist">{{ product.artist }}</p>
+                <p class="album-price">£{{ "%.2f"|format(product.price) }}</p>
+            </div>
+        </a>
+        {% endfor %}
     </div>
-    {% endfor %}
-  </div>
-</div>
+</section>
 {% endblock %}
