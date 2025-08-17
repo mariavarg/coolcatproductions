@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -46,6 +47,15 @@ limiter.init_app(app)
 
 # VAT Configuration
 VAT_RATE = 0.20  # 20% VAT
+
+# Admin credentials setup
+def setup_admin():
+    admin_user = os.environ.get('ADMIN_USERNAME', 'admin')
+    admin_pass = os.environ.get('ADMIN_PASSWORD', 'securepassword')
+    return {
+        'username': admin_user,
+        'password': generate_password_hash(admin_pass)
+    }
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -86,7 +96,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
             flash('Admin access required', 'error')
-            return redirect(url_for('home'))
+            return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -247,6 +257,33 @@ def remove_from_cart(product_id):
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+# Admin routes
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    try:
+        if request.method == 'POST':
+            admin_credentials = setup_admin()
+            username = request.form.get('username')
+            password = request.form.get('password')
+            
+            if username == admin_credentials['username'] and \
+               check_password_hash(admin_credentials['password'], password):
+                session['admin_logged_in'] = True
+                flash('Admin login successful', 'success')
+                return redirect(url_for('home'))
+            else:
+                flash('Invalid credentials', 'error')
+        return render_template('admin_login.html')
+    except Exception as e:
+        logger.error(f"Admin login error: {str(e)}")
+        return render_template('error.html', message='Admin login failed'), 500
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Admin logged out', 'info')
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
