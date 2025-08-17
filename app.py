@@ -20,7 +20,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     filename='app.log' if not app.debug else None,
-    filemode='a'  # Append to log file
+    filemode='a'
 )
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "100 per hour"],
     storage_uri="memory://",
-    strategy="fixed-window"  # More reliable rate limiting
+    strategy="fixed-window"
 )
 
 # Constants
@@ -74,12 +74,10 @@ CACHE_BUSTER = str(int(datetime.datetime.now().timestamp()))
 
 # Helper functions
 def allowed_file(filename):
-    """Check if the file has an allowed extension."""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def load_json_file(filepath, default=None):
-    """Load JSON data from file with error handling."""
     if default is None:
         default = []
     try:
@@ -101,13 +99,10 @@ def load_json_file(filepath, default=None):
         return default
 
 def save_json_file(filepath, data):
-    """Save data to JSON file with atomic write."""
     try:
         temp_file = f"{filepath}.tmp"
         with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        # Atomic replace
         os.replace(temp_file, filepath)
         return True
     except Exception as e:
@@ -118,22 +113,39 @@ def save_json_file(filepath, data):
             pass
         return False
 
-# Product management functions
+# Product management
 def load_products():
-    """Load all products from the products.json file."""
-    return load_json_file('data/products.json', default=[])
+    """Load all products with error handling"""
+    try:
+        if not os.path.exists('data/products.json'):
+            with open('data/products.json', 'w') as f:
+                json.dump([], f)
+        products = load_json_file('data/products.json')
+        logger.debug(f"Loaded {len(products)} products")
+        return products
+    except Exception as e:
+        logger.error(f"Error loading products: {str(e)}")
+        return []
 
 def save_products(products):
-    """Save products to the products.json file."""
-    return save_json_file('data/products.json', products)
+    """Save products with error handling"""
+    try:
+        return save_json_file('data/products.json', products)
+    except Exception as e:
+        logger.error(f"Error saving products: {str(e)}")
+        return False
 
 def get_product_by_id(product_id):
-    """Get a single product by its ID."""
-    products = load_products()
-    return next((p for p in products if p['id'] == product_id), None)
+    """Get product by ID with error handling"""
+    try:
+        products = load_products()
+        return next((p for p in products if p['id'] == product_id), None)
+    except Exception as e:
+        logger.error(f"Error finding product {product_id}: {str(e)}")
+        return None
 
 def get_cart_details():
-    """Calculate cart details including totals."""
+    """Get cart details with error handling"""
     try:
         cart_items = session.get('cart', [])
         products = load_products()
@@ -143,16 +155,16 @@ def get_cart_details():
         for item in cart_items:
             product = next((p for p in products if p['id'] == item['id']), None)
             if product:
-                price = product['sale_price'] if product.get('on_sale', False) else product['price']
-                item_total = price * item['quantity']
+                price = product.get('sale_price', product.get('price', 0))
+                item_total = price * item.get('quantity', 0)
                 subtotal += item_total
                 cart_products.append({
                     'id': product['id'],
-                    'name': product['title'],
-                    'artist': product['artist'],
+                    'name': product.get('title', 'Unknown'),
+                    'artist': product.get('artist', 'Unknown'),
                     'price': price,
-                    'image': product['image'],
-                    'quantity': item['quantity'],
+                    'image': product.get('image', ''),
+                    'quantity': item.get('quantity', 0),
                     'item_total': item_total
                 })
         
@@ -174,13 +186,11 @@ def get_cart_details():
             'total': 0.0
         }
 
-# Admin credentials management
+# Admin management
 def load_admin_credentials():
-    """Load admin credentials from file."""
     return load_json_file(app.config['ADMIN_CREDENTIALS_FILE'], {})
 
 def save_admin_credentials(username, password):
-    """Save admin credentials securely."""
     credentials = {
         'username': username,
         'password_hash': generate_password_hash(password, method='scrypt'),
@@ -190,11 +200,9 @@ def save_admin_credentials(username, password):
     return save_json_file(app.config['ADMIN_CREDENTIALS_FILE'], credentials)
 
 def is_admin_registered():
-    """Check if admin credentials exist."""
     return os.path.exists(app.config['ADMIN_CREDENTIALS_FILE'])
 
 def get_admin_credentials():
-    """Get current admin credentials."""
     credentials = load_admin_credentials()
     return credentials.get('username'), credentials.get('password_hash')
 
@@ -203,7 +211,6 @@ ADMIN_USER, ADMIN_PASS_HASH = get_admin_credentials()
 
 # Authentication decorator
 def admin_required(f):
-    """Decorator to ensure admin is logged in."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('admin_logged_in'):
@@ -215,7 +222,6 @@ def admin_required(f):
 # Security headers
 @app.after_request
 def add_security_headers(response):
-    """Add security headers to all responses."""
     headers = {
         'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; script-src 'self'",
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -232,32 +238,27 @@ def add_security_headers(response):
 # Error handlers
 @app.errorhandler(400)
 def bad_request(e):
-    """Handle 400 Bad Request errors."""
     logger.warning(f"Bad request: {str(e)}")
     return render_template('400.html', error=str(e)), 400
 
 @app.errorhandler(403)
 def forbidden(e):
-    """Handle 403 Forbidden errors."""
     logger.warning(f"Forbidden access: {str(e)}")
     return render_template('403.html', error=str(e)), 403
 
 @app.errorhandler(404)
 def page_not_found(e):
-    """Handle 404 Not Found errors."""
     logger.info(f"Page not found: {request.url}")
     return render_template('404.html', error=str(e)), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    """Handle 500 Internal Server errors."""
     logger.error(f"Server error: {str(e)}", exc_info=True)
     return render_template('500.html', error=str(e) if app.debug else None), 500
 
 # Context processors
 @app.context_processor
 def inject_global_data():
-    """Inject global template variables with error handling."""
     try:
         cart_details = get_cart_details()
         return {
@@ -282,16 +283,44 @@ def inject_global_data():
 # Before request setup
 @app.before_request
 def before_request():
-    """Initialize session and cart before each request."""
     if 'cart' not in session:
         session['cart'] = []
     session.permanent = True
+
+# Routes
+@app.route('/')
+def home():
+    try:
+        featured = load_products()[:3]
+        return render_template('index.html', featured=featured)
+    except Exception as e:
+        logger.error(f"Error in home route: {str(e)}", exc_info=True)
+        abort(500)
+
+@app.route('/shop')
+def shop():
+    try:
+        products = load_products()
+        return render_template('shop.html', products=products)
+    except Exception as e:
+        logger.error(f"Error loading shop: {str(e)}")
+        abort(500)
+
+@app.route('/product/<product_id>')
+def product(product_id):
+    try:
+        product = get_product_by_id(product_id)
+        if product:
+            return render_template('product.html', product=product)
+        abort(404)
+    except Exception as e:
+        logger.error(f"Error loading product {product_id}: {str(e)}")
+        abort(500)
 
 # Admin routes
 @app.route('/admin/register', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def admin_register():
-    """Handle admin registration."""
     if session.get('admin_logged_in'):
         return redirect(url_for('home'))
     if is_admin_registered():
@@ -323,7 +352,6 @@ def admin_register():
 @app.route('/admin/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def admin_login():
-    """Handle admin login."""
     if not is_admin_registered():
         return redirect(url_for('admin_register'))
 
@@ -344,16 +372,14 @@ def admin_login():
 
 @app.route('/admin/logout')
 def admin_logout():
-    """Handle admin logout."""
     session.pop('admin_logged_in', None)
     session.pop('admin_last_login', None)
     flash('Admin logged out', 'info')
     return redirect(url_for('home'))
 
-# Health check endpoint
+# Health check
 @app.route('/health')
 def health_check():
-    """Simple health check endpoint."""
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.datetime.now().isoformat()
