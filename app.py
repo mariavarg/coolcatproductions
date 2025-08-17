@@ -471,6 +471,17 @@ def add_cache_headers(response):
         response.cache_control.max_age = 3600  # Cache static files for 1 hour
     return response
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+@app.route('/admin/add_album', methods=['GET', 'POST'])
+def add_album():
+    if request.method == 'POST':
+        # Uses app.config['UPLOAD_FOLDER'] here
+        pass
+    # ...
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
