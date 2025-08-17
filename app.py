@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -20,23 +21,25 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+app.secret_key = os.environ.get('SECRET_KEY', 'fallback_secret_key')
 app.config['UPLOAD_FOLDER'] = 'static/uploads/covers'
 app.config['ALLOWED_EXTENSIONS'] = {'jpg', 'jpeg', 'png', 'webp'}
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
+
+# Create directories if they don't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('data', exist_ok=True)
+
 csrf = CSRFProtect(app)
 
 # Branding configuration
 BRAND_NAME = "Cool Cat Productions-Druna C."
 
-# Ensure upload and data directories exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('data', exist_ok=True)
-
 # Initialize rate limiter
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
 )
 limiter.init_app(app)
 
@@ -122,10 +125,13 @@ def add_security_headers(response):
         response.headers[key] = value
     return response
 
-# Context processor to inject brand name into all templates
+# Context processor to inject brand name and current year
 @app.context_processor
-def inject_brand():
-    return {'brand': BRAND_NAME}
+def inject_global_data():
+    return {
+        'brand': BRAND_NAME,
+        'current_year': datetime.datetime.now().year
+    }
 
 # Routes
 @app.route('/')
