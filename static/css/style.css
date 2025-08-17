@@ -352,3 +352,54 @@ footer {
         gap: 1rem;
     }
 }
+
+/* Flash Messages */
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1100;
+    max-width: 300px;
+}
+
+.flash {
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: fadeIn 0.5s ease;
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 3px solid;
+}
+
+.flash-success {
+    border-color: #2ecc71;
+}
+
+.flash-error {
+    border-color: #e74c3c;
+}
+
+.flash-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+/* Footer */
+.site-footer {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid var(--accent-color);
+    margin-top: 40px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
