@@ -1,14 +1,14 @@
 <header class="header">
     <div class="logo">{{ brand }}</div>
-    <nav class="main-nav">
+    <nav>
         <a href="{{ url_for('home') }}" class="nav-link">Home</a>
         <a href="{{ url_for('shop') }}" class="nav-link">Shop</a>
-        <a href="{{ url_for('cart') }}" class="nav-link">Cart <span class="cart-count">{{ cart_count }}</span></a>
+        <a href="{{ url_for('cart') }}" class="nav-link">Cart ({{ cart_count }})</a>
         {% if session.get('admin_logged_in') %}
-            <a href="{{ url_for('add_product') }}" class="nav-link admin-link">Add Product</a>
-            <a href="{{ url_for('admin_logout') }}" class="nav-link admin-link">Logout</a>
+            <a href="{{ url_for('add_product') }}" class="nav-link admin">Add Product</a>
+            <a href="{{ url_for('admin_logout') }}" class="nav-link admin">Logout</a>
         {% else %}
-            <a href="{{ url_for('admin_login') }}" class="nav-link admin-link">Admin Login</a>
+            <a href="{{ url_for('admin_login') }}" class="nav-link admin">Admin</a>
         {% endif %}
     </nav>
 </header>
