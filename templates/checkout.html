@@ -1,53 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>CART - VINYL STORE</title>
-    <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: 'Sofia', cursive;
-        }
-        body { 
-            background: black; 
-            color: white; 
-            min-height: 100vh;
-        }
-        header { 
-            padding: 1rem; 
-            border-bottom: 1px solid white; 
-            display: flex; 
-            justify-content: space-between; 
-        }
-        nav a { 
-            margin-left: 1rem; 
-            color: white; 
-            text-decoration: none; 
-        }
-        .container { 
-            padding: 1rem; 
-            max-width: 800px; 
-            margin: 0 auto; 
-        }
-        *:focus { 
-            outline: 2px solid white; 
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div>VINYL STORE</div>
-        <nav>
-            <a href="/" accesskey="h">HOME [H]</a>
-            <a href="/shop" accesskey="s">SHOP [S]</a>
-        </nav>
-    </header>
+{% extends "base.html" %}
 
-    <div class="container">
-        <h1>YOUR CART</h1>
-        <!-- Cart items would go here -->
-    </div>
-</body>
-</html>
+{% block content %}
+<section class="checkout-container">
+    <h1>Checkout</h1>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="address">Shipping Address</label>
+            <textarea id="address" name="address" rows="3" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="card">Credit Card Number</label>
+            <input type="text" id="card" name="card" required>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="expiry">Expiry Date</label>
+                <input type="text" id="expiry" name="expiry" placeholder="MM/YY" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="cvv">CVV</label>
+                <input type="text" id="cvv" name="cvv" required>
+            </div>
+        </div>
+        
+        <div class="order-summary">
+            <h3>Order Summary</h3>
+            <p>Items: ${{ "%.2f"|format(subtotal) }}</p>
+            <p>VAT: ${{ "%.2f"|format(vat) }}</p>
+            <p class="total">Total: ${{ "%.2f"|format(total) }}</p>
+        </div>
+        
+        <button type="submit">Place Order</button>
+    </form>
+</section>
+{% endblock %}
