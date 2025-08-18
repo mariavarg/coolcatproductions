@@ -41,5 +41,30 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/script.js') }}?v={{ cache_buster }}"></script>
+
+    <div class="cookie-banner" id="cookieBanner">
+  <p>We use cookies to enhance your experience. By continuing, you agree to our use of cookies.</p>
+  <div>
+    <button class="btn" id="acceptCookies">Accept</button>
+    <button class="btn" id="declineCookies">Decline</button>
+  </div>
+</div>
+
+<script>
+  // Cookie consent
+  if (localStorage.getItem('cookiesAccepted')) {
+    document.getElementById('cookieBanner').classList.add('hidden');
+  }
+  
+  document.getElementById('acceptCookies').addEventListener('click', () => {
+    localStorage.setItem('cookiesAccepted', 'true');
+    document.getElementById('cookieBanner').classList.add('hidden');
+  });
+  
+  document.getElementById('declineCookies').addEventListener('click', () => {
+    localStorage.setItem('cookiesAccepted', 'false');
+    document.getElementById('cookieBanner').classList.add('hidden');
+  });
+</script>
 </body>
 </html>
