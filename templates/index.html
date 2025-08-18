@@ -1,10 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Home - {{ super() }}{% endblock %}
-
 {% block content %}
-<section class="hero">
-    <h1>Welcome to {{ brand }}</h1>
-    <p>Your premier music destination</p>
-</section>
+<div class="container">
+  <h1>Music Collection</h1>
+  <div class="albums-grid">
+    {% for album in albums %}
+    <a href="{{ url_for('album', album_id=album.id) }}" class="album-card">
+      <img src="{{ url_for('static', filename=album.cover) }}" alt="{{ album.title }}" class="album-cover">
+      <div class="album-info">
+        <h3 class="album-title">{{ album.title }}</h3>
+        <p class="album-artist">{{ album.artist }}</p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}
