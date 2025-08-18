@@ -1,22 +1,27 @@
 import os
 import json
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 
 # Configuration
 app.config.update(
-    SECRET_KEY='your-secret-key-here',  # Change this!
+    SECRET_KEY=os.getenv('SECRET_KEY'),
     USERS_FILE='data/users.json',
     ALBUMS_FILE='data/albums.json',
-    COVERS_FOLDER='static/uploads/covers',
+    COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
     UPLOAD_FOLDER='static/uploads',
-    ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
-    ADMIN_USERNAME='your_admin_username',  # Change this!
-    ADMIN_PASSWORD_HASH=generate_password_hash('your_admin_password')  # Change this!
+    ALLOWED_EXTENSIONS=set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,webp').split(',')),
+    ADMIN_USERNAME=os.getenv('ADMIN_USERNAME'),
+    ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD')),
+    MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
 )
 
 # Ensure directories exist
@@ -40,6 +45,16 @@ def save_data(data, filename):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=2)
 
+# Error handlers
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(413)
+def too_large(e):
+    flash('File too large - maximum size is 16MB', 'danger')
+    return redirect(request.url)
+
 # Routes
 @app.route('/')
 def home():
@@ -62,6 +77,9 @@ def album(album_id):
 # Admin routes
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin_dashboard'))
+        
     if request.method == 'POST':
         if (request.form['username'] == app.config['ADMIN_USERNAME'] and 
             check_password_hash(app.config['ADMIN_PASSWORD_HASH'], request.form['password'])):
@@ -89,30 +107,43 @@ def add_album():
         return redirect(url_for('admin_login'))
     
     if request.method == 'POST':
-        albums = load_data(app.config['ALBUMS_FILE'])
-        cover = request.files['cover']
-        
-        if cover and allowed_file(cover.filename):
+        try:
+            albums = load_data(app.config['ALBUMS_FILE'])
+            cover = request.files['cover']
+            
+            if not cover or cover.filename == '':
+                flash('No file selected', 'danger')
+                return redirect(request.url)
+                
+            if not allowed_file(cover.filename):
+                flash('Invalid file type', 'danger')
+                return redirect(request.url)
+            
             filename = secure_filename(cover.filename)
-            cover.save(os.path.join(app.config['COVERS_FOLDER'], filename))
+            cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
+            cover.save(cover_path)
             
             new_album = {
                 'id': len(albums) + 1,
-                'title': request.form['title'],
-                'artist': request.form['artist'],
-                'year': request.form['year'],
-                'cover': f"uploads/covers/{filename}",
+                'title': request.form['title'].strip(),
+                'artist': request.form['artist'].strip(),
+                'year': request.form['year'].strip(),
+                'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
                 'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
                 'added': datetime.now().strftime("%Y-%m-%d"),
-                'price': float(request.form.get('price', 0)),
+                'price': round(float(request.form.get('price', 0)), 2),
                 'on_sale': 'on_sale' in request.form,
-                'sale_price': float(request.form.get('sale_price', 0)) if request.form.get('sale_price') else None
+                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
             }
             
             albums.append(new_album)
             save_data(albums, app.config['ALBUMS_FILE'])
             flash('Album added successfully', 'success')
             return redirect(url_for('shop'))
+            
+        except Exception as e:
+            flash(f'Error adding album: {str(e)}', 'danger')
+            return redirect(request.url)
     
     return render_template('admin/add_album.html')
 
@@ -120,18 +151,38 @@ def add_album():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        users = load_data(app.config['USERS_FILE'])
-        users.append({
-            'id': len(users) + 1,
-            'username': request.form['username'],
-            'email': request.form['email'],
-            'password': generate_password_hash(request.form['password']),
-            'joined': datetime.now().strftime("%Y-%m-%d")
-        })
-        save_data(users, app.config['USERS_FILE'])
-        flash('Registration successful! Please login.', 'success')
-        return redirect(url_for('home'))
+        try:
+            users = load_data(app.config['USERS_FILE'])
+            
+            if any(u['username'] == request.form['username'] for u in users):
+                flash('Username already exists', 'danger')
+                return redirect(request.url)
+                
+            if any(u['email'] == request.form['email'] for u in users):
+                flash('Email already registered', 'danger')
+                return redirect(request.url)
+            
+            users.append({
+                'id': len(users) + 1,
+                'username': request.form['username'].strip(),
+                'email': request.form['email'].strip(),
+                'password': generate_password_hash(request.form['password']),
+                'joined': datetime.now().strftime("%Y-%m-%d")
+            })
+            
+            save_data(users, app.config['USERS_FILE'])
+            flash('Registration successful! Please login.', 'success')
+            return redirect(url_for('home'))
+            
+        except Exception as e:
+            flash(f'Registration error: {str(e)}', 'danger')
+            return redirect(request.url)
+            
     return render_template('register.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(
+        host=os.getenv('HOST', '0.0.0.0'),
+        port=int(os.getenv('PORT', 5000)),
+        debug=os.getenv('DEBUG', 'False').lower() == 'true'
+    )
