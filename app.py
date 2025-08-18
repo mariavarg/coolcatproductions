@@ -1,27 +1,25 @@
 import os
 import json
-from datetime import datetime
-from flask import Flask, render_template, url_for, flash, session, redirect, request, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 
 # Configuration
 app.config.update(
-    SECRET_KEY=os.environ.get('SECRET_KEY', 'dev-key-123'),
-    BRAND_NAME="VinylVault",
-    ADMIN_USERNAME=os.environ.get('ADMIN_USER', 'admin'),
-    ADMIN_PASSWORD_HASH=generate_password_hash(os.environ.get('ADMIN_PASS', 'music123')),
-    PRODUCTS_FILE='data/products.json',
-    CART_FILE='data/cart.json',
+    SECRET_KEY='your-secret-key-here',  # Change this!
+    USERS_FILE='data/users.json',
+    ALBUMS_FILE='data/albums.json',
     UPLOAD_FOLDER='static/uploads',
-    ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'gif'},
-    MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB
+    ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
+    ADMIN_USERNAME='your_admin_username',  # Change this!
+    ADMIN_PASSWORD_HASH=generate_password_hash('your_admin_password')  # Change this!
 )
 
 # Ensure directories exist
-os.makedirs('templates/admin', exist_ok=True)
+os.makedirs('templates', exist_ok=True)
 os.makedirs('data', exist_ok=True)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -30,107 +28,89 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-def get_cart_count():
+def load_data(filename):
     try:
-        with open(app.config['CART_FILE']) as f:
-            return len(json.load(f))
-    except:
-        return 0
-
-def load_products():
-    try:
-        with open(app.config['PRODUCTS_FILE']) as f:
+        with open(filename) as f:
             return json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         return []
 
-def save_products(products):
-    with open(app.config['PRODUCTS_FILE'], 'w') as f:
-        json.dump(products, f, indent=2)
-
-# Context processors
-@app.context_processor
-def inject_globals():
-    return {
-        'brand': app.config['BRAND_NAME'],
-        'current_year': datetime.now().year,
-        'cart_count': get_cart_count(),
-        'cache_buster': datetime.now().timestamp()
-    }
+def save_data(data, filename):
+    with open(filename, 'w') as f:
+        json.dump(data, f, indent=2)
 
 # Routes
 @app.route('/')
 def home():
-    products = load_products()[:4]  # Show 4 featured products
-    return render_template('index.html', featured_products=products)
+    albums = load_data(app.config['ALBUMS_FILE'])
+    return render_template('index.html', albums=albums)
 
-@app.route('/shop')
-def shop():
-    products = load_products()
-    return render_template('shop.html', products=products)
+@app.route('/album/<int:album_id>')
+def album(album_id):
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == album_id), None)
+    if not album:
+        abort(404)
+    return render_template('album.html', album=album)
 
-@app.route('/cart')
-def cart():
-    try:
-        with open(app.config['CART_FILE']) as f:
-            cart_items = json.load(f)
-        return render_template('cart.html', cart_items=cart_items)
-    except:
-        return render_template('cart.html', cart_items=[])
-
-# Admin routes
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         if (request.form['username'] == app.config['ADMIN_USERNAME'] and 
             check_password_hash(app.config['ADMIN_PASSWORD_HASH'], request.form['password'])):
             session['admin_logged_in'] = True
-            flash('Logged in successfully', 'success')
-            return redirect(url_for('add_product'))
-        flash('Invalid credentials', 'danger')
+            return redirect(url_for('admin_dashboard'))
     return render_template('admin/login.html')
 
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    flash('Logged out successfully', 'success')
-    return redirect(url_for('home'))
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    return render_template('admin/dashboard.html')
 
-@app.route('/admin/add-product', methods=['GET', 'POST'])
-def add_product():
+@app.route('/admin/add-album', methods=['GET', 'POST'])
+def add_album():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
     if request.method == 'POST':
+        albums = load_data(app.config['ALBUMS_FILE'])
+        
         # Handle file upload
-        cover_image = request.files['cover_image']
-        filename = None
+        cover = request.files['cover']
+        filename = secure_filename(cover.filename)
+        cover.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
-        if cover_image and allowed_file(cover_image.filename):
-            filename = secure_filename(cover_image.filename)
-            cover_image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        # Create new product
-        products = load_products()
-        new_product = {
-            'id': len(products) + 1,
+        new_album = {
+            'id': len(albums) + 1,
             'title': request.form['title'],
             'artist': request.form['artist'],
-            'format': request.form['format'],
-            'price': float(request.form['price']),
-            'on_sale': 'on_sale' in request.form,
-            'sale_price': float(request.form['sale_price']) if request.form['sale_price'] else None,
-            'image': f"uploads/{filename}" if filename else None,
-            'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
-            'date_added': datetime.now().strftime("%Y-%m-%d")
+            'year': request.form['year'],
+            'cover': f"uploads/{filename}",
+            'tracks': request.form['tracks'].split('\n'),
+            'added': datetime.now().strftime("%Y-%m-%d")
         }
         
-        products.append(new_product)
-        save_products(products)
-        flash('Product added successfully', 'success')
-        return redirect(url_for('shop'))
+        albums.append(new_album)
+        save_data(albums, app.config['ALBUMS_FILE'])
+        return redirect(url_for('home'))
     
-    return render_template('admin/add_product.html')
+    return render_template('admin/add_album.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        users = load_data(app.config['USERS_FILE'])
+        users.append({
+            'id': len(users) + 1,
+            'username': request.form['username'],
+            'email': request.form['email'],
+            'password': generate_password_hash(request.form['password']),
+            'joined': datetime.now().strftime("%Y-%m-%d")
+        })
+        save_data(users, app.config['USERS_FILE'])
+        return redirect(url_for('home'))
+    return render_template('register.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
