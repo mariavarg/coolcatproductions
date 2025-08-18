@@ -48,9 +48,18 @@ def home():
 
 @app.route('/shop')
 def shop():
-    albums = load_data(app.config['ALBUMS_FILE'])
-    return render_template('shop.html', albums=albums)
+    if not session.get('admin_logged_in'):
+        albums = load_data(app.config['ALBUMS_FILE'])
+        return render_template('shop.html', albums=albums)
+    else:
+        return redirect(url_for('admin_login'))
 
+@app.route('/add-album')
+def add_album():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    return render_template('admin/add_album.html')
+    
 @app.route('/album/<int:album_id>')
 def album(album_id):
     albums = load_data(app.config['ALBUMS_FILE'])
