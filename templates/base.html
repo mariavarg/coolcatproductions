@@ -4,14 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CoolCat Productions{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
     <style>
-        /* CoolCat Productions Branding */
-        body {
-            font-family: 'Sofia', sans-serif;
+        /* CoolCat Productions Dark Theme */
+        * {
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Sofia', cursive;
+            background-color: #000;
+            color: #fff;
+            line-height: 1.6;
         }
         
         /* Channel Header */
@@ -19,38 +25,129 @@
             background-color: #000;
             padding: 20px 0;
             text-align: center;
+            border-bottom: 1px solid #333;
         }
+        
         .channel-logo {
             max-width: 200px;
             height: auto;
+        }
+        
+        /* Navigation */
+        .main-nav {
+            background-color: #111;
+            padding: 15px 0;
+            text-align: center;
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin: 0 15px;
+        }
+        
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #0d6efd;
         }
         
         /* Main Content */
         .content-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 30px 20px;
+            min-height: 70vh;
         }
         
-        /* Cookie Consent - Only in base template */
+        /* Content Boxes */
+        .content-box {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        /* Headings */
+        h1, h2, h3, h4, h5, h6 {
+            color: #fff;
+            margin-bottom: 20px;
+            font-weight: normal;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        /* Links */
+        a {
+            color: #0d6efd;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Buttons */
+        .btn {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Sofia', cursive;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #0b5ed7;
+            text-decoration: none;
+        }
+        
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        /* Cookie Consent */
         .cookie-consent {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             color: white;
             padding: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 1000;
+            border-top: 1px solid #333;
         }
+        
         .cookie-consent p {
             margin: 0;
             flex-grow: 1;
             padding-right: 20px;
+            font-size: 1rem;
         }
+        
         #accept-cookies {
             background: #0d6efd;
             color: white;
@@ -58,50 +155,74 @@
             padding: 8px 15px;
             border-radius: 4px;
             cursor: pointer;
-            font-family: 'Sofia', sans-serif;
+            font-family: 'Sofia', cursive;
+            font-size: 1rem;
         }
         
-        /* Shop Styling */
-        .shop-container {
-            padding: 20px;
-        }
-        .albums-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 25px;
-            margin-top: 20px;
-        }
-        .album-card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        .album-card:hover {
-            transform: translateY(-5px);
-        }
-        .album-cover {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-        .album-info {
+        /* Flashed messages */
+        .alert {
             padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 1.1rem;
         }
-        .album-price {
-            margin-top: 10px;
+        
+        .alert-success {
+            background-color: #155724;
+            border-color: #0c3613;
+            color: #d4edda;
         }
-        .sale-price {
-            text-decoration: line-through;
-            color: #888;
-            margin-right: 8px;
+        
+        .alert-danger {
+            background-color: #721c24;
+            border-color: #5a151c;
+            color: #f8d7da;
         }
-        .current-price {
-            font-weight: bold;
+        
+        .alert-info {
+            background-color: #0c5460;
+            border-color: #093640;
+            color: #d1ecf1;
+        }
+        
+        /* Footer */
+        .site-footer {
+            background-color: #111;
+            padding: 30px 0;
+            text-align: center;
+            border-top: 1px solid #333;
+            margin-top: 50px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            margin: 20px 0;
+        }
+        
+        .footer-links li {
+            margin: 0 15px;
+        }
+        
+        .footer-links a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+        
+        .footer-links a:hover {
             color: #0d6efd;
         }
+        
+        .copyright {
+            color: #777;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
     </style>
+    {% block head %}{% endblock %}
 </head>
 <body>
     <!-- Channel Header -->
@@ -110,6 +231,17 @@
              alt="CoolCat Productions" 
              class="channel-logo">
     </div>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <ul class="nav-links">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><a href="{{ url_for('shop') }}">Shop</a></li>
+            <li><a href="#">Artists</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="{{ url_for('register') }}">Register</a></li>
+        </ul>
+    </nav>
 
     <!-- Main Content -->
     <div class="content-container">
@@ -124,7 +256,19 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Cookie Consent - ONLY IN BASE TEMPLATE -->
+    <!-- Footer -->
+    <footer class="site-footer">
+        <ul class="footer-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Shop</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+        </ul>
+        <p class="copyright">© 2023 CoolCat Productions. All rights reserved.</p>
+    </footer>
+
+    <!-- Cookie Consent -->
     <div class="cookie-consent">
         <p>CoolCat Productions uses cookies to enhance your experience. By continuing to visit this site, you agree to our use of cookies.</p>
         <button id="accept-cookies">Accept</button>
