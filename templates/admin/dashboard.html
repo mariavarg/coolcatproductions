@@ -1,106 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <style>
-        body {
-            font-family: 'Sofia', sans-serif;
-            background-color: #f8f9fa;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #ddd;
-        }
-        .stats {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .stat-box {
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            flex: 1;
-            min-width: 200px;
-            text-align: center;
-        }
-        .actions {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        .action-btn {
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-decoration: none;
-            color: #333;
-            flex: 1;
-            min-width: 200px;
-            text-align: center;
-        }
-        .logout-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: 'Sofia', sans-serif;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Admin Dashboard</h1>
-        <a href="{{ url_for('admin_logout') }}" class="logout-btn">Logout</a>
-    </div>
+{% extends "base.html" %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+{% block title %}Admin Dashboard | CoolCat Productions{% endblock %}
 
-    <div class="stats">
-        <div class="stat-box">
+{% block content %}
+<div class="content-box">
+    <h2>Admin Dashboard</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin: 40px 0;">
+        <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
             <h3>Albums</h3>
-            <p>{{ album_count }}</p>
+            <p style="font-size: 2.8rem; margin: 15px 0;">{{ album_count }}</p>
         </div>
-        <div class="stat-box">
+        
+        <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
             <h3>Users</h3>
-            <p>{{ user_count }}</p>
+            <p style="font-size: 2.8rem; margin: 15px 0;">{{ user_count }}</p>
         </div>
-        <div class="stat-box">
+        
+        <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
             <h3>Today</h3>
-            <p>{{ current_date }}</p>
+            <p style="font-size: 2.2rem; margin: 15px 0;">{{ current_date }}</p>
         </div>
     </div>
-
-    <div class="actions">
-        <a href="{{ url_for('add_album') }}" class="action-btn">
-            <h3>Add Album</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 50px;">
+        <a href="{{ url_for('add_album') }}" style="display: block; background: #111; padding: 30px; border: 1px solid #333; border-radius: 8px; text-align: center; transition: all 0.3s; text-decoration: none;">
+            <h3 style="color: #0d6efd; margin-bottom: 15px;">Add New Album</h3>
+            <p style="color: #aaa;">Create a new music album listing</p>
         </a>
-        <a href="{{ url_for('shop') }}" class="action-btn">
-            <h3>Manage Albums</h3>
+        
+        <a href="{{ url_for('shop') }}" style="display: block; background: #111; padding: 30px; border: 1px solid #333; border-radius: 8px; text-align: center; transition: all 0.3s; text-decoration: none;">
+            <h3 style="color: #0d6efd; margin-bottom: 15px;">Manage Albums</h3>
+            <p style="color: #aaa;">Edit or remove existing albums</p>
         </a>
-        <a href="#" class="action-btn">
-            <h3>Manage Users</h3>
+        
+        <a href="#" style="display: block; background: #111; padding: 30px; border: 1px solid #333; border-radius: 8px; text-align: center; transition: all 0.3s; text-decoration: none;">
+            <h3 style="color: #0d6efd; margin-bottom: 15px;">Manage Users</h3>
+            <p style="color: #aaa;">View and manage user accounts</p>
         </a>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
