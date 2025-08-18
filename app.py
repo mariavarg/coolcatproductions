@@ -24,11 +24,11 @@ csrf = CSRFProtect(app)
 
 # Initialize Rate Limiting
 limiter = Limiter(
-    get_remote_address,
-    app=app,
+    key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
+limiter.init_app(app)  # ADD THIS LINE
 
 # Configuration - FIXED SYNTAX ERROR HERE
 app.config.update(
