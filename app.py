@@ -35,6 +35,7 @@ limiter = Limiter(
 
 # Configuration
 app.config.update(
+    app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
     ALBUMS_FILE=os.path.join('data', 'albums.json'),
