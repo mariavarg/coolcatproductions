@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <a href="{{ url_for('home') }}" class="back-link">← Back to all albums</a>
+  
+  <div class="album-detail">
+    <!-- Left Column - Album Cover -->
+    <div class="album-cover-container">
+      <img src="{{ url_for('static', filename=album.cover) }}" 
+           alt="{{ album.title }}" 
+           class="album-cover-large">
+      <div class="album-meta">
+        <span class="year">{{ album.year }}</span>
+        <span class="added">Added {{ album.added }}</span>
+      </div>
+    </div>
+    
+    <!-- Right Column - Album Info -->
+    <div class="album-info">
+      <h1>{{ album.title }}</h1>
+      <h2>{{ album.artist }}</h2>
+      
+      <div class="tracklist">
+        <h3>Tracklist</h3>
+        <ol>
+          {% for track in album.tracks %}
+          <li class="track">
+            <span class="track-number">{{ loop.index }}.</span>
+            <span class="track-title">{{ track }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
