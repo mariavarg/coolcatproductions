@@ -22,15 +22,15 @@ app = Flask(__name__)
 # Initialize CSRF Protection
 csrf = CSRFProtect(app)
 
-# Initialize Rate Limiting
+# Initialize Rate Limiting - FIXED HERE
 limiter = Limiter(
-    get_remote_address,
-    app=app,
+    app=app,  # Corrected: app as named parameter
+    key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
 
-# Configuration - FIXED SYNTAX ERROR HERE
+# Configuration
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
@@ -47,7 +47,7 @@ app.config.update(
 @app.before_request
 def enforce_https():
     """Redirect HTTP to HTTPS in production"""
-    if request.headers.get('X-Forwarded-Proto') == 'http' and app.env == 'production':
+    if not request.is_secure and app.env == 'production':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 
@@ -126,7 +126,7 @@ def internal_error(e):
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
-        if albums is None:  # Handle case where load_data fails
+        if albums is None:
             albums = []
         return render_template('index.html', albums=albums[:4])
     except Exception as e:
@@ -136,7 +136,6 @@ def home():
 
 @app.route('/cart')
 def cart():
-    """Shopping cart placeholder"""
     flash('Shopping cart functionality is coming soon!', 'info')
     return redirect(url_for('shop'))
 
@@ -165,7 +164,7 @@ def album(album_id):
 
 # Admin routes
 @app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # Rate limiting for login
+@limiter.limit("5 per minute")
 def admin_login():
     if session.get('admin_logged_in'):
         return redirect(url_for('admin_dashboard'))
@@ -266,7 +265,7 @@ def add_album():
 
 # User registration
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("10 per hour")  # Rate limiting for registration
+@limiter.limit("10 per hour")
 def register():
     if request.method == 'POST':
         try:
