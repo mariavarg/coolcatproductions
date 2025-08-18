@@ -1,100 +1,182 @@
+/* Modern Dark Theme */
 :root {
-    --primary-color: #4361ee;
-    --secondary-color: #3f37c9;
+  --bg: #000;
+  --text: #fff;
+  --accent: #1db954;
+  --secondary: #535353;
+  --highlight: #282828;
+  --font: 'Sofia', cursive;
 }
 
-/* Mobile Menu Styles */
-.menu-toggle {
-    display: none;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0.5rem;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background-color: var(--primary-color);
-    color: white;
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
 }
 
-nav {
-    display: flex;
-    gap: 1rem;
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 0;
 }
 
-.nav-link {
-    color: white;
-    text-decoration: none;
-    padding: 0.5rem;
-    transition: opacity 0.3s;
+/* Header */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 5%;
+  border-bottom: 1px solid var(--secondary);
 }
 
-.nav-link:hover {
-    opacity: 0.8;
+.logo {
+  font-size: 1.8rem;
+  color: var(--accent);
 }
 
-/* Mobile styles */
+/* Album Grid */
+.albums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.album-card {
+  background: var(--highlight);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.album-card:hover {
+  transform: scale(1.03);
+}
+
+.album-cover {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.album-info {
+  padding: 1rem;
+}
+
+.album-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-artist {
+  color: var(--secondary);
+  font-size: 0.9rem;
+}
+
+/* Album Detail */
+.album-detail {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.tracklist {
+  margin-top: 2rem;
+}
+
+.track {
+  padding: 1rem;
+  border-bottom: 1px solid var(--secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Forms */
+.form-container {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: var(--highlight);
+  border-radius: 8px;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--secondary);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font);
+}
+
+.btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 1rem;
+  transition: opacity 0.3s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+/* Cookie Banner */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--highlight);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+}
+
+.cookie-banner.hidden {
+  display: none;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-    .menu-toggle {
-        display: block;
-    }
-    
-    nav {
-        position: fixed;
-        top: 0;
-        right: -100%;
-        width: 70%;
-        height: 100vh;
-        background-color: var(--primary-color);
-        flex-direction: column;
-        padding: 2rem;
-        transition: right 0.3s ease;
-        z-index: 1000;
-    }
-    
-    nav.active {
-        right: 0;
-    }
-}
-
-/* Tracklist styles */
-.track-header {
-    cursor: pointer;
-    padding: 0.5rem;
-    background-color: #f5f5f5;
-    margin-top: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.track-content {
-    display: none;
-    padding: 0.5rem;
-    background-color: #fafafa;
-}
-
-/* Flash messages */
-.flash {
-    position: relative;
-    padding: 1rem;
-    margin: 1rem 0;
-    border-radius: 4px;
-    transition: opacity 0.3s;
-}
-
-.flash-close {
-    position: absolute;
-    right: 0.5rem;
-    top: 0.5rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: inherit;
+  .albums-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  
+  .album-detail {
+    grid-template-columns: 1fr;
+  }
 }
