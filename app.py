@@ -1,330 +1,296 @@
-import os
-import json
-import logging
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
-from datetime import datetime
-from dotenv import load_dotenv
-from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
-# Initialize logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
-
-app = Flask(__name__)
-
-# Initialize CSRF Protection
-csrf = CSRFProtect(app)
-
-# Initialize Rate Limiting
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
-)
-
-# Configuration - UPDATED TO USE .env FILE PROPERLY
-app.config.update(
-    SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
-    USERS_FILE=os.path.join('data', 'users.json'),
-    ALBUMS_FILE=os.path.join('data', 'albums.json'),
-    COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
-    UPLOAD_FOLDER='static/uploads',
-    ALLOWED_EXTENSIONS=set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,webp').split(',')),
-    ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
-    ADMIN_PASSWORD=os.getenv('ADMIN_PASSWORD', 'admin123'),  # Store password separately
-    MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
-)
-
-# Generate password hash separately
-ADMIN_PASSWORD_HASH = generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123'))
-
-# HTTPS Enforcement - FIXED
-@app.before_request
-def enforce_https():
-    """Redirect HTTP to HTTPS in production"""
-    # Use FLASK_ENV from .env instead of app.env
-    if os.getenv('FLASK_ENV') == 'production' and not request.is_secure:
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
-
-# Initialize app setup at startup
-def initialize_app():
-    """Ensure required directories and files exist"""
-    try:
-        os.makedirs('templates/admin', exist_ok=True)
-        os.makedirs('data', exist_ok=True)
-        os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CoolCat Productions{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
+    <style>
+        /* CoolCat Productions Dark Theme */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        # Initialize empty data files if they don't exist
-        for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE']]:
-            if not os.path.exists(data_file):
-                with open(data_file, 'w') as f:
-                    json.dump([], f)
-                logger.info(f"Created new data file: {data_file}")
-                
-    except Exception as e:
-        logger.error(f"Initialization error: {str(e)}")
-        raise
-
-# Run initialization when app starts
-initialize_app()
-
-# Helper functions
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
-def load_data(filename):
-    """Load JSON data from file with error handling"""
-    try:
-        with open(filename) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.warning(f"Data file not found: {filename}")
-        return []
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in {filename}: {str(e)}")
-        flash('Data loading error. Please contact admin.', 'danger')
-        return []
-    except Exception as e:
-        logger.error(f"Unexpected error loading {filename}: {str(e)}")
-        return []
-
-def save_data(data, filename):
-    """Save data to JSON file with error handling"""
-    try:
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=2)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving to {filename}: {str(e)}")
-        flash('Data saving failed. Please try again.', 'danger')
-        return False
-
-# Error handlers
-@app.errorhandler(404)
-def not_found(e):
-    return render_template('404.html'), 404
-
-@app.errorhandler(413)
-def too_large(e):
-    flash('File too large - maximum size is 16MB', 'danger')
-    return redirect(request.url)
-
-@app.errorhandler(500)
-def internal_error(e):
-    logger.error(f"500 Error: {str(e)}")
-    return render_template('500.html'), 500
-
-# Routes
-@app.route('/')
-def home():
-    try:
-        albums = load_data(app.config['ALBUMS_FILE'])
-        if albums is None:
-            albums = []
-        return render_template('index.html', albums=albums[:4])
-    except Exception as e:
-        logger.error(f"Home route error: {str(e)}", exc_info=True)
-        flash('Failed to load content. Please try again later.', 'danger')
-        return render_template('index.html', albums=[])
-
-@app.route('/cart')
-def cart():
-    flash('Shopping cart functionality is coming soon!', 'info')
-    return redirect(url_for('shop'))
-
-@app.route('/shop')
-def shop():
-    try:
-        albums = load_data(app.config['ALBUMS_FILE'])
-        return render_template('shop.html', albums=albums if albums else [])
-    except Exception as e:
-        logger.error(f"Shop route error: {str(e)}")
-        flash('Failed to load shop content.', 'danger')
-        return render_template('shop.html', albums=[])
-
-@app.route('/album/<int:album_id>')
-def album(album_id):
-    try:
-        albums = load_data(app.config['ALBUMS_FILE'])
-        album = next((a for a in albums if a['id'] == album_id), None)
-        if not album:
-            logger.warning(f"Album not found: {album_id}")
-            abort(404)
-        return render_template('album.html', album=album)
-    except Exception as e:
-        logger.error(f"Album route error: {str(e)}")
-        abort(500)
-
-# Admin routes - UPDATED TO USE GLOBAL HASH
-@app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
-def admin_login():
-    if session.get('admin_logged_in'):
-        return redirect(url_for('admin_dashboard'))
+        body {
+            font-family: 'Sofia', cursive;
+            background-color: #000;
+            color: #fff;
+            line-height: 1.6;
+        }
         
-    if request.method == 'POST':
-        try:
-            if (request.form['username'] == app.config['ADMIN_USERNAME'] and 
-                check_password_hash(ADMIN_PASSWORD_HASH, request.form['password'])):
-                session['admin_logged_in'] = True
-                flash('Logged in successfully', 'success')
-                return redirect(url_for('admin_dashboard'))
-            flash('Invalid credentials', 'danger')
-        except Exception as e:
-            logger.error(f"Login error: {str(e)}")
-            flash('Login failed. Please try again.', 'danger')
-    
-    return render_template('admin/login.html')
-
-@app.route('/admin/logout')
-def admin_logout():
-    try:
-        session.pop('admin_logged_in', None)
-        flash('Logged out successfully', 'success')
-    except Exception as e:
-        logger.error(f"Logout error: {str(e)}")
-        flash('Logout failed', 'danger')
-    return redirect(url_for('home'))
-
-@app.route('/admin/dashboard')
-def admin_dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    try:
-        albums = load_data(app.config['ALBUMS_FILE'])
-        users = load_data(app.config['USERS_FILE'])
+        /* Channel Header */
+        .channel-header {
+            background-color: #000;
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
         
-        return render_template('admin/dashboard.html',
-                               album_count=len(albums),
-                               user_count=len(users),
-                               current_date=datetime.now().strftime("%Y-%m-%d"))
-    except Exception as e:
-        logger.error(f"Dashboard error: {str(e)}")
-        return render_template('admin/dashboard.html',
-                               album_count=0,
-                               user_count=0,
-                               current_date=datetime.now().strftime("%Y-%m-%d"))
+        .channel-logo {
+            max-width: 200px;
+            height: auto;
+        }
+        
+        /* Navigation */
+        .main-nav {
+            background-color: #111;
+            padding: 15px 0;
+            text-align: center;
+        }
+        
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin: 0 15px;
+        }
+        
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #0d6efd;
+        }
+        
+        /* Main Content */
+        .content-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            min-height: 70vh;
+        }
+        
+        /* Content Boxes */
+        .content-box {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        /* Headings */
+        h1, h2, h3, h4, h5, h6 {
+            color: #fff;
+            margin-bottom: 20px;
+            font-weight: normal;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        /* Links */
+        a {
+            color: #0d6efd;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Buttons */
+        .btn {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Sofia', cursive;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #0b5ed7;
+            text-decoration: none;
+        }
+        
+        .btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        /* Cookie Consent */
+        .cookie-consent {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-top: 1px solid #333;
+        }
+        
+        .cookie-consent p {
+            margin: 0;
+            flex-grow: 1;
+            padding-right: 20px;
+            font-size: 1rem;
+        }
+        
+        #accept-cookies {
+            background: #0d6efd;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Sofia', cursive;
+            font-size: 1rem;
+        }
+        
+        /* Flashed messages */
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 1.1rem;
+        }
+        
+        .alert-success {
+            background-color: #155724;
+            border-color: #0c3613;
+            color: #d4edda;
+        }
+        
+        .alert-danger {
+            background-color: #721c24;
+            border-color: #5a151c;
+            color: #f8d7da;
+        }
+        
+        .alert-info {
+            background-color: #0c5460;
+            border-color: #093640;
+            color: #d1ecf1;
+        }
+        
+        /* Footer */
+        .site-footer {
+            background-color: #111;
+            padding: 30px 0;
+            text-align: center;
+            border-top: 1px solid #333;
+            margin-top: 50px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            margin: 20px 0;
+        }
+        
+        .footer-links li {
+            margin: 0 15px;
+        }
+        
+        .footer-links a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+        
+        .footer-links a:hover {
+            color: #0d6efd;
+        }
+        
+        .copyright {
+            color: #777;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Channel Header -->
+    <div class="channel-header">
+        <img src="{{ url_for('static', filename='images/channel-logo.png') }}" 
+             alt="CoolCat Productions" 
+             class="channel-logo">
+    </div>
 
-@app.route('/admin/add-album', methods=['GET', 'POST'])
-def add_album():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    if request.method == 'POST':
-        try:
-            albums = load_data(app.config['ALBUMS_FILE'])
-            cover = request.files['cover']
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <ul class="nav-links">
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><a href="{{ url_for('shop') }}">Shop</a></li>
+            <li><a href="#">Artists</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="{{ url_for('register') }}">Register</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="content-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <ul class="footer-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Shop</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+        </ul>
+        <p class="copyright">© 2023 CoolCat Productions. All rights reserved.</p>
+    </footer>
+
+    <!-- Cookie Consent -->
+    <div class="cookie-consent">
+        <p>CoolCat Productions uses cookies to enhance your experience. By continuing to visit this site, you agree to our use of cookies.</p>
+        <button id="accept-cookies">Accept</button>
+    </div>
+
+    <script>
+        // Cookie consent functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const cookieConsent = document.querySelector('.cookie-consent');
+            const acceptBtn = document.getElementById('accept-cookies');
             
-            if not cover or cover.filename == '':
-                flash('No file selected', 'danger')
-                return redirect(request.url)
-                
-            if not allowed_file(cover.filename):
-                flash('Invalid file type', 'danger')
-                return redirect(request.url)
-            
-            filename = secure_filename(cover.filename)
-            cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
-            cover.save(cover_path)
-            
-            new_album = {
-                'id': len(albums) + 1,
-                'title': request.form['title'].strip(),
-                'artist': request.form['artist'].strip(),
-                'year': request.form['year'].strip(),
-                'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
-                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
-                'added': datetime.now().strftime("%Y-%m-%d"),
-                'price': round(float(request.form.get('price', 0)), 2),
-                'on_sale': 'on_sale' in request.form,
-                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
+            // Check if already accepted
+            if (document.cookie.includes('cookies_accepted=true')) {
+                cookieConsent.style.display = 'none';
             }
             
-            albums.append(new_album)
-            if save_data(albums, app.config['ALBUMS_FILE']):
-                flash('Album added successfully', 'success')
-                return redirect(url_for('shop'))
-            else:
-                flash('Failed to save album', 'danger')
-                
-        except ValueError as e:
-            flash('Invalid price format', 'danger')
-        except Exception as e:
-            logger.error(f"Add album error: {str(e)}", exc_info=True)
-            flash(f'Error adding album: {str(e)}', 'danger')
-    
-    return render_template('admin/add_album.html')
-
-# User registration
-@app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("10 per hour")
-def register():
-    if request.method == 'POST':
-        try:
-            users = load_data(app.config['USERS_FILE'])
-            
-            if any(u['username'] == request.form['username'] for u in users):
-                flash('Username already exists', 'danger')
-                return redirect(request.url)
-                
-            if any(u['email'] == request.form['email'] for u in users):
-                flash('Email already registered', 'danger')
-                return redirect(request.url)
-            
-            new_user = {
-                'id': len(users) + 1,
-                'username': request.form['username'].strip(),
-                'email': request.form['email'].strip(),
-                'password': generate_password_hash(request.form['password']),
-                'joined': datetime.now().strftime("%Y-%m-%d")
-            }
-            
-            users.append(new_user)
-            if save_data(users, app.config['USERS_FILE']):
-                flash('Registration successful! Please login.', 'success')
-                return redirect(url_for('home'))
-            else:
-                flash('Registration failed. Please try again.', 'danger')
-                
-        except Exception as e:
-            logger.error(f"Registration error: {str(e)}")
-            flash('Registration error. Please try again.', 'danger')
-            
-    return render_template('register.html')
-
-# Security Headers
-@app.after_request
-def add_security_headers(response):
-    """Add security headers to all responses"""
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['Content-Security-Policy'] = "default-src 'self'"
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    
-    # Additional headers from .env
-    response.headers['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'True')
-    response.headers['SESSION_COOKIE_HTTPONLY'] = os.getenv('SESSION_COOKIE_HTTPONLY', 'True')
-    
-    return response
-
-if __name__ == '__main__':
-    try:
-        port = int(os.getenv('PORT', 5000))
-        debug = os.getenv('DEBUG', 'False').lower() == 'true'
-        logger.info(f"Starting server on port {port} (debug={debug})")
-        app.run(host=os.getenv('HOST', '0.0.0.0'), port=port, debug=debug)
-    except Exception as e:
-        logger.critical(f"Failed to start server: {str(e)}")
+            // Set cookie on acceptance
+            acceptBtn.addEventListener('click', function() {
+                document.cookie = "cookies_accepted=true; max-age=2592000; path=/"; // 30 days
+                cookieConsent.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
