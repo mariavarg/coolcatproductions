@@ -22,15 +22,15 @@ app = Flask(__name__)
 # Initialize CSRF Protection
 csrf = CSRFProtect(app)
 
-# Initialize Rate Limiting - FIXED HERE
+# Initialize Rate Limiting
 limiter = Limiter(
-    app=app,  # Corrected: app as named parameter
+    app=app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
 
-# Configuration
+# Configuration - UPDATED TO USE .env FILE PROPERLY
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
@@ -39,15 +39,19 @@ app.config.update(
     UPLOAD_FOLDER='static/uploads',
     ALLOWED_EXTENSIONS=set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,webp').split(',')),
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
-    ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
+    ADMIN_PASSWORD=os.getenv('ADMIN_PASSWORD', 'admin123'),  # Store password separately
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
 )
 
-# HTTPS Enforcement
+# Generate password hash separately
+ADMIN_PASSWORD_HASH = generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123'))
+
+# HTTPS Enforcement - FIXED
 @app.before_request
 def enforce_https():
     """Redirect HTTP to HTTPS in production"""
-    if not request.is_secure and app.env == 'production':
+    # Use FLASK_ENV from .env instead of app.env
+    if os.getenv('FLASK_ENV') == 'production' and not request.is_secure:
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 
@@ -162,7 +166,7 @@ def album(album_id):
         logger.error(f"Album route error: {str(e)}")
         abort(500)
 
-# Admin routes
+# Admin routes - UPDATED TO USE GLOBAL HASH
 @app.route('/admin/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def admin_login():
@@ -172,7 +176,7 @@ def admin_login():
     if request.method == 'POST':
         try:
             if (request.form['username'] == app.config['ADMIN_USERNAME'] and 
-                check_password_hash(app.config['ADMIN_PASSWORD_HASH'], request.form['password'])):
+                check_password_hash(ADMIN_PASSWORD_HASH, request.form['password'])):
                 session['admin_logged_in'] = True
                 flash('Logged in successfully', 'success')
                 return redirect(url_for('admin_dashboard'))
@@ -309,6 +313,11 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['Content-Security-Policy'] = "default-src 'self'"
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # Additional headers from .env
+    response.headers['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'True')
+    response.headers['SESSION_COOKIE_HTTPONLY'] = os.getenv('SESSION_COOKIE_HTTPONLY', 'True')
+    
     return response
 
 if __name__ == '__main__':
