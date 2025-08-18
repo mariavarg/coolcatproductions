@@ -47,6 +47,14 @@ app.config.update(
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
 )
 
+# HTTPS Enforcement
+@app.before_request
+def enforce_https():
+    if request.headers.get('X-Forwarded-Proto') == 'http' and app.env == 'production':
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
+
 # Initialize app setup at startup
 def initialize_app():
     """Ensure required directories and files exist"""
