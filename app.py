@@ -46,6 +46,11 @@ def home():
     albums = load_data(app.config['ALBUMS_FILE'])
     return render_template('index.html', albums=albums)
 
+@app.route('/shop')
+def shop():
+    albums = load_data(app.config['ALBUMS_FILE'])
+    return render_template('shop.html', albums=albums)
+
 @app.route('/album/<int:album_id>')
 def album(album_id):
     albums = load_data(app.config['ALBUMS_FILE'])
