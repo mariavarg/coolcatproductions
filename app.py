@@ -100,6 +100,9 @@ def internal_error(e):
     return render_template('500.html'), 500
 
 # Routes
+# ... [previous code remains the same] ...
+
+# Routes
 @app.route('/')
 def home():
     try:
@@ -111,6 +114,12 @@ def home():
         logger.error(f"Home route error: {str(e)}", exc_info=True)
         flash('Failed to load content. Please try again later.', 'danger')
         return render_template('index.html', albums=[])
+
+# Add temporary cart route
+@app.route('/cart')
+def cart():
+    flash('Shopping cart functionality is coming soon!', 'info')
+    return redirect(url_for('shop'))
 
 @app.route('/shop')
 def shop():
