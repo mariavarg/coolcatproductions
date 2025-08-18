@@ -3,68 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ brand }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ cache_buster }}">
-    <link href="https://fonts.googleapis.com/css2?family=Sofia&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Sofia', cursive;
-        }
-    </style>
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block head %}{% endblock %}
 </head>
 <body>
-    <header class="header">
-        <div class="logo">{{ brand }}</div>
-        <button class="menu-toggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        <nav>
-            <a href="{{ url_for('home') }}" class="nav-link">Home</a>
-            <a href="{{ url_for('shop') }}" class="nav-link">Shop</a>
-            <a href="#" class="disabled">Cart (Coming Soon)</a>
-            {% if session.get('admin_logged_in') %}
-                <a href="{{ url_for('add_product') }}" class="nav-link admin">Add Product</a>
-                <a href="{{ url_for('admin_logout') }}" class="nav-link admin">Logout</a>
-            {% else %}
-                <a href="{{ url_for('admin_login') }}" class="nav-link admin">Admin</a>
+    <!-- Channel Header -->
+    <div class="channel-header">
+        <img src="{{ url_for('static', filename='images/channel-logo.png') }}" 
+             alt="Channel Logo" 
+             class="channel-logo">
+    </div>
+
+    <!-- Content -->
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
             {% endif %}
-        </nav>
-    </header>
-
-    <main class="content">
+        {% endwith %}
+        
         {% block content %}{% endblock %}
-    </main>
+    </div>
 
-    <footer>
-        <p>&copy; {{ current_year }} {{ brand }}</p>
-    </footer>
+    <!-- Cookie Consent - ONLY IN BASE TEMPLATE -->
+    <div class="cookie-consent">
+        <p>We use cookies to enhance your experience. By continuing to visit this site, you agree to our use of cookies.</p>
+        <button id="accept-cookies">Accept</button>
+    </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}?v={{ cache_buster }}"></script>
-
-    <div class="cookie-banner" id="cookieBanner">
-  <p>We use cookies to enhance your experience. By continuing, you agree to our use of cookies.</p>
-  <div>
-    <button class="btn" id="acceptCookies">Accept</button>
-    <button class="btn" id="declineCookies">Decline</button>
-  </div>
-</div>
-
-<script>
-  // Cookie consent
-  if (localStorage.getItem('cookiesAccepted')) {
-    document.getElementById('cookieBanner').classList.add('hidden');
-  }
-  
-  document.getElementById('acceptCookies').addEventListener('click', () => {
-    localStorage.setItem('cookiesAccepted', 'true');
-    document.getElementById('cookieBanner').classList.add('hidden');
-  });
-  
-  document.getElementById('declineCookies').addEventListener('click', () => {
-    localStorage.setItem('cookiesAccepted', 'false');
-    document.getElementById('cookieBanner').classList.add('hidden');
-  });
-</script>
+    <script>
+        // Cookie consent functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const cookieConsent = document.querySelector('.cookie-consent');
+            const acceptBtn = document.getElementById('accept-cookies');
+            
+            // Check if already accepted
+            if (document.cookie.includes('cookies_accepted=true')) {
+                cookieConsent.style.display = 'none';
+            }
+            
+            // Set cookie on acceptance
+            acceptBtn.addEventListener('click', function() {
+                document.cookie = "cookies_accepted=true; max-age=2592000"; // 30 days
+                cookieConsent.style.display = 'none';
+            });
+        });
+    </script>
 </body>
 </html>
