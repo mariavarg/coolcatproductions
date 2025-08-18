@@ -116,6 +116,13 @@ def internal_error(e):
     logger.error(f"500 Error: {str(e)}")
     return render_template('500.html'), 500
 
+@app.before_request
+def enforce_https():
+    """Redirect HTTP to HTTPS in production"""
+    if request.headers.get('X-Forwarded-Proto') == 'http' and app.env == 'production':
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
 # Routes
 @app.route('/')
 def home():
