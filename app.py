@@ -6,9 +6,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from dotenv import load_dotenv
-from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -19,18 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize CSRF Protection
-csrf = CSRFProtect(app)
-
-# Initialize Rate Limiting
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
-)
-limiter.init_app(app)  # ADD THIS LINE
-
-# Configuration - FIXED SYNTAX ERROR HERE
+# Configuration
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
@@ -42,14 +28,6 @@ app.config.update(
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
 )
-
-# HTTPS Enforcement
-@app.before_request
-def enforce_https():
-    """Redirect HTTP to HTTPS in production"""
-    if request.headers.get('X-Forwarded-Proto') == 'http' and app.env == 'production':
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
 
 # Initialize app setup at startup
 def initialize_app():
@@ -136,7 +114,6 @@ def home():
 
 @app.route('/cart')
 def cart():
-    """Shopping cart placeholder"""
     flash('Shopping cart functionality is coming soon!', 'info')
     return redirect(url_for('shop'))
 
@@ -165,7 +142,6 @@ def album(album_id):
 
 # Admin routes
 @app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # Rate limiting for login
 def admin_login():
     if session.get('admin_logged_in'):
         return redirect(url_for('admin_dashboard'))
@@ -266,7 +242,6 @@ def add_album():
 
 # User registration
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("10 per hour")  # Rate limiting for registration
 def register():
     if request.method == 'POST':
         try:
@@ -300,17 +275,6 @@ def register():
             flash('Registration error. Please try again.', 'danger')
             
     return render_template('register.html')
-
-# Security Headers
-@app.after_request
-def add_security_headers(response):
-    """Add security headers to all responses"""
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['Content-Security-Policy'] = "default-src 'self'"
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    return response
 
 if __name__ == '__main__':
     try:
