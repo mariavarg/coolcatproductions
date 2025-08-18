@@ -166,8 +166,24 @@ def admin_logout():
 def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    return render_template('admin/dashboard.html')
-
+    
+    try:
+        # Load albums and users data
+        albums = load_data(app.config['ALBUMS_FILE'])
+        users = load_data(app.config['USERS_FILE'])
+        
+        # Pass data to template
+        return render_template('admin/dashboard.html',
+                               album_count=len(albums),
+                               user_count=len(users),
+                               current_date=datetime.now().strftime("%Y-%m-%d"))
+    except Exception as e:
+        logger.error(f"Dashboard error: {str(e)}")
+        # Provide safe defaults if data loading fails
+        return render_template('admin/dashboard.html',
+                               album_count=0,
+                               user_count=0,
+                               current_date=datetime.now().strftime("%Y-%m-%d"))
 @app.route('/admin/add-album', methods=['GET', 'POST'])
 def add_album():
     if not session.get('admin_logged_in'):
