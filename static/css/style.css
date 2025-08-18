@@ -164,4 +164,84 @@ nav {
   .album-info h3 {
     font-size: 1rem;
   }
+
+  /* Cookie Consent */
+.cookie-consent {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+}
+
+.cookie-consent p {
+    margin: 0;
+    flex-grow: 1;
+    padding-right: 20px;
+}
+
+#accept-cookies {
+    background: #0d6efd;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Sofia', sans-serif;
+}
+
+/* Shop Page */
+.shop-page {
+    padding: 20px;
+}
+
+.albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.album-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.album-card:hover {
+    transform: translateY(-5px);
+}
+
+.album-cover {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.album-info {
+    padding: 15px;
+}
+
+.album-price {
+    margin-top: 10px;
+}
+
+.sale-price {
+    text-decoration: line-through;
+    color: #888;
+    margin-right: 8px;
+}
+
+.current-price {
+    font-weight: bold;
+    color: #0d6efd;
+}
 }
