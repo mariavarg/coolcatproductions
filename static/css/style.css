@@ -179,4 +179,72 @@ header {
   .album-detail {
     grid-template-columns: 1fr;
   }
+
+  /* Album Detail Page */
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.album-detail {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.album-cover-large {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.album-meta {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  color: var(--secondary);
+  font-size: 0.9rem;
+}
+
+.tracklist {
+  margin-top: 2rem;
+}
+
+.tracklist ol {
+  list-style: none;
+}
+
+.track {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--secondary);
+  display: flex;
+  align-items: center;
+}
+
+.track-number {
+  min-width: 2rem;
+  color: var(--secondary);
+}
+
+.track-title {
+  margin-left: 0.5rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .album-detail {
+    grid-template-columns: 1fr;
+  }
+  
+  .album-cover-container {
+    text-align: center;
+  }
+  
+  .album-cover-large {
+    max-width: 250px;
+  }
+}
 }
