@@ -1,26 +1,91 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="debug-test">
-        SHOP PAGE
+<div class="container">
+    <!-- Page Header with Admin Controls -->
+    <div class="page-header">
+        <h1>Music Collection</h1>
+        {% if session.admin_logged_in %}
+        <div class="admin-controls">
+            <a href="{{ url_for('add_album') }}" class="btn-admin">
+                <i class="fas fa-plus"></i> Add Album
+            </a>
+        </div>
+        {% endif %}
     </div>
 
-    <div class="admin-controls">
-        <a href="{{ url_for('add_album') }}" class="btn">+ Add New Album</a>
-    </div>
-
+    <!-- Album Grid -->
     <div class="album-grid">
         {% for album in albums %}
-            <div class="album-card" data-album-id="{{ album.id }}">
-                <img src="{{ url_for('static', filename=album.image) }}" 
-                     alt="{{ album.title }}" 
-                     class="album-cover">
-                <div class="album-info">
-                    <h3>{{ album.title }}</h3>
-                    <p>{{ album.artist }}</p>
-                    <span class="album-format">{{ album.format }}</span>
-                </div>
+        <a href="{{ url_for('album', album_id=album.id) }}" class="album-card">
+            <!-- Album Cover (COLORFUL) -->
+            <div class="album-cover-container">
+                <img src="{{ url_for('static', filename=album.cover) }}" 
+                     alt="{{ album.title }} by {{ album.artist }}" 
+                     class="album-cover"
+                     onerror="this.src='{{ url_for('static', filename='images/default-cover.jpg') }}'">
+                
+                {% if album.on_sale %}
+                <span class="sale-badge">SALE</span>
+                {% endif %}
             </div>
+
+            <!-- Album Info (Black & White) -->
+            <div class="album-info">
+                <h3>{{ album.title }}</h3>
+                <p class="artist">{{ album.artist }}</p>
+                
+                <div class="price">
+                    {% if album.on_sale %}
+                    <span class="original-price">${{ "%.2f"|format(album.price) }}</span>
+                    <span class="sale-price">${{ "%.2f"|format(album.sale_price) }}</span>
+                    {% else %}
+                    <span class="current-price">${{ "%.2f"|format(album.price) }}</span>
+                    {% endif %}
+                </div>
+                
+                <span class="format">{{ album.format }}</span>
+            </div>
+        </a>
         {% endfor %}
     </div>
+</div>
+
+<!-- Cookie Consent Banner -->
+<div class="cookie-banner" id="cookieBanner">
+    <div class="cookie-message">
+        <p>We use cookies to enhance your experience. By continuing, you agree to our cookie policy.</p>
+    </div>
+    <div class="cookie-buttons">
+        <button class="btn-cookie" id="acceptCookies">Accept</button>
+        <button class="btn-cookie btn-cookie-outline" id="declineCookies">Decline</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Cookie consent handler
+document.addEventListener('DOMContentLoaded', function() {
+    const cookieBanner = document.getElementById('cookieBanner');
+    const acceptBtn = document.getElementById('acceptCookies');
+    const declineBtn = document.getElementById('declineCookies');
+
+    // Hide if already decided
+    if (localStorage.getItem('cookiesAccepted')) {
+        cookieBanner.style.display = 'none';
+    }
+
+    // Button handlers
+    acceptBtn.addEventListener('click', function() {
+        localStorage.setItem('cookiesAccepted', 'true');
+        cookieBanner.style.display = 'none';
+    });
+
+    declineBtn.addEventListener('click', function() {
+        localStorage.setItem('cookiesAccepted', 'false');
+        cookieBanner.style.display = 'none';
+    });
+});
+</script>
 {% endblock %}
