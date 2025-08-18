@@ -6,6 +6,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from dotenv import load_dotenv
+# Add these imports at the TOP of app.py
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
