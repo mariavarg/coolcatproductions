@@ -1,38 +1,68 @@
 {% extends "base.html" %}
 
+{% block title %}Add New Album | CoolCat Productions{% endblock %}
+
 {% block content %}
-<div class="admin-form">
+<div class="content-box" style="max-width: 800px; margin: 0 auto;">
     <h2>Add New Album</h2>
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="title">Album Title*</label>
-            <input type="text" id="title" name="title" required>
+    
+    <form method="POST" enctype="multipart/form-data" style="margin-top: 30px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+            <div>
+                <label for="title" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Album Title</label>
+                <input type="text" id="title" name="title" required
+                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+            </div>
+            
+            <div>
+                <label for="artist" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Artist</label>
+                <input type="text" id="artist" name="artist" required
+                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="artist">Artist*</label>
-            <input type="text" id="artist" name="artist" required>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+            <div>
+                <label for="year" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Release Year</label>
+                <input type="text" id="year" name="year" required
+                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+            </div>
+            
+            <div>
+                <label for="price" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Price ($)</label>
+                <input type="number" id="price" name="price" step="0.01" min="0" required
+                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="format">Format*</label>
-            <select id="format" name="format" required>
-                <option value="CD">CD</option>
-                <option value="MP3">MP3 Download</option>
-            </select>
+        <div style="margin-bottom: 25px;">
+            <label for="cover" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Album Cover</label>
+            <input type="file" id="cover" name="cover" accept="image/*" required
+                   style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
         </div>
         
-        <div class="form-group">
-            <label for="cover_image">Cover Art* (600x600 recommended)</label>
-            <input type="file" id="cover_image" name="cover_image" accept="image/*" required>
+        <div style="margin-bottom: 25px;">
+            <label for="tracks" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Track List (one per line)</label>
+            <textarea id="tracks" name="tracks" rows="8" required
+                      style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;"></textarea>
         </div>
         
-        <div class="form-group">
-            <label for="tracks">Tracklist (One per line)*</label>
-            <textarea id="tracks" name="tracks" rows="10" required></textarea>
+        <div style="display: flex; gap: 20px; margin-bottom: 30px; align-items: center;">
+            <div>
+                <input type="checkbox" id="on_sale" name="on_sale" style="margin-right: 10px;">
+                <label for="on_sale" style="font-size: 1.1rem;">On Sale</label>
+            </div>
+            
+            <div style="flex-grow: 1;">
+                <label for="sale_price" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Sale Price ($)</label>
+                <input type="number" id="sale_price" name="sale_price" step="0.01" min="0"
+                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+            </div>
         </div>
         
-        <button type="submit" class="btn">Add Album</button>
+        <div style="text-align: center;">
+            <button type="submit" class="btn" style="padding: 12px 40px; font-size: 1.2rem;">Add Album</button>
+        </div>
     </form>
 </div>
 {% endblock %}
