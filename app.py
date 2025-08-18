@@ -46,6 +46,7 @@ app.config.update(
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
 )
+)
 
 # HTTPS Enforcement
 @app.before_request
