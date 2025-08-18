@@ -1,13 +1,19 @@
-/* Modern Dark Theme */
+/* ===== MONOCHROME THEME (WITH COLORFUL COVERS) ===== */
 :root {
-  --bg: #000;
-  --text: #fff;
-  --accent: #1db954;
-  --secondary: #535353;
-  --highlight: #282828;
+  /* Black & White Palette */
+  --bg: #000000;         /* Pure black background */
+  --text: #ffffff;       /* Pure white text */
+  --accent: #ffffff;     /* White accents */
+  --secondary: #888888;  /* Medium gray */
+  --highlight: #1a1a1a;  /* Dark gray cards */
+  
+  /* Structural Vars (unchanged) */
   --font: 'Sofia', cursive;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --transition: all 0.3s ease;
 }
 
+/* ===== BASE STYLES ===== */
 * {
   margin: 0;
   padding: 0;
@@ -18,8 +24,10 @@ body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
   line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
@@ -29,7 +37,7 @@ body {
   padding: 2rem 0;
 }
 
-/* Header */
+/* ===== NAVIGATION ===== */
 header {
   display: flex;
   justify-content: space-between;
@@ -43,10 +51,26 @@ header {
   color: var(--accent);
 }
 
-/* Album Grid */
-.albums-grid {
+nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: var(--text);
+  text-decoration: none;
+  padding: 0.5rem;
+  transition: opacity var(--transition);
+}
+
+.nav-link:hover {
+  opacity: 0.8;
+}
+
+/* ===== ALBUM GRID ===== */
+.album-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
 }
@@ -55,25 +79,32 @@ header {
   background: var(--highlight);
   border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.3s ease;
-  cursor: pointer;
+  transition: transform var(--transition);
+  border: 1px solid var(--secondary);
 }
 
 .album-card:hover {
-  transform: scale(1.03);
+  transform: translateY(-5px);
+  border-color: var(--text);
 }
 
+/* COLORFUL COVER (ONLY ELEMENT WITH COLOR) */
 .album-cover {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
+  transition: transform var(--transition);
+}
+
+.album-card:hover .album-cover {
+  transform: scale(1.03);
 }
 
 .album-info {
   padding: 1rem;
 }
 
-.album-title {
+.album-info h3 {
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
   white-space: nowrap;
@@ -81,170 +112,56 @@ header {
   text-overflow: ellipsis;
 }
 
-.album-artist {
+.artist {
   color: var(--secondary);
   font-size: 0.9rem;
-}
-
-/* Album Detail */
-.album-detail {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 3rem;
-  margin-top: 2rem;
-}
-
-.tracklist {
-  margin-top: 2rem;
-}
-
-.track {
-  padding: 1rem;
-  border-bottom: 1px solid var(--secondary);
-  display: flex;
-  justify-content: space-between;
-}
-
-/* Forms */
-.form-container {
-  max-width: 500px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: var(--highlight);
-  border-radius: 8px;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
   display: block;
-  margin-bottom: 0.5rem;
 }
 
-.form-group input,
-.form-group textarea,
-.form-group select {
-  width: 100%;
-  padding: 0.8rem;
-  background: var(--bg);
-  border: 1px solid var(--secondary);
-  border-radius: 4px;
-  color: var(--text);
-  font-family: var(--font);
+/* ===== PRICE TAGS ===== */
+.price {
+  margin-top: 0.5rem;
 }
 
-.btn {
-  background: var(--accent);
+.sale-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--text);
   color: var(--bg);
-  border: none;
-  padding: 0.8rem 1.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+/* ===== ADMIN CONTROLS ===== */
+.btn-admin {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--text);
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-family: var(--font);
-  font-size: 1rem;
-  transition: opacity 0.3s;
-}
-
-.btn:hover {
-  opacity: 0.9;
-}
-
-/* Cookie Banner */
-.cookie-banner {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--highlight);
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
+  transition: var(--transition);
+  display: inline-flex;
   align-items: center;
-  z-index: 1000;
+  gap: 0.5rem;
 }
 
-.cookie-banner.hidden {
-  display: none;
+.btn-admin:hover {
+  background: var(--text);
+  color: var(--bg);
 }
 
-/* Responsive */
+/* ===== MOBILE RESPONSIVENESS ===== */
 @media (max-width: 768px) {
-  .albums-grid {
+  .album-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1rem;
   }
   
-  .album-detail {
-    grid-template-columns: 1fr;
+  .album-info h3 {
+    font-size: 1rem;
   }
-
-  /* Album Detail Page */
-.back-link {
-  display: inline-block;
-  margin-bottom: 1rem;
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.album-detail {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 3rem;
-  margin-top: 2rem;
-}
-
-.album-cover-large {
-  width: 100%;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.album-meta {
-  margin-top: 1rem;
-  display: flex;
-  justify-content: space-between;
-  color: var(--secondary);
-  font-size: 0.9rem;
-}
-
-.tracklist {
-  margin-top: 2rem;
-}
-
-.tracklist ol {
-  list-style: none;
-}
-
-.track {
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--secondary);
-  display: flex;
-  align-items: center;
-}
-
-.track-number {
-  min-width: 2rem;
-  color: var(--secondary);
-}
-
-.track-title {
-  margin-left: 0.5rem;
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-  .album-detail {
-    grid-template-columns: 1fr;
-  }
-  
-  .album-cover-container {
-    text-align: center;
-  }
-  
-  .album-cover-large {
-    max-width: 250px;
-  }
-}
 }
