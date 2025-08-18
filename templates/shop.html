@@ -1,91 +1,33 @@
 {% extends "base.html" %}
 
+{% block title %}Cool Cat Productions-Druna C.{% endblock %}
+
 {% block content %}
-<div class="container">
-    <!-- Page Header with Admin Controls -->
-    <div class="page-header">
-        <h1>Cool Cat Productions-Druna C.</h1>
-        {% if session.admin_logged_in %}
-        <div class="admin-controls">
-            <a href="{{ url_for('add_album') }}" class="btn-admin">
-                <i class="fas fa-plus"></i> Add Album
-            </a>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Album Grid -->
-    <div class="album-grid">
+<div class="shop-page">
+    <h1>Our Music Collection</h1>
+    
+    <div class="albums-grid">
         {% for album in albums %}
-        <a href="{{ url_for('album', album_id=album.id) }}" class="album-card">
-            <!-- Album Cover (COLORFUL) -->
-            <div class="album-cover-container">
+        <div class="album-card">
+            <a href="{{ url_for('album', album_id=album.id) }}">
                 <img src="{{ url_for('static', filename=album.cover) }}" 
-                     alt="{{ album.title }} by {{ album.artist }}" 
-                     class="album-cover"
-                     onerror="this.src='{{ url_for('static', filename='images/default-cover.jpg') }}'">
-                
-                {% if album.on_sale %}
-                <span class="sale-badge">SALE</span>
-                {% endif %}
-            </div>
-
-            <!-- Album Info (Black & White) -->
+                     alt="{{ album.title }} cover" 
+                     class="album-cover">
+            </a>
             <div class="album-info">
                 <h3>{{ album.title }}</h3>
-                <p class="artist">{{ album.artist }}</p>
-                
-                <div class="price">
-                    {% if album.on_sale %}
-                    <span class="original-price">${{ "%.2f"|format(album.price) }}</span>
-                    <span class="sale-price">${{ "%.2f"|format(album.sale_price) }}</span>
+                <p>{{ album.artist }} ({{ album.year }})</p>
+                <div class="album-price">
+                    {% if album.on_sale and album.sale_price %}
+                        <span class="sale-price">${{ album.price }}</span>
+                        <span class="current-price">${{ album.sale_price }}</span>
                     {% else %}
-                    <span class="current-price">${{ "%.2f"|format(album.price) }}</span>
+                        <span class="current-price">${{ album.price }}</span>
                     {% endif %}
                 </div>
-                
-                <span class="format">{{ album.format }}</span>
             </div>
-        </a>
+        </div>
         {% endfor %}
     </div>
 </div>
-
-<!-- Cookie Consent Banner -->
-<div class="cookie-banner" id="cookieBanner">
-    <div class="cookie-message">
-        <p>We use cookies to enhance your experience. By continuing, you agree to our cookie policy.</p>
-    </div>
-    <div class="cookie-buttons">
-        <button class="btn-cookie" id="acceptCookies">Accept</button>
-        <button class="btn-cookie btn-cookie-outline" id="declineCookies">Decline</button>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-// Cookie consent handler
-document.addEventListener('DOMContentLoaded', function() {
-    const cookieBanner = document.getElementById('cookieBanner');
-    const acceptBtn = document.getElementById('acceptCookies');
-    const declineBtn = document.getElementById('declineCookies');
-
-    // Hide if already decided
-    if (localStorage.getItem('cookiesAccepted')) {
-        cookieBanner.style.display = 'none';
-    }
-
-    // Button handlers
-    acceptBtn.addEventListener('click', function() {
-        localStorage.setItem('cookiesAccepted', 'true');
-        cookieBanner.style.display = 'none';
-    });
-
-    declineBtn.addEventListener('click', function() {
-        localStorage.setItem('cookiesAccepted', 'false');
-        cookieBanner.style.display = 'none';
-    });
-});
-</script>
 {% endblock %}
