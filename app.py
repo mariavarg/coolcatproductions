@@ -1,12 +1,11 @@
 import os
 import json
 import logging
-import imghdr
 import time
 import hashlib
 import hmac
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -101,6 +100,30 @@ def save_data(data, filename):
     except Exception as e:
         logger.error(f"Error saving to {filename}: {str(e)}")
         flash('Data saving failed. Please try again.', 'danger')
+        return False
+
+# Image validation using file signatures
+def is_valid_image(file_path):
+    """Check if file is a valid image by reading its signature"""
+    try:
+        with open(file_path, 'rb') as f:
+            header = f.read(12)
+            
+        # JPEG: FF D8 FF
+        if header.startswith(b'\xFF\xD8\xFF'):
+            return True
+            
+        # PNG: \x89PNG\r\n\x1a\n
+        if header.startswith(b'\x89PNG\r\n\x1a\n'):
+            return True
+            
+        # WEBP: RIFF....WEBP
+        if header[:4] == b'RIFF' and header[8:12] == b'WEBP':
+            return True
+            
+        # Add more formats if needed
+        return False
+    except Exception:
         return False
 
 # Security functions
@@ -345,9 +368,8 @@ def add_album():
             cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
             cover.save(cover_path)
             
-            # Verify actual image format
-            file_format = imghdr.what(cover_path)
-            if file_format not in ['jpeg', 'png', 'webp']:
+            # Verify actual image format using file signatures
+            if not is_valid_image(cover_path):
                 os.remove(cover_path)
                 flash('Invalid image format', 'danger')
                 return redirect(request.url)
