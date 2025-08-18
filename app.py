@@ -29,7 +29,7 @@ app.config.update(
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB default
 )
 
-@app.before_first_request
+# Initialize app setup at startup
 def initialize_app():
     """Ensure required directories and files exist"""
     try:
@@ -47,6 +47,9 @@ def initialize_app():
     except Exception as e:
         logger.error(f"Initialization error: {str(e)}")
         raise
+
+# Run initialization when app starts
+initialize_app()
 
 # Helper functions
 def allowed_file(filename):
@@ -168,22 +171,20 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
     
     try:
-        # Load albums and users data
         albums = load_data(app.config['ALBUMS_FILE'])
         users = load_data(app.config['USERS_FILE'])
         
-        # Pass data to template
         return render_template('admin/dashboard.html',
                                album_count=len(albums),
                                user_count=len(users),
                                current_date=datetime.now().strftime("%Y-%m-%d"))
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
-        # Provide safe defaults if data loading fails
         return render_template('admin/dashboard.html',
                                album_count=0,
                                user_count=0,
                                current_date=datetime.now().strftime("%Y-%m-%d"))
+
 @app.route('/admin/add-album', methods=['GET', 'POST'])
 def add_album():
     if not session.get('admin_logged_in'):
