@@ -20,7 +20,7 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #ddd;
         }
-        .stats-container {
+        .stats {
             display: flex;
             gap: 15px;
             margin-bottom: 30px;
@@ -35,12 +35,12 @@
             min-width: 200px;
             text-align: center;
         }
-        .actions-container {
+        .actions {
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
         }
-        .action-card {
+        .action-btn {
             background: white;
             padding: 20px;
             border-radius: 5px;
@@ -49,11 +49,7 @@
             color: #333;
             flex: 1;
             min-width: 200px;
-            transition: all 0.3s ease;
-        }
-        .action-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            text-align: center;
         }
         .logout-btn {
             background: #dc3545;
@@ -63,18 +59,6 @@
             border-radius: 4px;
             cursor: pointer;
             font-family: 'Sofia', sans-serif;
-            font-size: 1rem;
-        }
-        .logout-btn:hover {
-            background: #c82333;
-        }
-        h3 {
-            margin-top: 0;
-        }
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 10px 0;
         }
     </style>
 </head>
@@ -92,33 +76,30 @@
         {% endif %}
     {% endwith %}
 
-    <div class="stats-container">
+    <div class="stats">
         <div class="stat-box">
             <h3>Albums</h3>
-            <div class="stat-number">{{ album_count }}</div>
+            <p>{{ album_count }}</p>
         </div>
         <div class="stat-box">
             <h3>Users</h3>
-            <div class="stat-number">{{ user_count }}</div>
+            <p>{{ user_count }}</p>
         </div>
         <div class="stat-box">
             <h3>Today</h3>
-            <div class="stat-number">{{ current_date }}</div>
+            <p>{{ current_date }}</p>
         </div>
     </div>
 
-    <div class="actions-container">
-        <a href="{{ url_for('add_album') }}" class="action-card">
+    <div class="actions">
+        <a href="{{ url_for('add_album') }}" class="action-btn">
             <h3>Add Album</h3>
-            <p>Create new album</p>
         </a>
-        <a href="{{ url_for('shop') }}" class="action-card">
+        <a href="{{ url_for('shop') }}" class="action-btn">
             <h3>Manage Albums</h3>
-            <p>Edit existing albums</p>
         </a>
-        <a href="#" class="action-card">
+        <a href="#" class="action-btn">
             <h3>Manage Users</h3>
-            <p>View user accounts</p>
         </a>
     </div>
 </body>
