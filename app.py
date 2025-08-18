@@ -12,7 +12,8 @@ app.config.update(
     SECRET_KEY='your-secret-key-here',  # Change this!
     USERS_FILE='data/users.json',
     ALBUMS_FILE='data/albums.json',
-    UPLOAD_FOLDER='static/uploads',
+    COVERS_FOLDER='static/uploads/covers',  # Specific for album covers
+    UPLOAD_FOLDER='static/uploads',        # General upload directory
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
     ADMIN_USERNAME='your_admin_username',  # Change this!
     ADMIN_PASSWORD_HASH=generate_password_hash('your_admin_password')  # Change this!
@@ -76,27 +77,30 @@ def add_album():
     if request.method == 'POST':
         albums = load_data(app.config['ALBUMS_FILE'])
         
+        # Ensure covers directory exists
+        os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
+        
         # Handle file upload
         cover = request.files['cover']
-        filename = secure_filename(cover.filename)
-        cover.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
-        new_album = {
-            'id': len(albums) + 1,
-            'title': request.form['title'],
-            'artist': request.form['artist'],
-            'year': request.form['year'],
-            'cover': f"uploads/{filename}",
-            'tracks': request.form['tracks'].split('\n'),
-            'added': datetime.now().strftime("%Y-%m-%d")
-        }
-        
-        albums.append(new_album)
-        save_data(albums, app.config['ALBUMS_FILE'])
-        return redirect(url_for('home'))
+        if cover and allowed_file(cover.filename):
+            filename = secure_filename(cover.filename)
+            cover.save(os.path.join(app.config['COVERS_FOLDER'], filename))
+            
+            new_album = {
+                'id': len(albums) + 1,
+                'title': request.form['title'],
+                'artist': request.form['artist'],
+                'year': request.form['year'],
+                'cover': f"uploads/covers/{filename}",  # Updated path
+                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
+                'added': datetime.now().strftime("%Y-%m-%d")
+            }
+            
+            albums.append(new_album)
+            save_data(albums, app.config['ALBUMS_FILE'])
+            return redirect(url_for('home'))
     
     return render_template('admin/add_album.html')
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
