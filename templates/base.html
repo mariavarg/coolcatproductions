@@ -22,7 +22,7 @@
         <nav>
             <a href="{{ url_for('home') }}" class="nav-link">Home</a>
             <a href="{{ url_for('shop') }}" class="nav-link">Shop</a>
-            <a href="{{ url_for('cart') }}" class="nav-link">Cart ({{ cart_count }})</a>
+            <a href="#" class="disabled">Cart (Coming Soon)</a>
             {% if session.get('admin_logged_in') %}
                 <a href="{{ url_for('add_product') }}" class="nav-link admin">Add Product</a>
                 <a href="{{ url_for('admin_logout') }}" class="nav-link admin">Logout</a>
