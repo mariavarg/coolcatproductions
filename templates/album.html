@@ -159,8 +159,8 @@
                 <span>
                     <span class="track-number">{{ loop.index }}.</span>
                     {{ track }}
-                </span>
-                <span>3:45</span> <!-- Placeholder duration -->
+                </span> 
+                <span class="duration">{{ track.duration }}</span>
             </li>
             {% endfor %}
         </ol>
