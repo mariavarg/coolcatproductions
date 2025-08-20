@@ -36,6 +36,45 @@ app.config.update(
     MAX_CONTENT_LENGTH=100 * 1024 * 1024,
     PERMANENT_SESSION_LIFETIME=3600,
     DOWNLOAD_TOKENS={}
+    # Add to imports
+import boto3
+from botocore.exceptions import NoCredentialsError
+
+# Cloud Storage Configuration
+app.config.update(
+    AWS_ACCESS_KEY=os.getenv('AWS_ACCESS_KEY', ''),
+    AWS_SECRET_KEY=os.getenv('AWS_SECRET_KEY', ''),
+    AWS_BUCKET=os.getenv('AWS_BUCKET', 'coolcat-music'),
+    AWS_REGION=os.getenv('AWS_REGION', 'us-west-2'),
+    USE_CLOUD_STORAGE=os.getenv('USE_CLOUD_STORAGE', 'false').lower() == 'true'
+)
+
+def upload_to_cloud(file, filename, folder='covers'):
+    """Upload file to cloud storage"""
+    if not app.config['USE_CLOUD_STORAGE']:
+        return f"local/{filename}"  # Fallback to local
+        
+    try:
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=app.config['AWS_ACCESS_KEY'],
+            aws_secret_access_key=app.config['AWS_SECRET_KEY'],
+            region_name=app.config['AWS_REGION']
+        )
+        
+        cloud_path = f"{folder}/{filename}"
+        s3.upload_fileobj(file, app.config['AWS_BUCKET'], cloud_path)
+        return cloud_path
+        
+    except NoCredentialsError:
+        return f"local/{filename}"
+
+def get_cloud_url(filepath):
+    """Get URL for cloud file"""
+    if filepath.startswith('local/'):
+        return url_for('static', filename=filepath.replace('local/', ''))
+    else:
+        return f"https://{app.config['AWS_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{filepath}"
 )
 
 # Security setup
