@@ -28,11 +28,9 @@ app.config.update(
     PURCHASES_FILE=os.path.join('data', 'purchases.json'),
     COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
     MUSIC_FOLDER=os.path.join('static', 'uploads', 'music'),
-    VIDEOS_FOLDER=os.path.join('static', 'uploads', 'videos'),
     UPLOAD_FOLDER='static/uploads',
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
     ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav', 'flac'},
-    ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm'},
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
     MAX_CONTENT_LENGTH=100 * 1024 * 1024,
@@ -139,7 +137,6 @@ def initialize_app():
         os.makedirs('data', exist_ok=True)
         os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
         os.makedirs(app.config['MUSIC_FOLDER'], exist_ok=True)
-        os.makedirs(app.config['VIDEOS_FOLDER'], exist_ok=True)
         
         for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE'], app.config['PURCHASES_FILE']]:
             if not os.path.exists(data_file):
@@ -207,22 +204,24 @@ def not_found(e):
 def internal_error(e):
     return render_template('500.html'), 500
 
+# Favicon route - ADD THIS FIRST
+@app.route('/favicon.ico')
+def favicon():
+    try:
+        return send_file('static/images/channel-logo.png', mimetype='image/png')
+    except:
+        return '', 204
+
 # Routes
 @app.route('/')
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
         albums = remove_auto_durations(albums)
-        
-        featured_albums = [a for a in albums if a.get('has_video', False)][:3]
-        regular_albums = [a for a in albums if not a.get('has_video', False)][:4]
-        
-        return render_template('index.html', 
-                             featured_albums=featured_albums,
-                             regular_albums=regular_albums)
+        return render_template('index.html', albums=albums[:4] if albums else [])
     except Exception as e:
         logger.error(f"Home error: {e}")
-        return render_template('index.html', featured_albums=[], regular_albums=[])
+        return render_template('index.html', albums=[])
 
 @app.route('/shop')
 def shop():
@@ -258,8 +257,6 @@ def album(album_id):
             'price': album.get('price', 0),
             'on_sale': album.get('on_sale', False),
             'sale_price': album.get('sale_price'),
-            'video_url': album.get('video_url', ''),
-            'has_video': album.get('has_video', False),
             'owns_album': owns_album
         }
         return render_template('album.html', album=safe_album)
@@ -538,9 +535,7 @@ def add_album():
                 'added': datetime.now().strftime("%Y-%m-%d"),
                 'price': round(float(request.form.get('price', 0)), 2),
                 'on_sale': 'on_sale' in request.form,
-                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None,
-                'video_url': request.form.get('video_url', ''),
-                'has_video': bool(request.form.get('video_url', ''))
+                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
             }
             
             album_dir = ensure_music_dirs_exist(new_album['id'])
