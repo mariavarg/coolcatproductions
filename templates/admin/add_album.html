@@ -7,6 +7,7 @@
     <h2>Add New Album</h2>
     
     <form method="POST" enctype="multipart/form-data" style="margin-top: 30px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
             <div>
                 <label for="title" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Album Title</label>
