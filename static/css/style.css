@@ -1,250 +1,3 @@
-/* ===== MONOCHROME THEME (WITH COLORFUL COVERS) ===== */
-:root {
-  /* Black & White Palette */
-  --bg: #000000;         /* Pure black background */
-  --text: #ffffff;       /* Pure white text */
-  --accent: #ffffff;     /* White accents */
-  --secondary: #888888;  /* Medium gray */
-  --highlight: #1a1a1a;  /* Dark gray cards */
-  
-  /* Structural Vars (unchanged) */
-  --font: 'Sofia', cursive;
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  --transition: all 0.3s ease;
-}
-
-/* ===== BASE STYLES ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 0;
-}
-
-/* ===== NAVIGATION ===== */
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 5%;
-  border-bottom: 1px solid var(--secondary);
-}
-
-.logo {
-  font-size: 1.8rem;
-  color: var(--accent);
-}
-
-nav {
-  display: flex;
-  gap: 1rem;
-}
-
-.nav-link {
-  color: var(--text);
-  text-decoration: none;
-  padding: 0.5rem;
-  transition: opacity var(--transition);
-}
-
-.nav-link:hover {
-  opacity: 0.8;
-}
-
-/* ===== ALBUM GRID ===== */
-.album-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.album-card {
-  background: var(--highlight);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform var(--transition);
-  border: 1px solid var(--secondary);
-}
-
-.album-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--text);
-}
-
-/* COLORFUL COVER (ONLY ELEMENT WITH COLOR) */
-.album-cover {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  transition: transform var(--transition);
-}
-
-.album-card:hover .album-cover {
-  transform: scale(1.03);
-}
-
-.album-info {
-  padding: 1rem;
-}
-
-.album-info h3 {
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.artist {
-  color: var(--secondary);
-  font-size: 0.9rem;
-  display: block;
-}
-
-/* ===== PRICE TAGS ===== */
-.price {
-  margin-top: 0.5rem;
-}
-
-.sale-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: var(--text);
-  color: var(--bg);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 0.8rem;
-}
-
-/* ===== ADMIN CONTROLS ===== */
-.btn-admin {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--text);
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: var(--transition);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-admin:hover {
-  background: var(--text);
-  color: var(--bg);
-}
-
-/* ===== MOBILE RESPONSIVENESS ===== */
-@media (max-width: 768px) {
-  .album-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
-  }
-  
-  .album-info h3 {
-    font-size: 1rem;
-  }
-
-  /* Cookie Consent */
-.cookie-consent {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 1000;
-}
-
-.cookie-consent p {
-    margin: 0;
-    flex-grow: 1;
-    padding-right: 20px;
-}
-
-#accept-cookies {
-    background: #0d6efd;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: 'Sofia', sans-serif;
-}
-
-/* Shop Page */
-.shop-page {
-    padding: 20px;
-}
-
-.albums-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 25px;
-    margin-top: 20px;
-}
-
-.album-card {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    transition: transform 0.3s;
-}
-
-.album-card:hover {
-    transform: translateY(-5px);
-}
-
-.album-cover {
-    width: 100%;
-    height: 250px;
-    object-fit: cover;
-}
-
-.album-info {
-    padding: 15px;
-}
-
-.album-price {
-    margin-top: 10px;
-}
-
-.sale-price {
-    text-decoration: line-through;
-    color: #888;
-    margin-right: 8px;
-}
-
-.current-price {
-    font-weight: bold;
-    color: #0d6efd;
-}
-
 /* Featured Video Styles */
 .featured-video-card {
     border: none;
@@ -275,6 +28,20 @@ nav {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
+/* Video protection - disable right-click */
+.video-container {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.video-container video {
+    pointer-events: none;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .featured-video-card {
@@ -286,5 +53,32 @@ nav {
         padding: 2rem 0;
     }
 }
-  
+
+/* General styles */
+.album-card {
+    transition: transform 0.3s ease;
+}
+
+.album-card:hover {
+    transform: translateY(-5px);
+}
+
+.price {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.sale-price {
+    color: #dc3545;
+    text-decoration: line-through;
+}
+
+.btn-primary {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-primary:hover {
+    background-color: #5a2d91;
+    border-color: #5a2d91;
 }
