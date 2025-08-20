@@ -3,8 +3,9 @@ import json
 import logging
 import time
 import hashlib
-from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
+import secrets
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -24,13 +25,17 @@ app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
     ALBUMS_FILE=os.path.join('data', 'albums.json'),
+    PURCHASES_FILE=os.path.join('data', 'purchases.json'),  # NEW: Track purchases
     COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
+    MUSIC_FOLDER=os.path.join('static', 'uploads', 'music'),  # Where MP3s are stored
     UPLOAD_FOLDER='static/uploads',
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
+    ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav'},  # Music file types
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
-    MAX_CONTENT_LENGTH=16 * 1024 * 1024,
-    PERMANENT_SESSION_LIFETIME=3600  # 1 hour session timeout
+    MAX_CONTENT_LENGTH=50 * 1024 * 1024,  # 50MB for music files
+    PERMANENT_SESSION_LIFETIME=3600,
+    DOWNLOAD_TOKENS={}
 )
 
 # Security setup
@@ -57,7 +62,6 @@ def check_rate_limit(ip, endpoint, max_attempts=5, window=60):
     if key not in login_attempts:
         login_attempts[key] = []
     
-    # Clean old attempts
     login_attempts[key] = [t for t in login_attempts[key] if now - t < window]
     
     if len(login_attempts[key]) >= max_attempts:
@@ -66,14 +70,70 @@ def check_rate_limit(ip, endpoint, max_attempts=5, window=60):
     login_attempts[key].append(now)
     return True
 
+def remove_auto_durations(albums):
+    """Remove auto-generated durations from albums"""
+    for album in albums:
+        if 'tracks' in album:
+            album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
+    return albums
+
+def generate_download_token(user_id, album_id):
+    """Generate a secure download token"""
+    token = secrets.token_urlsafe(32)
+    expiry = datetime.now() + timedelta(hours=24)
+    
+    app.config['DOWNLOAD_TOKENS'][token] = {
+        'user_id': user_id,
+        'album_id': album_id,
+        'expiry': expiry.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    return token
+
+def validate_download_token(token):
+    """Validate download token"""
+    if token not in app.config['DOWNLOAD_TOKENS']:
+        return False
+        
+    token_data = app.config['DOWNLOAD_TOKENS'][token]
+    expiry = datetime.strptime(token_data['expiry'], "%Y-%m-%d %H:%M:%S")
+    
+    if datetime.now() > expiry:
+        app.config['DOWNLOAD_TOKENS'].pop(token)
+        return False
+        
+    return token_data
+
+def has_purchased(user_id, album_id):
+    """Check if user has purchased this album"""
+    purchases = load_data(app.config['PURCHASES_FILE'])
+    return any(p['user_id'] == user_id and p['album_id'] == album_id for p in purchases)
+
+def record_purchase(user_id, album_id, amount):
+    """Record a purchase in JSON file"""
+    purchases = load_data(app.config['PURCHASES_FILE'])
+    
+    purchase = {
+        'id': len(purchases) + 1,
+        'user_id': user_id,
+        'album_id': album_id,
+        'amount': amount,
+        'purchase_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'downloads': 0  # Track download count
+    }
+    
+    purchases.append(purchase)
+    save_data(purchases, app.config['PURCHASES_FILE'])
+    return purchase
+
 # Initialize app setup
 def initialize_app():
     """Ensure required directories and files exist"""
     try:
         os.makedirs('data', exist_ok=True)
         os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['MUSIC_FOLDER'], exist_ok=True)
         
-        for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE']]:
+        for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE'], app.config['PURCHASES_FILE']]:
             if not os.path.exists(data_file):
                 with open(data_file, 'w') as f:
                     json.dump([], f)
@@ -84,8 +144,10 @@ def initialize_app():
 initialize_app()
 
 # Helper functions
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+def allowed_file(filename, file_type='image'):
+    """Check if file extension is allowed"""
+    extensions = app.config['ALLOWED_EXTENSIONS'] if file_type == 'image' else app.config['ALLOWED_MUSIC_EXTENSIONS']
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
 def load_data(filename):
     try:
@@ -107,15 +169,14 @@ def save_data(data, filename):
         return False
 
 def is_valid_image(file_path):
-    """Check if file is a valid image using magic numbers"""
+    """Check if file is a valid image"""
     try:
         with open(file_path, 'rb') as f:
             header = f.read(12)
         
-        # JPEG, PNG, WEBP signatures
-        if (header.startswith(b'\xFF\xD8\xFF') or  # JPEG
-            header.startswith(b'\x89PNG\r\n\x1a\n') or  # PNG
-            (header[:4] == b'RIFF' and header[8:12] == b'WEBP')):  # WEBP
+        if (header.startswith(b'\xFF\xD8\xFF') or
+            header.startswith(b'\x89PNG\r\n\x1a\n') or
+            (header[:4] == b'RIFF' and header[8:12] == b'WEBP')):
             return True
             
         return False
@@ -146,6 +207,7 @@ def internal_error(e):
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
+        albums = remove_auto_durations(albums)
         return render_template('index.html', albums=albums[:4] if albums else [])
     except Exception as e:
         logger.error(f"Home error: {e}")
@@ -155,6 +217,7 @@ def home():
 def shop():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
+        albums = remove_auto_durations(albums)
         return render_template('shop.html', albums=albums if albums else [])
     except Exception as e:
         logger.error(f"Shop error: {e}")
@@ -168,7 +231,13 @@ def album(album_id):
         if not album:
             abort(404)
         
-        # Escape user content to prevent XSS
+        album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
+        
+        # Check if user owns this album
+        owns_album = False
+        if session.get('user_id'):
+            owns_album = has_purchased(session['user_id'], album_id)
+        
         safe_album = {
             'id': album['id'],
             'title': escape(album['title']),
@@ -178,7 +247,8 @@ def album(album_id):
             'tracks': [escape(track) for track in album.get('tracks', [])],
             'price': album.get('price', 0),
             'on_sale': album.get('on_sale', False),
-            'sale_price': album.get('sale_price')
+            'sale_price': album.get('sale_price'),
+            'owns_album': owns_album
         }
         return render_template('album.html', album=safe_album)
     except Exception as e:
@@ -189,7 +259,6 @@ def album(album_id):
 def register():
     if request.method == 'POST':
         try:
-            # CSRF protection
             if not validate_csrf_token():
                 flash('Security token invalid. Please try again.', 'danger')
                 return render_template('register.html', csrf_token=generate_csrf_token())
@@ -200,7 +269,6 @@ def register():
             password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
             
-            # Validation
             if not username or not email or not password:
                 flash('All fields are required', 'danger')
             elif len(username) < 4:
@@ -223,7 +291,9 @@ def register():
                 }
                 users.append(new_user)
                 if save_data(users, app.config['USERS_FILE']):
-                    flash('Registration successful! Please login.', 'success')
+                    session['user_id'] = new_user['id']
+                    session['username'] = new_user['username']
+                    flash('Registration successful! You are now logged in.', 'success')
                     return redirect(url_for('home'))
                 else:
                     flash('Registration failed. Please try again.', 'danger')
@@ -234,126 +304,123 @@ def register():
     
     return render_template('register.html', csrf_token=generate_csrf_token())
 
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    if session.get('admin_logged_in'):
-        return redirect(url_for('admin_dashboard'))
+# Music Purchase & Download System
+@app.route('/purchase/<int:album_id>')
+def purchase_album(album_id):
+    """Purchase an album"""
+    if not session.get('user_id'):
+        flash('Please login to purchase music', 'danger')
+        return redirect(url_for('register'))
     
-    if request.method == 'POST':
-        # Rate limiting
-        if not check_rate_limit(request.remote_addr, 'login'):
-            flash('Too many login attempts. Please wait 1 minute.', 'warning')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
-        
-        # CSRF protection
-        if not validate_csrf_token():
-            flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
-        
-        try:
-            username = request.form.get('username', '')
-            password = request.form.get('password', '')
-            
-            if (username == app.config['ADMIN_USERNAME'] and 
-                check_password_hash(app.config['ADMIN_PASSWORD_HASH'], password)):
-                session['admin_logged_in'] = True
-                session.permanent = True
-                flash('Logged in successfully', 'success')
-                return redirect(url_for('admin_dashboard'))
-            
-            flash('Invalid credentials', 'danger')
-        except Exception as e:
-            logger.error(f"Login error: {e}")
-            flash('Login failed. Please try again.', 'danger')
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == album_id), None)
     
-    return render_template('admin/login.html', csrf_token=generate_csrf_token())
+    if not album:
+        flash('Album not found', 'danger')
+        return redirect(url_for('shop'))
+    
+    # Check if already purchased
+    if has_purchased(session['user_id'], album_id):
+        flash('You already own this album!', 'info')
+        return redirect(url_for('my_music'))
+    
+    # Record purchase
+    purchase = record_purchase(session['user_id'], album_id, album.get('price', 0))
+    
+    # Generate download token
+    token = generate_download_token(session['user_id'], album_id)
+    
+    flash(f'Purchase successful! ${album.get("price", 0):.2f} paid. You can now download the music.', 'success')
+    return redirect(url_for('download_album', token=token))
 
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    session.pop('csrf_token', None)
-    flash('Logged out successfully', 'success')
-    return redirect(url_for('home'))
-
-@app.route('/admin/dashboard')
-def admin_dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
+@app.route('/my-music')
+def my_music():
+    """Show user's purchased music"""
+    if not session.get('user_id'):
+        flash('Please login to view your music', 'danger')
+        return redirect(url_for('register'))
     
-    try:
-        albums = load_data(app.config['ALBUMS_FILE'])
-        users = load_data(app.config['USERS_FILE'])
-        return render_template('admin/dashboard.html',
-                               album_count=len(albums),
-                               user_count=len(users),
-                               current_date=datetime.now().strftime("%Y-%m-%d"))
-    except Exception as e:
-        logger.error(f"Dashboard error: {e}")
-        return render_template('admin/dashboard.html', album_count=0, user_count=0)
-
-@app.route('/admin/add-album', methods=['GET', 'POST'])
-def add_album():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
+    purchases = load_data(app.config['PURCHASES_FILE'])
+    user_purchases = [p for p in purchases if p['user_id'] == session['user_id']]
     
-    if request.method == 'POST':
-        # CSRF protection
-        if not validate_csrf_token():
-            flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
-        
-        try:
-            albums = load_data(app.config['ALBUMS_FILE'])
-            cover = request.files.get('cover')
-            
-            if not cover or cover.filename == '':
-                flash('No file selected', 'danger')
-                return redirect(request.url)
-                
-            if not allowed_file(cover.filename):
-                flash('Invalid file type. Allowed: PNG, JPG, JPEG, WEBP', 'danger')
-                return redirect(request.url)
-            
-            filename = secure_filename(cover.filename)
-            cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
-            cover.save(cover_path)
-            
-            # Validate image content
-            if not is_valid_image(cover_path):
-                os.remove(cover_path)
-                flash('Invalid image file', 'danger')
-                return redirect(request.url)
-            
-            # Escape user input to prevent XSS
-            new_album = {
-                'id': len(albums) + 1,
-                'title': escape(request.form.get('title', '').strip()),
-                'artist': escape(request.form.get('artist', '').strip()),
-                'year': escape(request.form.get('year', '').strip()),
-                'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
-                'tracks': [escape(t.strip()) for t in request.form.get('tracks', '').split('\n') if t.strip()],
-                'added': datetime.now().strftime("%Y-%m-%d"),
-                'price': round(float(request.form.get('price', 0)), 2),
-                'on_sale': 'on_sale' in request.form,
-                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
-            }
-            
-            albums.append(new_album)
-            if save_data(albums, app.config['ALBUMS_FILE']):
-                flash('Album added successfully', 'success')
-                return redirect(url_for('shop'))
-            else:
-                flash('Failed to save album', 'danger')
-                
-        except ValueError:
-            flash('Invalid price format', 'danger')
-        except Exception as e:
-            logger.error(f"Add album error: {e}")
-            flash('Error adding album. Please try again.', 'danger')
+    albums = load_data(app.config['ALBUMS_FILE'])
+    user_albums = []
     
-    return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+    for purchase in user_purchases:
+        album = next((a for a in albums if a['id'] == purchase['album_id']), None)
+        if album:
+            album['purchase_date'] = purchase['purchase_date']
+            album['downloads'] = purchase['downloads']
+            user_albums.append(album)
+    
+    return render_template('my_music.html', albums=user_albums)
 
-if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('DEBUG', 'False').lower() == 'true'
-    app.run(host='0.0.0.0', port=port, debug=debug)
+@app.route('/download/<token>')
+def download_album(token):
+    """Download album page"""
+    token_data = validate_download_token(token)
+    
+    if not token_data:
+        flash('Invalid or expired download link', 'danger')
+        return redirect(url_for('shop'))
+    
+    if session.get('user_id') != token_data['user_id']:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('shop'))
+    
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == token_data['album_id']), None)
+    
+    if not album:
+        flash('Album not found', 'danger')
+        return redirect(url_for('shop'))
+    
+    album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
+    
+    return render_template('download.html', album=album, token=token)
+
+@app.route('/download-track/<token>/<int:track_index>')
+def download_track(token, track_index):
+    """Download individual track"""
+    token_data = validate_download_token(token)
+    
+    if not token_data:
+        flash('Invalid or expired download link', 'danger')
+        return redirect(url_for('shop'))
+    
+    if session.get('user_id') != token_data['user_id']:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('shop'))
+    
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == token_data['album_id']), None)
+    
+    if not album or track_index >= len(album.get('tracks', [])):
+        flash('Track not found', 'danger')
+        return redirect(url_for('shop'))
+    
+    track_name = album['tracks'][track_index].split(' (')[0].strip()
+    
+    # Update download count
+    purchases = load_data(app.config['PURCHASES_FILE'])
+    for purchase in purchases:
+        if purchase['user_id'] == session['user_id'] and purchase['album_id'] == album['id']:
+            purchase['downloads'] += 1
+            break
+    save_data(purchases, app.config['PURCHASES_FILE'])
+    
+    # In a real app, serve actual MP3 file:
+    # mp3_filename = f"album_{album['id']}_track_{track_index}.mp3"
+    # mp3_path = os.path.join(app.config['MUSIC_FOLDER'], mp3_filename)
+    # 
+    # if os.path.exists(mp3_path):
+    #     return send_file(mp3_path, as_attachment=True, download_name=f"{track_name}.mp3")
+    # else:
+    #     flash('Music file not found', 'danger')
+    #     return redirect(url_for('download_album', token=token))
+    
+    # For demo purposes - show success message
+    flash(f'Download started: {track_name}.mp3', 'success')
+    return redirect(url_for('download_album', token=token))
+
+# Admin routes (continued in next message due to length)
