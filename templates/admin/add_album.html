@@ -1,69 +1,212 @@
-{% extends "base.html" %}
+import os
+import json
+import logging
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from datetime import datetime
+from dotenv import load_dotenv
+from markupsafe import escape
 
-{% block title %}Add New Album | CoolCat Productions{% endblock %}
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-{% block content %}
-<div class="content-box" style="max-width: 800px; margin: 0 auto;">
-    <h2>Add New Album</h2>
+# Load environment variables
+load_dotenv()
+
+app = Flask(__name__)
+
+# Configuration - SIMPLIFIED
+app.config.update(
+    SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
+    USERS_FILE=os.path.join('data', 'users.json'),
+    ALBUMS_FILE=os.path.join('data', 'albums.json'),
+    COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
+    UPLOAD_FOLDER='static/uploads',
+    ALLOWED_EXTENSIONS=set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,webp').split(',')),
+    ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
+    ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
+    MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
+)
+
+# Initialize app setup at startup
+def initialize_app():
+    """Ensure required directories and files exist"""
+    try:
+        os.makedirs('data', exist_ok=True)
+        os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
+        
+        for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE']]:
+            if not os.path.exists(data_file):
+                with open(data_file, 'w') as f:
+                    json.dump([], f)
+                
+    except Exception as e:
+        logger.error(f"Initialization error: {str(e)}")
+
+initialize_app()
+
+# Helper functions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def load_data(filename):
+    try:
+        with open(filename) as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_data(data, filename):
+    try:
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except:
+        return False
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    return render_template('500.html'), 500
+
+# Routes - SIMPLIFIED
+@app.route('/')
+def home():
+    albums = load_data(app.config['ALBUMS_FILE'])
+    return render_template('index.html', albums=albums[:4] if albums else [])
+
+@app.route('/shop')
+def shop():
+    albums = load_data(app.config['ALBUMS_FILE'])
+    return render_template('shop.html', albums=albums if albums else [])
+
+@app.route('/album/<int:album_id>')
+def album(album_id):
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == album_id), None)
+    if not album:
+        abort(404)
+    return render_template('album.html', album=album)
+
+# Admin routes
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin_dashboard'))
+        
+    if request.method == 'POST':
+        try:
+            if (request.form['username'] == app.config['ADMIN_USERNAME'] and 
+                check_password_hash(app.config['ADMIN_PASSWORD_HASH'], request.form['password'])):
+                session['admin_logged_in'] = True
+                flash('Logged in successfully', 'success')
+                return redirect(url_for('admin_dashboard'))
+            flash('Invalid credentials', 'danger')
+        except:
+            flash('Login failed', 'danger')
     
-    <form method="POST" enctype="multipart/form-data" style="margin-top: 30px;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
-            <div>
-                <label for="title" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Album Title</label>
-                <input type="text" id="title" name="title" required
-                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
-            </div>
+    return render_template('admin/login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('home'))
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    albums = load_data(app.config['ALBUMS_FILE'])
+    users = load_data(app.config['USERS_FILE'])
+    return render_template('admin/dashboard.html',
+                           album_count=len(albums),
+                           user_count=len(users))
+
+@app.route('/admin/add-album', methods=['GET', 'POST'])
+def add_album():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if request.method == 'POST':
+        try:
+            albums = load_data(app.config['ALBUMS_FILE'])
+            cover = request.files['cover']
             
-            <div>
-                <label for="artist" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Artist</label>
-                <input type="text" id="artist" name="artist" required
-                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
-            </div>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
-            <div>
-                <label for="year" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Release Year</label>
-                <input type="text" id="year" name="year" required
-                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
-            </div>
+            if not cover or cover.filename == '':
+                flash('No file selected', 'danger')
+                return redirect(request.url)
+                
+            if not allowed_file(cover.filename):
+                flash('Invalid file type', 'danger')
+                return redirect(request.url)
             
-            <div>
-                <label for="price" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Price ($)</label>
-                <input type="number" id="price" name="price" step="0.01" min="0" required
-                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
-            </div>
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-            <label for="cover" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Album Cover</label>
-            <input type="file" id="cover" name="cover" accept="image/*" required
-                   style="width: 100%; padding: 10px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-            <label for="tracks" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Track List (one per line)</label>
-            <textarea id="tracks" name="tracks" rows="8" required
-                      style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;"></textarea>
-        </div>
-        
-        <div style="display: flex; gap: 20px; margin-bottom: 30px; align-items: center;">
-            <div>
-                <input type="checkbox" id="on_sale" name="on_sale" style="margin-right: 10px;">
-                <label for="on_sale" style="font-size: 1.1rem;">On Sale</label>
-            </div>
+            filename = secure_filename(cover.filename)
+            cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
+            cover.save(cover_path)
             
-            <div style="flex-grow: 1;">
-                <label for="sale_price" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Sale Price ($)</label>
-                <input type="number" id="sale_price" name="sale_price" step="0.01" min="0"
-                       style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
-            </div>
-        </div>
-        
-        <div style="text-align: center;">
-            <button type="submit" class="btn" style="padding: 12px 40px; font-size: 1.2rem;">Add Album</button>
-        </div>
-    </form>
-</div>
-{% endblock %}
+            new_album = {
+                'id': len(albums) + 1,
+                'title': request.form['title'].strip(),
+                'artist': request.form['artist'].strip(),
+                'year': request.form['year'].strip(),
+                'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
+                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
+                'added': datetime.now().strftime("%Y-%m-%d"),
+                'price': round(float(request.form.get('price', 0)), 2)
+            }
+            
+            albums.append(new_album)
+            if save_data(albums, app.config['ALBUMS_FILE']):
+                flash('Album added successfully', 'success')
+                return redirect(url_for('shop'))
+                
+        except:
+            flash('Error adding album', 'danger')
+    
+    return render_template('admin/add_album.html')
+
+# User registration
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        try:
+            users = load_data(app.config['USERS_FILE'])
+            
+            if any(u['username'] == request.form['username'] for u in users):
+                flash('Username already exists', 'danger')
+                return redirect(request.url)
+                
+            if any(u['email'] == request.form['email'] for u in users):
+                flash('Email already registered', 'danger')
+                return redirect(request.url)
+            
+            new_user = {
+                'id': len(users) + 1,
+                'username': request.form['username'].strip(),
+                'email': request.form['email'].strip(),
+                'password': generate_password_hash(request.form['password']),
+                'joined': datetime.now().strftime("%Y-%m-%d")
+            }
+            
+            users.append(new_user)
+            if save_data(users, app.config['USERS_FILE']):
+                flash('Registration successful! Please login.', 'success')
+                return redirect(url_for('home'))
+                
+        except:
+            flash('Registration error', 'danger')
+            
+    return render_template('register.html')
+
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=port, debug=debug)
