@@ -991,7 +991,7 @@ def edit_album(album_id):
                     albums[album_index]['video_filename'] = None
                     albums[album_index]['has_video'] = False
                 
-                                if save_data(albums, app.config['ALBUMS_FILE']):
+                                                if save_data(albums, app.config['ALBUMS_FILE']):
                     flash('Album updated successfully', 'success')
                     return redirect(url_for('manage_albums'))
                 else:
@@ -1004,7 +1004,6 @@ def edit_album(album_id):
             flash('Error updating album', 'danger')
     
     return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
-
 # Password generation utility route (for admin use)
 @app.route('/admin/generate-password')
 def generate_password():
