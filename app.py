@@ -1,8 +1,3 @@
-I apologize for the incomplete code. Let me provide the complete `app.py` file:
-
-## 1. Complete app.py
-
-```python
 import os
 import json
 import logging
