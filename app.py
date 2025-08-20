@@ -34,7 +34,6 @@ app.config.update(
 )
 
 # Security setup
-csrf_tokens = {}
 login_attempts = {}
 
 def generate_csrf_token():
