@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}My Music Library | CoolCat Productions{% endblock %}
+
+{% block content %}
+<div class="content-container">
+    <h1>My Music Library</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if not albums %}
+        <div class="content-box" style="text-align: center; padding: 50px;">
+            <h2>🎵 Your library is empty</h2>
+            <p>You haven't purchased any music yet.</p>
+            <a href="{{ url_for('shop') }}" class="btn" style="margin-top: 20px;">
+                Browse Music Shop
+            </a>
+        </div>
+    {% else %}
+        <div class="music-library">
+            {% for album in albums %}
+            <div class="content-box" style="margin-bottom: 30px;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <img src="{{ url_for('static', filename=album.cover) }}" 
+                         alt="{{ album.title }}" 
+                         style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                    
+                    <div style="flex-grow: 1;">
+                        <h3>{{ album.title }}</h3>
+                        <p style="color: #aaa; margin-bottom: 10px;">
+                            by {{ album.artist }} • {{ album.year }}
+                        </p>
+                        <p style="color: #0d6efd; font-weight: bold;">
+                            Purchased: {{ album.purchase_date }}
+                        </p>
+                        <p style="color: #6c757d; font-size: 0.9rem;">
+                            Downloads: {{ album.downloads }} times
+                        </p>
+                    </div>
+                    
+                    <div style="text-align: right;">
+                        <a href="{{ url_for('purchase_album', album_id=album.id) }}" 
+                           class="btn" style="background: #28a745;">
+                           Download Again
+                        </a>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #333;">
+                    <h4 style="margin-bottom: 15px;">Tracks:</h4>
+                    <div style="display: grid; gap: 10px;">
+                        {% for track in album.tracks %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; 
+                                    padding: 10px; background: #222; border-radius: 4px;">
+                            <span>{{ loop.index }}. {{ track }}</span>
+                            <a href="{{ url_for('purchase_album', album_id=album.id) }}" 
+                               class="btn" style="padding: 5px 15px; font-size: 0.9rem;">
+                               Download MP3
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
