@@ -30,12 +30,14 @@ app.config.update(
     PURCHASES_FILE=os.path.join('data', 'purchases.json'),
     COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
     MUSIC_FOLDER=os.path.join('static', 'uploads', 'music'),
+    VIDEOS_FOLDER=os.path.join('static', 'uploads', 'videos'),
     UPLOAD_FOLDER='static/uploads',
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
     ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav', 'flac'},
+    ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm'},
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
     ADMIN_PASSWORD_HASH=os.getenv('ADMIN_PASSWORD_HASH', ''),
-    MAX_CONTENT_LENGTH=100 * 1024 * 1024,
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024,  # Increased to 500MB for videos
     PERMANENT_SESSION_LIFETIME=3600,
     DOWNLOAD_TOKENS={}
 )
@@ -159,12 +161,23 @@ def generate_strong_password(length=16):
     password = ''.join(secrets.choice(alphabet) for i in range(length))
     return password
 
+# Video file validation
+def allowed_video_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_VIDEO_EXTENSIONS']
+
+# Get video URL for templates
+def get_video_url(album):
+    if album.get('video_filename'):
+        return f"/static/uploads/videos/{album['video_filename']}"
+    return album.get('video_url', '')
+
 # Initialize app setup with backup system
 def initialize_app():
     try:
         os.makedirs('data', exist_ok=True)
         os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
         os.makedirs(app.config['MUSIC_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['VIDEOS_FOLDER'], exist_ok=True)
         
         # Create backup directory
         os.makedirs('data/backups', exist_ok=True)
@@ -186,7 +199,15 @@ initialize_app()
 
 # Helper functions with enhanced error handling
 def allowed_file(filename, file_type='image'):
-    extensions = app.config['ALLOWED_EXTENSIONS'] if file_type == 'image' else app.config['ALLOWED_MUSIC_EXTENSIONS']
+    if file_type == 'image':
+        extensions = app.config['ALLOWED_EXTENSIONS']
+    elif file_type == 'music':
+        extensions = app.config['ALLOWED_MUSIC_EXTENSIONS']
+    elif file_type == 'video':
+        extensions = app.config['ALLOWED_VIDEO_EXTENSIONS']
+    else:
+        return False
+        
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
 def load_data(filename):
@@ -293,13 +314,14 @@ def home():
         albums = load_data(app.config['ALBUMS_FILE'])
         albums = remove_auto_durations(albums)
         
-        # Get albums with videos for featured section
-        featured_albums = [a for a in albums if a.get('has_video', False) and a.get('video_url')][:3]
-        regular_albums = [a for a in albums if not a.get('has_video', False)][:4]
+        # Get albums with videos for featured section (only uploaded videos, not YouTube)
+        featured_albums = [a for a in albums if a.get('has_video', False) and a.get('video_filename')][:3]
+        regular_albums = [a for a in albums if not a.get('has_video', False)][:6]
         
         return render_template('index.html', 
                              featured_albums=featured_albums,
-                             regular_albums=regular_albums)
+                             regular_albums=regular_albums,
+                             get_video_url=get_video_url)
     except Exception as e:
         logger.error(f"Home error: {e}")
         return render_template('index.html', featured_albums=[], regular_albums=[])
@@ -309,7 +331,7 @@ def shop():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
         albums = remove_auto_durations(albums)
-        return render_template('shop.html', albums=albums if albums else [])
+        return render_template('shop.html', albums=albums if albums else [], get_video_url=get_video_url)
     except Exception as e:
         logger.error(f"Shop error: {e}")
         return render_template('shop.html', albums=[])
@@ -338,7 +360,7 @@ def album(album_id):
             'price': album.get('price', 0),
             'on_sale': album.get('on_sale', False),
             'sale_price': album.get('sale_price'),
-            'video_url': album.get('video_url', ''),
+            'video_url': get_video_url(album),
             'has_video': album.get('has_video', False),
             'owns_album': owns_album
         }
@@ -479,7 +501,7 @@ def my_music():
             album['downloads'] = purchase['downloads']
             user_albums.append(album)
     
-    return render_template('my_music.html', albums=user_albums)
+    return render_template('my_music.html', albums=user_albums, get_video_url=get_video_url)
 
 @app.route('/download/<token>')
 def download_album(token):
@@ -502,7 +524,7 @@ def download_album(token):
     
     album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
     
-    return render_template('download.html', album=album, token=token)
+    return render_template('download.html', album=album, token=token, get_video_url=get_video_url)
 
 @app.route('/download-track/<token>/<int:track_index>')
 def download_track(token, track_index):
@@ -625,6 +647,7 @@ def add_album():
             albums = load_data(app.config['ALBUMS_FILE'])
             cover = request.files.get('cover')
             music_files = request.files.getlist('music_files')
+            video_file = request.files.get('video_file')  # New: video upload
             
             if not cover or cover.filename == '':
                 flash('No cover image selected', 'danger')
@@ -637,6 +660,17 @@ def add_album():
             if not allowed_file_size(cover):
                 flash('Cover image is too large (max 50MB)', 'danger')
                 return redirect(request.url)
+            
+            # Handle video upload
+            video_filename = None
+            if video_file and video_file.filename:
+                if allowed_video_file(video_file.filename) and allowed_file_size(video_file, 500):  # 500MB max for videos
+                    video_filename = secure_filename(f"album_{len(albums) + 1}_{video_file.filename}")
+                    video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_filename)
+                    video_file.save(video_path)
+                else:
+                    flash('Invalid video file type or file too large (max 500MB)', 'danger')
+                    return redirect(request.url)
             
             if not music_files or all(f.filename == '' for f in music_files):
                 flash('No music files selected', 'danger')
@@ -677,8 +711,8 @@ def add_album():
                 'price': round(float(request.form.get('price', 0)), 2),
                 'on_sale': 'on_sale' in request.form,
                 'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None,
-                'video_url': request.form.get('video_url', '').strip(),
-                'has_video': bool(request.form.get('video_url', '').strip())
+                'video_filename': video_filename,
+                'has_video': bool(video_filename)
             }
             
             album_dir = ensure_music_dirs_exist(new_album['id'])
@@ -747,6 +781,12 @@ def delete_album(album_id):
             import shutil
             shutil.rmtree(music_dir)
         
+        # Remove video file if exists
+        if album.get('video_filename'):
+            video_path = os.path.join(app.config['VIDEOS_FOLDER'], album['video_filename'])
+            if os.path.exists(video_path):
+                os.remove(video_path)
+        
         # Remove from albums list
         albums = [a for a in albums if a['id'] != album_id]
         
@@ -805,6 +845,25 @@ def edit_album(album_id):
                     else:
                         flash('Invalid cover image type or file too large', 'danger')
                 
+                # Handle new video upload if provided
+                video_file = request.files.get('video_file')
+                if video_file and video_file.filename:
+                    if allowed_video_file(video_file.filename) and allowed_file_size(video_file, 500):
+                        # Remove old video if exists
+                        if albums[album_index].get('video_filename'):
+                            old_video_path = os.path.join(app.config['VIDEOS_FOLDER'], albums[album_index]['video_filename'])
+                            if os.path.exists(old_video_path):
+                                os.remove(old_video_path)
+                        
+                        # Save new video
+                        video_filename = secure_filename(f"album_{album_id}_{video_file.filename}")
+                        video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_filename)
+                        video_file.save(video_path)
+                        albums[album_index]['video_filename'] = video_filename
+                        albums[album_index]['has_video'] = True
+                    else:
+                        flash('Invalid video file type or file too large (max 500MB)', 'danger')
+                
                 # Update other fields
                 albums[album_index]['title'] = escape(request.form.get('title', '').strip())
                 albums[album_index]['artist'] = escape(request.form.get('artist', '').strip())
@@ -812,8 +871,15 @@ def edit_album(album_id):
                 albums[album_index]['price'] = round(float(request.form.get('price', 0)), 2)
                 albums[album_index]['on_sale'] = 'on_sale' in request.form
                 albums[album_index]['sale_price'] = round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
-                albums[album_index]['video_url'] = request.form.get('video_url', '').strip()
-                albums[album_index]['has_video'] = bool(request.form.get('video_url', '').strip())
+                
+                # Remove video if requested
+                if 'remove_video' in request.form:
+                    if albums[album_index].get('video_filename'):
+                        video_path = os.path.join(app.config['VIDEOS_FOLDER'], albums[album_index]['video_filename'])
+                        if os.path.exists(video_path):
+                            os.remove(video_path)
+                    albums[album_index]['video_filename'] = None
+                    albums[album_index]['has_video'] = False
                 
                 if save_data(albums, app.config['ALBUMS_FILE']):
                     flash('Album updated successfully', 'success')
