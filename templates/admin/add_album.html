@@ -17,7 +17,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configuration - SIMPLIFIED
+# Configuration
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
@@ -29,6 +29,17 @@ app.config.update(
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
 )
+
+# Security headers middleware - FIXED
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    # Only add HSTS in production
+    if not app.debug and request.url.startswith('https://'):
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000'
+    return response
 
 # Initialize app setup at startup
 def initialize_app():
@@ -75,7 +86,7 @@ def not_found(e):
 def internal_error(e):
     return render_template('500.html'), 500
 
-# Routes - SIMPLIFIED
+# Routes
 @app.route('/')
 def home():
     albums = load_data(app.config['ALBUMS_FILE'])
@@ -92,6 +103,11 @@ def album(album_id):
     album = next((a for a in albums if a['id'] == album_id), None)
     if not album:
         abort(404)
+    
+    # Escape user content to prevent XSS
+    album['title'] = escape(album['title'])
+    album['artist'] = escape(album['artist'])
+    
     return render_template('album.html', album=album)
 
 # Admin routes
@@ -152,13 +168,14 @@ def add_album():
             cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
             cover.save(cover_path)
             
+            # Escape user input to prevent XSS
             new_album = {
                 'id': len(albums) + 1,
-                'title': request.form['title'].strip(),
-                'artist': request.form['artist'].strip(),
-                'year': request.form['year'].strip(),
+                'title': escape(request.form['title'].strip()),
+                'artist': escape(request.form['artist'].strip()),
+                'year': escape(request.form['year'].strip()),
                 'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
-                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
+                'tracks': [escape(t.strip()) for t in request.form['tracks'].split('\n') if t.strip()],
                 'added': datetime.now().strftime("%Y-%m-%d"),
                 'price': round(float(request.form.get('price', 0)), 2)
             }
@@ -179,19 +196,22 @@ def register():
     if request.method == 'POST':
         try:
             users = load_data(app.config['USERS_FILE'])
+            username = request.form['username'].strip()
+            email = request.form['email'].strip()
             
-            if any(u['username'] == request.form['username'] for u in users):
+            if any(u['username'] == username for u in users):
                 flash('Username already exists', 'danger')
                 return redirect(request.url)
                 
-            if any(u['email'] == request.form['email'] for u in users):
+            if any(u['email'] == email for u in users):
                 flash('Email already registered', 'danger')
                 return redirect(request.url)
             
+            # Escape user input to prevent XSS
             new_user = {
                 'id': len(users) + 1,
-                'username': request.form['username'].strip(),
-                'email': request.form['email'].strip(),
+                'username': escape(username),
+                'email': escape(email),
                 'password': generate_password_hash(request.form['password']),
                 'joined': datetime.now().strftime("%Y-%m-%d")
             }
