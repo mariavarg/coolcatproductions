@@ -1,111 +1,60 @@
 {% extends "base.html" %}
-
-{% block title %}CoolCat Productions{% endblock %}
-
 {% block content %}
-<div class="content-container">
-    <!-- Featured Videos Section -->
-    {% if featured_albums %}
-    <section class="featured-videos">
-        <h2>Featured Music Videos</h2>
-        <div class="video-grid">
+<!-- Hero Section with Featured Video -->
+{% if featured_albums %}
+<section class="hero-section mb-5">
+    <div class="container">
+        <h2 class="text-center mb-4">Featured Videos</h2>
+        <div class="row">
             {% for album in featured_albums %}
-            <div class="content-box">
-                <div class="video-container">
-                    {% if album.video_url %}
-                        {% if 'youtube.com/embed/' in album.video_url %}
-                            <iframe src="{{ album.video_url }}" 
-                                    frameborder="0" 
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowfullscreen
-                                    style="width: 100%; height: 200px; border-radius: 8px;">
-                            </iframe>
-                        {% elif 'youtube.com/watch?' in album.video_url %}
-                            {% set video_id = album.video_url.split('v=')[1].split('&')[0] %}
-                            <iframe src="https://www.youtube.com/embed/{{ video_id }}" 
-                                    frameborder="0" 
-                                    allowfullscreen
-                                    style="width: 100%; height: 200px; border-radius: 8px;">
-                            </iframe>
-                        {% elif 'youtu.be/' in album.video_url %}
-                            {% set video_id = album.video_url.split('youtu.be/')[1].split('?')[0] %}
-                            <iframe src="https://www.youtube.com/embed/{{ video_id }}" 
-                                    frameborder="0" 
-                                    allowfullscreen
-                                    style="width: 100%; height: 200px; border-radius: 8px;">
-                            </iframe>
-                        {% else %}
-                            <div style="background: #222; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
-                                <span>Invalid video URL</span>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <div style="background: #222; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
-                            <span>No video available</span>
+            <div class="col-md-8 mx-auto">
+                <div class="card featured-video-card">
+                    <div class="card-body">
+                        <h3 class="card-title">{{ album.title }}</h3>
+                        <p class="card-text">by {{ album.artist }}</p>
+                        
+                        <div class="video-container mb-3">
+                            <video controls class="featured-video" poster="{{ url_for('static', filename=album.cover) }}">
+                                <source src="{{ get_video_url(album) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
                         </div>
-                    {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">${{ "%.2f"|format(album.price) }}</span>
+                            <a href="{{ url_for('album', album_id=album.id) }}" class="btn btn-primary">View Album</a>
+                        </div>
+                    </div>
                 </div>
-                <h3>{{ album.title }}</h3>
-                <p>by {{ album.artist }}</p>
-                <a href="{{ url_for('album', album_id=album.id) }}" class="btn">
-                    View Album
-                </a>
             </div>
             {% endfor %}
         </div>
-    </section>
-    {% endif %}
+    </div>
+</section>
+{% endif %}
 
-    <!-- Regular Albums Section -->
-    <section class="recent-albums">
-        <h2>{% if featured_albums %}Latest Releases{% else %}Music Collection{% endif %}</h2>
-        <div class="album-grid">
+<!-- Regular Albums Section -->
+<section class="albums-section">
+    <div class="container">
+        <h2 class="text-center mb-4">Latest Releases</h2>
+        <div class="row">
             {% for album in regular_albums %}
-            <div class="content-box">
-                <img src="{{ url_for('static', filename=album.cover) }}" 
-                     alt="{{ album.title }}" 
-                     style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">
-                <h3>{{ album.title }}</h3>
-                <p>by {{ album.artist }}</p>
-                <p>${{ "%.2f"|format(album.price) }}</p>
-                <a href="{{ url_for('album', album_id=album.id) }}" class="btn">
-                    View Details
-                </a>
+            <div class="col-md-4 mb-4">
+                <div class="card album-card h-100">
+                    <img src="{{ url_for('static', filename=album.cover) }}" class="card-img-top" alt="{{ album.title }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ album.title }}</h5>
+                        <p class="card-text">by {{ album.artist }}</p>
+                        <p class="card-text">{{ album.year }}</p>
+                        <p class="price">${{ "%.2f"|format(album.price) }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('album', album_id=album.id) }}" class="btn btn-primary w-100">View Details</a>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>
-    </section>
-</div>
-
-<style>
-.video-grid, .album-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin: 30px 0;
-}
-
-.featured-videos {
-    margin-bottom: 50px;
-    padding-bottom: 30px;
-    border-bottom: 2px solid #333;
-}
-
-.video-container {
-    position: relative;
-    width: 100%;
-    padding-bottom: 56.25%; /* 16:9 aspect ratio */
-    height: 0;
-    overflow: hidden;
-}
-
-.video-container iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-}
-</style>
+    </div>
+</section>
 {% endblock %}
