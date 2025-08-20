@@ -996,9 +996,7 @@ def edit_album(album_id):
                     albums[album_index]['video_filename'] = None
                     albums[album_index]['has_video'] = False
                 
-                if save_data(albums, app.config['ALBUMS' ]
-
-                                             if save_data(albums, app.config['ALBUMS_FILE']):
+                                if save_data(albums, app.config['ALBUMS_FILE']):
                     flash('Album updated successfully', 'success')
                     return redirect(url_for('manage_albums'))
                 else:
