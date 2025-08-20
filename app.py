@@ -990,24 +990,21 @@ def edit_album(album_id):
                             os.remove(video_path)
                     albums[album_index]['video_filename'] = None
                     albums[album_index]['has_video'] = False
-                
-                                               @app.route('/admin/edit-album/<int:album_id>', methods=['GET', 'POST'])
-def edit_album(album_id):
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
+                         if save_data(albums, app.config['ALBUMS_FILE']):
+                    flash('Album updated successfully', 'success')
+                    return redirect(url_for('manage_albums'))
+                else:
+                    flash('Failed to update album', 'danger')
+            else:
+                flash('Album not found in database', 'danger')
+            
+        except ValueError:
+            flash('Invalid price format', 'danger')
+        except Exception as e:
+            logger.error(f"Edit album error: {e}")
+            flash('Error updating album', 'danger')
     
-    albums = load_data(app.config['ALBUMS_FILE'])
-    album = next((a for a in albums if a['id'] == album_id), None)
-    
-    if not album:
-        flash('Album not found', 'danger')
-        return redirect(url_for('manage_albums'))
-    
-    if request.method == 'POST':
-        try:
-            if not validate_csrf_token():
-                flash('Security token invalid. Please try again.', 'danger')
-                return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
+    return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
             
             # Update album data
             album_index = next((i for i, a in enumerate(albums) if a['id'] == album_id), -1)
