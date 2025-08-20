@@ -204,7 +204,7 @@ def not_found(e):
 def internal_error(e):
     return render_template('500.html'), 500
 
-# Favicon route - ADD THIS FIRST
+# Favicon route
 @app.route('/favicon.ico')
 def favicon():
     try:
@@ -218,10 +218,17 @@ def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
         albums = remove_auto_durations(albums)
-        return render_template('index.html', albums=albums[:4] if albums else [])
+        
+        # Get albums with videos for featured section
+        featured_albums = [a for a in albums if a.get('has_video', False) and a.get('video_url')][:3]
+        regular_albums = [a for a in albums if not a.get('has_video', False)][:4]
+        
+        return render_template('index.html', 
+                             featured_albums=featured_albums,
+                             regular_albums=regular_albums)
     except Exception as e:
         logger.error(f"Home error: {e}")
-        return render_template('index.html', albums=[])
+        return render_template('index.html', featured_albums=[], regular_albums=[])
 
 @app.route('/shop')
 def shop():
@@ -257,6 +264,8 @@ def album(album_id):
             'price': album.get('price', 0),
             'on_sale': album.get('on_sale', False),
             'sale_price': album.get('sale_price'),
+            'video_url': album.get('video_url', ''),
+            'has_video': album.get('has_video', False),
             'owns_album': owns_album
         }
         return render_template('album.html', album=safe_album)
@@ -535,7 +544,9 @@ def add_album():
                 'added': datetime.now().strftime("%Y-%m-%d"),
                 'price': round(float(request.form.get('price', 0)), 2),
                 'on_sale': 'on_sale' in request.form,
-                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
+                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None,
+                'video_url': request.form.get('video_url', '').strip(),
+                'has_video': bool(request.form.get('video_url', '').strip())
             }
             
             album_dir = ensure_music_dirs_exist(new_album['id'])
@@ -567,6 +578,124 @@ def add_album():
             flash('Error adding album. Please try again.', 'danger')
     
     return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+
+@app.route('/admin/manage-albums')
+def manage_albums():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        return render_template('admin/manage_albums.html', albums=albums)
+    except Exception as e:
+        logger.error(f"Manage albums error: {e}")
+        return render_template('admin/manage_albums.html', albums=[])
+
+@app.route('/admin/delete-album/<int:album_id>')
+def delete_album(album_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        album = next((a for a in albums if a['id'] == album_id), None)
+        
+        if not album:
+            flash('Album not found', 'danger')
+            return redirect(url_for('manage_albums'))
+        
+        # Remove album cover
+        cover_path = os.path.join('static', album['cover'])
+        if os.path.exists(cover_path):
+            os.remove(cover_path)
+        
+        # Remove music files
+        music_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
+        if os.path.exists(music_dir):
+            import shutil
+            shutil.rmtree(music_dir)
+        
+        # Remove from albums list
+        albums = [a for a in albums if a['id'] != album_id]
+        
+        if save_data(albums, app.config['ALBUMS_FILE']):
+            flash('Album deleted successfully', 'success')
+        else:
+            flash('Failed to delete album', 'danger')
+            
+    except Exception as e:
+        logger.error(f"Delete album error: {e}")
+        flash('Error deleting album', 'danger')
+    
+    return redirect(url_for('manage_albums'))
+
+@app.route('/admin/edit-album/<int:album_id>', methods=['GET', 'POST'])
+def edit_album(album_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == album_id), None)
+    
+    if not album:
+        flash('Album not found', 'danger')
+        return redirect(url_for('manage_albums'))
+    
+    if request.method == 'POST':
+        try:
+            if not validate_csrf_token():
+                flash('Security token invalid. Please try again.', 'danger')
+                return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
+            
+            # Update album data
+            album_index = next((i for i, a in enumerate(albums) if a['id'] == album_id), -1)
+            
+            if album_index != -1:
+                # Handle new cover upload if provided
+                cover = request.files.get('cover')
+                if cover and cover.filename:
+                    if allowed_file(cover.filename, 'image'):
+                        # Remove old cover
+                        old_cover_path = os.path.join('static', albums[album_index]['cover'])
+                        if os.path.exists(old_cover_path):
+                            os.remove(old_cover_path)
+                        
+                        # Save new cover
+                        filename = secure_filename(cover.filename)
+                        cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
+                        cover.save(cover_path)
+                        
+                        if is_valid_image(cover_path):
+                            albums[album_index]['cover'] = os.path.join('uploads', 'covers', filename).replace('\\', '/')
+                        else:
+                            os.remove(cover_path)
+                            flash('Invalid image file', 'danger')
+                    else:
+                        flash('Invalid cover image type', 'danger')
+                
+                # Update other fields
+                albums[album_index]['title'] = escape(request.form.get('title', '').strip())
+                albums[album_index]['artist'] = escape(request.form.get('artist', '').strip())
+                albums[album_index]['year'] = escape(request.form.get('year', '').strip())
+                albums[album_index]['price'] = round(float(request.form.get('price', 0)), 2)
+                albums[album_index]['on_sale'] = 'on_sale' in request.form
+                albums[album_index]['sale_price'] = round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
+                albums[album_index]['video_url'] = request.form.get('video_url', '').strip()
+                albums[album_index]['has_video'] = bool(request.form.get('video_url', '').strip())
+                
+                if save_data(albums, app.config['ALBUMS_FILE']):
+                    flash('Album updated successfully', 'success')
+                    return redirect(url_for('manage_albums'))
+                else:
+                    flash('Failed to update album', 'danger')
+            
+        except ValueError:
+            flash('Invalid price format', 'danger')
+        except Exception as e:
+            logger.error(f"Edit album error: {e}")
+            flash('Error updating album', 'danger')
+    
+    return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
