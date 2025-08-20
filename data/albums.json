@@ -1,6 +1,18 @@
-{
-  "id": 1,
-  "title": "The Loveliest Dead- Single Version",
-  "video_url": "https://www.youtube.com/embed/ChjJjbJYLNA",
-  "has_video": true,
-}
+[
+  {
+    "id": 1,
+    "title": "The Loveliest Dead - Single Version",
+    "artist": "Your Artist Name",
+    "year": "2024",
+    "cover": "uploads/covers/the-loveliest-dead-cover.jpg",
+    "tracks": [
+      "The Loveliest Dead"
+    ],
+    "price": 4.99,
+    "on_sale": false,
+    "sale_price": null,
+    "video_url": "https://www.youtube.com/embed/ChjJjbJYLNA",
+    "has_video": true,
+    "added": "2024-01-15"
+  }
+]
