@@ -24,7 +24,7 @@
 
                     <form method="POST" action="{{ url_for('admin_register') }}" novalidate>
                         {{ form.hidden_tag() }}  <!-- CSRF Token -->
-                        
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">                        
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
                             <input type="text" 
