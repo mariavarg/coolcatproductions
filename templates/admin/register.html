@@ -1,116 +1,56 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Registration{% endblock %}
+{% block title %}User Registration | CoolCat Productions{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="card-title text-center mb-0">Admin Registration</h3>
+<div class="content-box" style="max-width: 500px; margin: 50px auto; padding: 30px;">
+    <h2>User Registration</h2>
+    
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" style="padding: 10px; margin-bottom: 20px; border-radius: 4px; 
+                    background: {% if category == 'danger' %}#ff4444{% else %}#44ff44{% endif %}; 
+                    color: white; text-align: center;">
+                    {{ message }}
                 </div>
-                <div class="card-body">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-                    <form method="POST" action="{{ url_for('admin_register') }}" novalidate>
-                        {{ form.hidden_tag() }}  <!-- CSRF Token -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">                        
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" 
-                                   class="form-control {{ 'is-invalid' if form.username.errors }}" 
-                                   id="username" 
-                                   name="username" 
-                                   value="{{ form.username.data or '' }}"
-                                   required
-                                   minlength="4"
-                                   maxlength="20">
-                            {% if form.username.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.username.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" 
-                                   class="form-control {{ 'is-invalid' if form.password.errors }}" 
-                                   id="password" 
-                                   name="password" 
-                                   required
-                                   minlength="8">
-                            <div class="form-text">Minimum 8 characters</div>
-                            {% if form.password.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.password.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="confirm_password" class="form-label">Confirm Password</label>
-                            <input type="password" 
-                                   class="form-control {{ 'is-invalid' if form.confirm_password.errors }}" 
-                                   id="confirm_password" 
-                                   name="confirm_password" 
-                                   required>
-                            {% if form.confirm_password.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.confirm_password.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-person-plus me-2"></i>Register
-                            </button>
-                            <a href="{{ url_for('admin_login') }}" class="btn btn-outline-secondary">
-                                Already have an account? Login
-                            </a>
-                        </div>
-                    </form>
-                </div>
-                <div class="card-footer text-muted text-center">
-                    <small>Secure admin portal - {{ BRAND_NAME }}</small>
-                </div>
-            </div>
+    <form method="POST" action="{{ url_for('register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        
+        <div style="margin-bottom: 20px;">
+            <label for="username" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Username</label>
+            <input type="text" id="username" name="username" required minlength="4"
+                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
         </div>
-    </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label for="email" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Email</label>
+            <input type="email" id="email" name="email" required
+                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label for="password" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Password</label>
+            <input type="password" id="password" name="password" required minlength="8"
+                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+            <label for="confirm_password" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required
+                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px; font-family: 'Sofia', cursive;">
+        </div>
+        
+        <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 1.1rem;">Register</button>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('admin_login') }}" style="color: #ff6b6b;">Already have an account? Login here</a>
+        </div>
+    </form>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-// Client-side validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm_password').value;
-    
-    if (password !== confirmPassword) {
-        e.preventDefault();
-        alert('Passwords do not match!');
-        return false;
-    }
-    
-    return true;
-});
-</script>
 {% endblock %}
