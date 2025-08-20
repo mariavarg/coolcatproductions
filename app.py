@@ -28,73 +28,33 @@ app.config.update(
     PURCHASES_FILE=os.path.join('data', 'purchases.json'),
     COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
     MUSIC_FOLDER=os.path.join('static', 'uploads', 'music'),
+    VIDEOS_FOLDER=os.path.join('static', 'uploads', 'videos'),
     UPLOAD_FOLDER='static/uploads',
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
     ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav', 'flac'},
+    ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm'},
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
     MAX_CONTENT_LENGTH=100 * 1024 * 1024,
     PERMANENT_SESSION_LIFETIME=3600,
     DOWNLOAD_TOKENS={}
-    # Add to imports
-import boto3
-from botocore.exceptions import NoCredentialsError
-
-# Cloud Storage Configuration
-app.config.update(
-    AWS_ACCESS_KEY=os.getenv('AWS_ACCESS_KEY', ''),
-    AWS_SECRET_KEY=os.getenv('AWS_SECRET_KEY', ''),
-    AWS_BUCKET=os.getenv('AWS_BUCKET', 'coolcat-music'),
-    AWS_REGION=os.getenv('AWS_REGION', 'us-west-2'),
-    USE_CLOUD_STORAGE=os.getenv('USE_CLOUD_STORAGE', 'false').lower() == 'true'
-)
-
-def upload_to_cloud(file, filename, folder='covers'):
-    """Upload file to cloud storage"""
-    if not app.config['USE_CLOUD_STORAGE']:
-        return f"local/{filename}"  # Fallback to local
-        
-    try:
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=app.config['AWS_ACCESS_KEY'],
-            aws_secret_access_key=app.config['AWS_SECRET_KEY'],
-            region_name=app.config['AWS_REGION']
-        )
-        
-        cloud_path = f"{folder}/{filename}"
-        s3.upload_fileobj(file, app.config['AWS_BUCKET'], cloud_path)
-        return cloud_path
-        
-    except NoCredentialsError:
-        return f"local/{filename}"
-
-def get_cloud_url(filepath):
-    """Get URL for cloud file"""
-    if filepath.startswith('local/'):
-        return url_for('static', filename=filepath.replace('local/', ''))
-    else:
-        return f"https://{app.config['AWS_BUCKET']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{filepath}"
 )
 
 # Security setup
 login_attempts = {}
 
 def generate_csrf_token():
-    """Generate a simple CSRF token"""
     token = hashlib.sha256(f"{time.time()}{app.secret_key}".encode()).hexdigest()
     session['csrf_token'] = token
     return token
 
 def validate_csrf_token():
-    """Validate CSRF token for POST requests"""
     if request.method in ('GET', 'HEAD', 'OPTIONS'):
         return True
     token = request.form.get('csrf_token')
     return token and token == session.get('csrf_token')
 
 def check_rate_limit(ip, endpoint, max_attempts=5, window=60):
-    """Simple rate limiting"""
     now = time.time()
     key = f"{ip}_{endpoint}"
     
@@ -110,14 +70,12 @@ def check_rate_limit(ip, endpoint, max_attempts=5, window=60):
     return True
 
 def remove_auto_durations(albums):
-    """Remove auto-generated durations from albums"""
     for album in albums:
         if 'tracks' in album:
             album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
     return albums
 
 def generate_download_token(user_id, album_id):
-    """Generate a secure download token"""
     token = secrets.token_urlsafe(32)
     expiry = datetime.now() + timedelta(hours=24)
     
@@ -129,7 +87,6 @@ def generate_download_token(user_id, album_id):
     return token
 
 def validate_download_token(token):
-    """Validate download token"""
     if token not in app.config['DOWNLOAD_TOKENS']:
         return False
         
@@ -143,12 +100,10 @@ def validate_download_token(token):
     return token_data
 
 def has_purchased(user_id, album_id):
-    """Check if user has purchased this album"""
     purchases = load_data(app.config['PURCHASES_FILE'])
     return any(p['user_id'] == user_id and p['album_id'] == album_id for p in purchases)
 
 def record_purchase(user_id, album_id, amount):
-    """Record a purchase"""
     purchases = load_data(app.config['PURCHASES_FILE'])
     
     purchase = {
@@ -165,39 +120,26 @@ def record_purchase(user_id, album_id, amount):
     return purchase
 
 def get_track_filename(album_id, track_index, track_name):
-    """Generate MP3 filename with ORDER PRESERVATION"""
-    track_number = str(track_index + 1).zfill(2)  # 1 → "01", 2 → "02", etc.
+    track_number = str(track_index + 1).zfill(2)
     safe_name = secure_filename(track_name.replace(' ', '_').lower())
     return f"{track_number}_{safe_name}.mp3"
 
 def get_track_path(album_id, track_index, track_name):
-    """Get full path to MP3 file with order preservation"""
     filename = get_track_filename(album_id, track_index, track_name)
     return os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}", filename)
 
 def ensure_music_dirs_exist(album_id):
-    """Ensure album music directory exists"""
     album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
     os.makedirs(album_dir, exist_ok=True)
     return album_dir
 
-def get_sorted_tracks(album_dir):
-    """Get MP3 files in correct track order"""
-    if not os.path.exists(album_dir):
-        return []
-    
-    mp3_files = [f for f in os.listdir(album_dir) if f.endswith('.mp3')]
-    mp3_files.sort(key=lambda x: int(x.split('_')[0]) if x.split('_')[0].isdigit() else 0)
-    
-    return mp3_files
-
 # Initialize app setup
 def initialize_app():
-    """Ensure required directories and files exist"""
     try:
         os.makedirs('data', exist_ok=True)
         os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
         os.makedirs(app.config['MUSIC_FOLDER'], exist_ok=True)
+        os.makedirs(app.config['VIDEOS_FOLDER'], exist_ok=True)
         
         for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE'], app.config['PURCHASES_FILE']]:
             if not os.path.exists(data_file):
@@ -211,7 +153,6 @@ initialize_app()
 
 # Helper functions
 def allowed_file(filename, file_type='image'):
-    """Check if file extension is allowed"""
     extensions = app.config['ALLOWED_EXTENSIONS'] if file_type == 'image' else app.config['ALLOWED_MUSIC_EXTENSIONS']
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
@@ -235,7 +176,6 @@ def save_data(data, filename):
         return False
 
 def is_valid_image(file_path):
-    """Check if file is a valid image"""
     try:
         with open(file_path, 'rb') as f:
             header = f.read(12)
@@ -252,7 +192,6 @@ def is_valid_image(file_path):
 # Security headers
 @app.after_request
 def add_security_headers(response):
-    """Add security headers to all responses"""
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     if not app.debug:
@@ -268,16 +207,22 @@ def not_found(e):
 def internal_error(e):
     return render_template('500.html'), 500
 
-# Routes - PUBLIC ROUTES FIRST
+# Routes
 @app.route('/')
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
         albums = remove_auto_durations(albums)
-        return render_template('index.html', albums=albums[:4] if albums else [])
+        
+        featured_albums = [a for a in albums if a.get('has_video', False)][:3]
+        regular_albums = [a for a in albums if not a.get('has_video', False)][:4]
+        
+        return render_template('index.html', 
+                             featured_albums=featured_albums,
+                             regular_albums=regular_albums)
     except Exception as e:
         logger.error(f"Home error: {e}")
-        return render_template('index.html', albums=[])
+        return render_template('index.html', featured_albums=[], regular_albums=[])
 
 @app.route('/shop')
 def shop():
@@ -313,6 +258,8 @@ def album(album_id):
             'price': album.get('price', 0),
             'on_sale': album.get('on_sale', False),
             'sale_price': album.get('sale_price'),
+            'video_url': album.get('video_url', ''),
+            'has_video': album.get('has_video', False),
             'owns_album': owns_album
         }
         return render_template('album.html', album=safe_album)
@@ -372,7 +319,6 @@ def register():
 # Music Purchase & Download System
 @app.route('/purchase/<int:album_id>')
 def purchase_album(album_id):
-    """Purchase an album"""
     if not session.get('user_id'):
         flash('Please login to purchase music', 'danger')
         return redirect(url_for('register'))
@@ -396,7 +342,6 @@ def purchase_album(album_id):
 
 @app.route('/my-music')
 def my_music():
-    """Show user's purchased music"""
     if not session.get('user_id'):
         flash('Please login to view your music', 'danger')
         return redirect(url_for('register'))
@@ -418,7 +363,6 @@ def my_music():
 
 @app.route('/download/<token>')
 def download_album(token):
-    """Download album page"""
     token_data = validate_download_token(token)
     
     if not token_data:
@@ -442,7 +386,6 @@ def download_album(token):
 
 @app.route('/download-track/<token>/<int:track_index>')
 def download_track(token, track_index):
-    """Download individual track"""
     token_data = validate_download_token(token)
     
     if not token_data:
@@ -467,7 +410,6 @@ def download_track(token, track_index):
         flash('Music file not available yet', 'danger')
         return redirect(url_for('download_album', token=token))
     
-    # Update download count
     purchases = load_data(app.config['PURCHASES_FILE'])
     for purchase in purchases:
         if purchase['user_id'] == session['user_id'] and purchase['album_id'] == album['id']:
@@ -553,7 +495,6 @@ def add_album():
             cover = request.files.get('cover')
             music_files = request.files.getlist('music_files')
             
-            # Validation
             if not cover or cover.filename == '':
                 flash('No cover image selected', 'danger')
                 return redirect(request.url)
@@ -566,7 +507,6 @@ def add_album():
                 flash('No music files selected', 'danger')
                 return redirect(request.url)
                 
-            # CRITICAL: Check track count matches MP3 files
             track_list = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
             mp3_files = [f for f in music_files if f.filename]
             
@@ -579,7 +519,6 @@ def add_album():
                     flash('Invalid music file type. Use MP3, WAV, or FLAC.', 'danger')
                     return redirect(request.url)
             
-            # Process cover image
             filename = secure_filename(cover.filename)
             cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
             cover.save(cover_path)
@@ -589,7 +528,6 @@ def add_album():
                 flash('Invalid image file', 'danger')
                 return redirect(request.url)
             
-            # Create new album
             new_album = {
                 'id': len(albums) + 1,
                 'title': escape(request.form.get('title', '').strip()),
@@ -600,13 +538,13 @@ def add_album():
                 'added': datetime.now().strftime("%Y-%m-%d"),
                 'price': round(float(request.form.get('price', 0)), 2),
                 'on_sale': 'on_sale' in request.form,
-                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
+                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None,
+                'video_url': request.form.get('video_url', ''),
+                'has_video': bool(request.form.get('video_url', ''))
             }
             
-            # Create album directory for music files
             album_dir = ensure_music_dirs_exist(new_album['id'])
             
-            # Save music files IN ORDER with proper numbered filenames
             track_paths = []
             for i, music_file in enumerate(mp3_files):
                 track_name = new_album['tracks'][i]
@@ -622,7 +560,6 @@ def add_album():
                 flash('Album and music files added successfully! Tracks are in correct order.', 'success')
                 return redirect(url_for('shop'))
             else:
-                # Clean up uploaded files if save failed
                 for track_path in track_paths:
                     if os.path.exists(track_path):
                         os.remove(track_path)
