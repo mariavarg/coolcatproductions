@@ -16,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configuration - SIMPLE
+# Configuration
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
@@ -74,7 +74,7 @@ def not_found(e):
 def internal_error(e):
     return render_template('500.html'), 500
 
-# Routes - SIMPLE AND WORKING
+# Routes
 @app.route('/')
 def home():
     try:
