@@ -4,6 +4,8 @@ import logging
 import time
 import hashlib
 import secrets
+import string
+import re
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -22,7 +24,7 @@ app = Flask(__name__)
 
 # Configuration
 app.config.update(
-    SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
+    SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + secrets.token_hex(16)),
     USERS_FILE=os.path.join('data', 'users.json'),
     ALBUMS_FILE=os.path.join('data', 'albums.json'),
     PURCHASES_FILE=os.path.join('data', 'purchases.json'),
@@ -32,7 +34,7 @@ app.config.update(
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
     ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav', 'flac'},
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
-    ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
+    ADMIN_PASSWORD_HASH=os.getenv('ADMIN_PASSWORD_HASH', ''),
     MAX_CONTENT_LENGTH=100 * 1024 * 1024,
     PERMANENT_SESSION_LIFETIME=3600,
     DOWNLOAD_TOKENS={}
@@ -131,24 +133,58 @@ def ensure_music_dirs_exist(album_id):
     os.makedirs(album_dir, exist_ok=True)
     return album_dir
 
-# Initialize app setup
+# Password strength validation
+def is_password_complex(password):
+    if len(password) < 12:
+        return False, "Password must be at least 12 characters long"
+    
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter"
+    
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter"
+    
+    if not re.search(r'[0-9]', password):
+        return False, "Password must contain at least one number"
+    
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, "Password must contain at least one special character"
+    
+    return True, "Password is strong"
+
+# Generate strong password
+def generate_strong_password(length=16):
+    """Generate a cryptographically secure random password"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    password = ''.join(secrets.choice(alphabet) for i in range(length))
+    return password
+
+# Initialize app setup with backup system
 def initialize_app():
     try:
         os.makedirs('data', exist_ok=True)
         os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
         os.makedirs(app.config['MUSIC_FOLDER'], exist_ok=True)
         
+        # Create backup directory
+        os.makedirs('data/backups', exist_ok=True)
+        
         for data_file in [app.config['USERS_FILE'], app.config['ALBUMS_FILE'], app.config['PURCHASES_FILE']]:
             if not os.path.exists(data_file):
                 with open(data_file, 'w') as f:
                     json.dump([], f)
+            # Create backup
+            backup_file = f"data/backups/{os.path.basename(data_file)}.backup"
+            if os.path.exists(data_file) and not os.path.exists(backup_file):
+                with open(data_file, 'r') as src, open(backup_file, 'w') as dst:
+                    dst.write(src.read())
                 
     except Exception as e:
         logger.error(f"Initialization error: {str(e)}")
 
 initialize_app()
 
-# Helper functions
+# Helper functions with enhanced error handling
 def allowed_file(filename, file_type='image'):
     extensions = app.config['ALLOWED_EXTENSIONS'] if file_type == 'image' else app.config['ALLOWED_MUSIC_EXTENSIONS']
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
@@ -161,10 +197,29 @@ def load_data(filename):
         return []
     except Exception as e:
         logger.error(f"Error loading {filename}: {e}")
+        # Try to restore from backup
+        backup_file = f"data/backups/{os.path.basename(filename)}.backup"
+        if os.path.exists(backup_file):
+            try:
+                with open(backup_file) as f:
+                    data = json.load(f)
+                # Save back to main file
+                with open(filename, 'w') as f:
+                    json.dump(data, f, indent=2)
+                return data
+            except Exception as backup_error:
+                logger.error(f"Backup restoration also failed: {backup_error}")
         return []
 
 def save_data(data, filename):
     try:
+        # Create backup before saving
+        backup_file = f"data/backups/{os.path.basename(filename)}.backup"
+        if os.path.exists(filename):
+            with open(filename, 'r') as src, open(backup_file, 'w') as dst:
+                dst.write(src.read())
+        
+        # Save new data
         with open(filename, 'w') as f:
             json.dump(data, f, indent=2)
         return True
@@ -186,14 +241,29 @@ def is_valid_image(file_path):
     except:
         return False
 
+def allowed_file_size(file, max_size_mb=50):
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    return file_size <= max_size_mb * 1024 * 1024
+
 # Security headers
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
     if not app.debug:
         response.headers['Strict-Transport-Security'] = 'max-age=31536000'
     return response
+
+# HTTPS enforcement in production
+@app.before_request
+def enforce_https_in_production():
+    if not app.debug and not request.is_secure and request.headers.get('X-Forwarded-Proto', 'http') != 'https':
+        url = request.url.replace('http://', 'https://', 1)
+        code = 301
+        return redirect(url, code=code)
 
 # Error handlers
 @app.errorhandler(404)
@@ -203,6 +273,10 @@ def not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     return render_template('500.html'), 500
+
+@app.errorhandler(413)
+def too_large(e):
+    return render_template('413.html'), 413
 
 # Favicon route
 @app.route('/favicon.ico')
@@ -291,30 +365,35 @@ def register():
                 flash('All fields are required', 'danger')
             elif len(username) < 4:
                 flash('Username must be at least 4 characters', 'danger')
-            elif len(password) < 8:
-                flash('Password must be at least 8 characters', 'danger')
-            elif password != confirm_password:
-                flash('Passwords do not match', 'danger')
-            elif any(u['username'] == username for u in users):
-                flash('Username already exists', 'danger')
-            elif any(u['email'] == email for u in users):
-                flash('Email already registered', 'danger')
+            elif not re.match(r'^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                flash('Please enter a valid email address', 'danger')
             else:
-                new_user = {
-                    'id': len(users) + 1,
-                    'username': escape(username),
-                    'email': escape(email),
-                    'password': generate_password_hash(password),
-                    'joined': datetime.now().strftime("%Y-%m-%d")
-                }
-                users.append(new_user)
-                if save_data(users, app.config['USERS_FILE']):
-                    session['user_id'] = new_user['id']
-                    session['username'] = new_user['username']
-                    flash('Registration successful! You are now logged in.', 'success')
-                    return redirect(url_for('home'))
+                # Check password complexity
+                is_complex, complexity_msg = is_password_complex(password)
+                if not is_complex:
+                    flash(complexity_msg, 'danger')
+                elif password != confirm_password:
+                    flash('Passwords do not match', 'danger')
+                elif any(u['username'] == username for u in users):
+                    flash('Username already exists', 'danger')
+                elif any(u['email'] == email for u in users):
+                    flash('Email already registered', 'danger')
                 else:
-                    flash('Registration failed. Please try again.', 'danger')
+                    new_user = {
+                        'id': len(users) + 1,
+                        'username': escape(username),
+                        'email': escape(email),
+                        'password': generate_password_hash(password),
+                        'joined': datetime.now().strftime("%Y-%m-%d")
+                    }
+                    users.append(new_user)
+                    if save_data(users, app.config['USERS_FILE']):
+                        session['user_id'] = new_user['id']
+                        session['username'] = new_user['username']
+                        flash('Registration successful! You are now logged in.', 'success')
+                        return redirect(url_for('home'))
+                    else:
+                        flash('Registration failed. Please try again.', 'danger')
                     
         except Exception as e:
             logger.error(f"Registration error: {e}")
@@ -322,12 +401,47 @@ def register():
     
     return render_template('register.html', csrf_token=generate_csrf_token())
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        try:
+            if not validate_csrf_token():
+                flash('Security token invalid. Please try again.', 'danger')
+                return render_template('login.html', csrf_token=generate_csrf_token())
+            
+            users = load_data(app.config['USERS_FILE'])
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
+            
+            user = next((u for u in users if u['username'] == username), None)
+            
+            if user and check_password_hash(user['password'], password):
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                flash('Login successful!', 'success')
+                return redirect(url_for('home'))
+            else:
+                flash('Invalid username or password', 'danger')
+                
+        except Exception as e:
+            logger.error(f"Login error: {e}")
+            flash('Login error occurred', 'danger')
+    
+    return render_template('login.html', csrf_token=generate_csrf_token())
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    session.pop('username', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('home'))
+
 # Music Purchase & Download System
 @app.route('/purchase/<int:album_id>')
 def purchase_album(album_id):
     if not session.get('user_id'):
         flash('Please login to purchase music', 'danger')
-        return redirect(url_for('register'))
+        return redirect(url_for('login'))
     
     albums = load_data(app.config['ALBUMS_FILE'])
     album = next((a for a in albums if a['id'] == album_id), None)
@@ -350,7 +464,7 @@ def purchase_album(album_id):
 def my_music():
     if not session.get('user_id'):
         flash('Please login to view your music', 'danger')
-        return redirect(url_for('register'))
+        return redirect(url_for('login'))
     
     purchases = load_data(app.config['PURCHASES_FILE'])
     user_purchases = [p for p in purchases if p['user_id'] == session['user_id']]
@@ -449,8 +563,12 @@ def admin_login():
             username = request.form.get('username', '')
             password = request.form.get('password', '')
             
+            # Check if we're using hashed password from env or need to hash
+            admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
+            
             if (username == app.config['ADMIN_USERNAME'] and 
-                check_password_hash(app.config['ADMIN_PASSWORD_HASH'], password)):
+                (check_password_hash(admin_password_hash, password) or 
+                 (not admin_password_hash and password == os.getenv('ADMIN_PASSWORD', '')))):
                 session['admin_logged_in'] = True
                 session.permanent = True
                 flash('Logged in successfully', 'success')
@@ -478,13 +596,20 @@ def admin_dashboard():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
         users = load_data(app.config['USERS_FILE'])
+        purchases = load_data(app.config['PURCHASES_FILE'])
+        
+        # Calculate total revenue
+        total_revenue = sum(p.get('amount', 0) for p in purchases)
+        
         return render_template('admin/dashboard.html',
                                album_count=len(albums),
                                user_count=len(users),
+                               purchase_count=len(purchases),
+                               total_revenue=total_revenue,
                                current_date=datetime.now().strftime("%Y-%m-%d"))
     except Exception as e:
         logger.error(f"Dashboard error: {e}")
-        return render_template('admin/dashboard.html', album_count=0, user_count=0)
+        return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
 
 @app.route('/admin/add-album', methods=['GET', 'POST'])
 def add_album():
@@ -508,6 +633,10 @@ def add_album():
             if not allowed_file(cover.filename, 'image'):
                 flash('Invalid cover image type', 'danger')
                 return redirect(request.url)
+                
+            if not allowed_file_size(cover):
+                flash('Cover image is too large (max 50MB)', 'danger')
+                return redirect(request.url)
             
             if not music_files or all(f.filename == '' for f in music_files):
                 flash('No music files selected', 'danger')
@@ -523,6 +652,9 @@ def add_album():
             for music_file in mp3_files:
                 if not allowed_file(music_file.filename, 'music'):
                     flash('Invalid music file type. Use MP3, WAV, or FLAC.', 'danger')
+                    return redirect(request.url)
+                if not allowed_file_size(music_file, 100):  # 100MB max for music files
+                    flash(f'Music file {music_file.filename} is too large (max 100MB)', 'danger')
                     return redirect(request.url)
             
             filename = secure_filename(cover.filename)
@@ -654,7 +786,7 @@ def edit_album(album_id):
                 # Handle new cover upload if provided
                 cover = request.files.get('cover')
                 if cover and cover.filename:
-                    if allowed_file(cover.filename, 'image'):
+                    if allowed_file(cover.filename, 'image') and allowed_file_size(cover):
                         # Remove old cover
                         old_cover_path = os.path.join('static', albums[album_index]['cover'])
                         if os.path.exists(old_cover_path):
@@ -671,7 +803,7 @@ def edit_album(album_id):
                             os.remove(cover_path)
                             flash('Invalid image file', 'danger')
                     else:
-                        flash('Invalid cover image type', 'danger')
+                        flash('Invalid cover image type or file too large', 'danger')
                 
                 # Update other fields
                 albums[album_index]['title'] = escape(request.form.get('title', '').strip())
@@ -696,6 +828,20 @@ def edit_album(album_id):
             flash('Error updating album', 'danger')
     
     return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
+
+# Password generation utility route (for admin use)
+@app.route('/admin/generate-password')
+def generate_password():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    password = generate_strong_password()
+    hashed = generate_password_hash(password)
+    
+    return render_template('admin/generate_password.html', 
+                          password=password, 
+                          hashed_password=hashed,
+                          csrf_token=generate_csrf_token())
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
