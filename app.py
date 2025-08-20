@@ -126,12 +126,13 @@ def record_purchase(user_id, album_id, amount):
     return purchase
 
 def get_track_filename(album_id, track_index, track_name):
-    """Generate consistent MP3 filename"""
+    """Generate MP3 filename with ORDER PRESERVATION"""
+    track_number = str(track_index + 1).zfill(2)  # 1 → "01", 2 → "02", etc.
     safe_name = secure_filename(track_name.replace(' ', '_').lower())
-    return f"album_{album_id}_track_{track_index}_{safe_name}.mp3"
+    return f"{track_number}_{safe_name}.mp3"
 
 def get_track_path(album_id, track_index, track_name):
-    """Get full path to MP3 file"""
+    """Get full path to MP3 file with order preservation"""
     filename = get_track_filename(album_id, track_index, track_name)
     return os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}", filename)
 
@@ -140,6 +141,16 @@ def ensure_music_dirs_exist(album_id):
     album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
     os.makedirs(album_dir, exist_ok=True)
     return album_dir
+
+def get_sorted_tracks(album_dir):
+    """Get MP3 files in correct track order"""
+    if not os.path.exists(album_dir):
+        return []
+    
+    mp3_files = [f for f in os.listdir(album_dir) if f.endswith('.mp3')]
+    mp3_files.sort(key=lambda x: int(x.split('_')[0]) if x.split('_')[0].isdigit() else 0)
+    
+    return mp3_files
 
 # Initialize app setup
 def initialize_app():
@@ -432,7 +443,7 @@ def download_track(token, track_index):
         mimetype='audio/mpeg'
     )
 
-# ADMIN ROUTES - DEFINED AFTER ALL OTHER ROUTES
+# ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
@@ -503,6 +514,7 @@ def add_album():
             cover = request.files.get('cover')
             music_files = request.files.getlist('music_files')
             
+            # Validation
             if not cover or cover.filename == '':
                 flash('No cover image selected', 'danger')
                 return redirect(request.url)
@@ -515,11 +527,20 @@ def add_album():
                 flash('No music files selected', 'danger')
                 return redirect(request.url)
                 
-            for music_file in music_files:
-                if music_file.filename and not allowed_file(music_file.filename, 'music'):
+            # CRITICAL: Check track count matches MP3 files
+            track_list = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
+            mp3_files = [f for f in music_files if f.filename]
+            
+            if len(track_list) != len(mp3_files):
+                flash(f'Error: You listed {len(track_list)} tracks but uploaded {len(mp3_files)} MP3 files. They must match!', 'danger')
+                return redirect(request.url)
+                
+            for music_file in mp3_files:
+                if not allowed_file(music_file.filename, 'music'):
                     flash('Invalid music file type. Use MP3, WAV, or FLAC.', 'danger')
                     return redirect(request.url)
             
+            # Process cover image
             filename = secure_filename(cover.filename)
             cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
             cover.save(cover_path)
@@ -529,35 +550,40 @@ def add_album():
                 flash('Invalid image file', 'danger')
                 return redirect(request.url)
             
+            # Create new album
             new_album = {
                 'id': len(albums) + 1,
                 'title': escape(request.form.get('title', '').strip()),
                 'artist': escape(request.form.get('artist', '').strip()),
                 'year': escape(request.form.get('year', '').strip()),
                 'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
-                'tracks': [escape(t.strip()) for t in request.form.get('tracks', '').split('\n') if t.strip()],
+                'tracks': track_list,
                 'added': datetime.now().strftime("%Y-%m-%d"),
                 'price': round(float(request.form.get('price', 0)), 2),
                 'on_sale': 'on_sale' in request.form,
                 'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
             }
             
-            ensure_music_dirs_exist(new_album['id'])
+            # Create album directory for music files
+            album_dir = ensure_music_dirs_exist(new_album['id'])
             
+            # Save music files IN ORDER with proper numbered filenames
             track_paths = []
-            for i, music_file in enumerate(music_files):
-                if music_file.filename:
-                    track_name = new_album['tracks'][i] if i < len(new_album['tracks']) else f"Track {i+1}"
-                    mp3_filename = get_track_filename(new_album['id'], i, track_name)
-                    music_path = os.path.join(app.config['MUSIC_FOLDER'], f"album_{new_album['id']}", mp3_filename)
-                    music_file.save(music_path)
-                    track_paths.append(music_path)
+            for i, music_file in enumerate(mp3_files):
+                track_name = new_album['tracks'][i]
+                mp3_filename = get_track_filename(new_album['id'], i, track_name)
+                music_path = os.path.join(album_dir, mp3_filename)
+                music_file.save(music_path)
+                track_paths.append(music_path)
+                
+                logger.info(f"Saved track {i+1}: {mp3_filename} → {track_name}")
             
             albums.append(new_album)
             if save_data(albums, app.config['ALBUMS_FILE']):
-                flash('Album and music files added successfully!', 'success')
+                flash('Album and music files added successfully! Tracks are in correct order.', 'success')
                 return redirect(url_for('shop'))
             else:
+                # Clean up uploaded files if save failed
                 for track_path in track_paths:
                     if os.path.exists(track_path):
                         os.remove(track_path)
