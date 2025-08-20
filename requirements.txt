@@ -1,10 +1,11 @@
-Flask==2.3.2
 python-dotenv==1.0.0
 Flask-WTF==1.1.1
 Flask-Limiter==2.8.1
-Werkzeug==2.3.6
 flask
 python-dotenv
 flask-wtf
 werkzeug
 gunicorn  # <-- Just the package name, no "app:app"
+Flask==2.3.3
+Werkzeug==2.3.7
+python-dotenv==1.0.0
