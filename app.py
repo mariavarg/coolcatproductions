@@ -1,3 +1,8 @@
+I apologize for the incomplete code. Let me provide the complete `app.py` file:
+
+## 1. Complete app.py
+
+```python
 import os
 import json
 import logging
@@ -6,8 +11,9 @@ import hashlib
 import secrets
 import string
 import re
+import mimetypes
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -37,9 +43,10 @@ app.config.update(
     ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm'},
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
     ADMIN_PASSWORD_HASH=os.getenv('ADMIN_PASSWORD_HASH', ''),
-    MAX_CONTENT_LENGTH=500 * 1024 * 1024,  # Increased to 500MB for videos
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024,
     PERMANENT_SESSION_LIFETIME=3600,
-    DOWNLOAD_TOKENS={}
+    DOWNLOAD_TOKENS={},
+    VIDEO_STREAM_CHUNK_SIZE=1024 * 1024
 )
 
 # Security setup
@@ -168,7 +175,7 @@ def allowed_video_file(filename):
 # Get video URL for templates
 def get_video_url(album):
     if album.get('video_filename'):
-        return f"/static/uploads/videos/{album['video_filename']}"
+        return url_for('protected_video', filename=album['video_filename'])
     return album.get('video_url', '')
 
 # Initialize app setup with backup system
@@ -274,8 +281,22 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # Add CSP to prevent various attacks
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "img-src 'self' data: blob:; "
+        "media-src 'self' blob:; "
+        "frame-ancestors 'none'; "
+        "form-action 'self';"
+    )
+    
     if not app.debug:
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
     return response
 
 # HTTPS enforcement in production
@@ -299,6 +320,10 @@ def internal_error(e):
 def too_large(e):
     return render_template('413.html'), 413
 
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('403.html'), 403
+
 # Favicon route
 @app.route('/favicon.ico')
 def favicon():
@@ -306,6 +331,93 @@ def favicon():
         return send_file('static/images/channel-logo.png', mimetype='image/png')
     except:
         return '', 204
+
+# Protected video streaming route
+@app.route('/protected-video/<filename>')
+def protected_video(filename):
+    if not session.get('user_id'):
+        abort(403)
+    
+    # Verify the user has access to this video
+    albums = load_data(app.config['ALBUMS_FILE'])
+    user_has_access = any(
+        album.get('video_filename') == filename and 
+        has_purchased(session['user_id'], album['id']) 
+        for album in albums
+    )
+    
+    if not user_has_access:
+        abort(403)
+    
+    video_path = os.path.join(app.config['VIDEOS_FOLDER'], filename)
+    
+    if not os.path.exists(video_path):
+        abort(404)
+    
+    # Get file size for Content-Length header
+    file_size = os.stat(video_path).st_size
+    
+    # Implement range requests for streaming
+    range_header = request.headers.get('Range', None)
+    
+    if range_header:
+        # Parse range header
+        byte1, byte2 = 0, None
+        match = re.search(r'(\d+)-(\d*)', range_header)
+        if match:
+            byte1 = int(match.group(1))
+            if match.group(2):
+                byte2 = int(match.group(2))
+        
+        length = file_size - byte1
+        if byte2 is not None:
+            length = byte2 - byte1 + 1
+        
+        # Read file in chunks
+        def generate():
+            with open(video_path, 'rb') as f:
+                f.seek(byte1)
+                remaining = length
+                while remaining > 0:
+                    chunk_size = min(app.config['VIDEO_STREAM_CHUNK_SIZE'], remaining)
+                    data = f.read(chunk_size)
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+        
+        rv = Response(generate(), 
+                    206,  # Partial Content
+                    mimetype=mimetypes.guess_type(video_path)[0], 
+                    direct_passthrough=True)
+        rv.headers.add('Content-Range', f'bytes {byte1}-{byte1 + length - 1}/{file_size}')
+        rv.headers.add('Accept-Ranges', 'bytes')
+        rv.headers.add('Content-Length', str(length))
+        
+        # Add security headers to prevent download
+        rv.headers.add('Content-Disposition', 'inline')
+        rv.headers.add('X-Content-Type-Options', 'nosniff')
+        
+        return rv
+    else:
+        # Regular request without range header
+        def generate():
+            with open(video_path, 'rb') as f:
+                while True:
+                    data = f.read(app.config['VIDEO_STREAM_CHUNK_SIZE'])
+                    if not data:
+                        break
+                    yield data
+        
+        rv = Response(generate(), mimetype=mimetypes.guess_type(video_path)[0])
+        rv.headers.add('Content-Length', str(file_size))
+        rv.headers.add('Accept-Ranges', 'bytes')
+        
+        # Add security headers to prevent download
+        rv.headers.add('Content-Disposition', 'inline')
+        rv.headers.add('X-Content-Type-Options', 'nosniff')
+        
+        return rv
 
 # Routes
 @app.route('/')
@@ -347,8 +459,10 @@ def album(album_id):
         album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
         
         owns_album = False
+        video_accessible = False
         if session.get('user_id'):
             owns_album = has_purchased(session['user_id'], album_id)
+            video_accessible = owns_album  # Only owners can access videos
         
         safe_album = {
             'id': album['id'],
@@ -360,9 +474,10 @@ def album(album_id):
             'price': album.get('price', 0),
             'on_sale': album.get('on_sale', False),
             'sale_price': album.get('sale_price'),
-            'video_url': get_video_url(album),
+            'video_url': get_video_url(album) if video_accessible else '',
             'has_video': album.get('has_video', False),
-            'owns_album': owns_album
+            'owns_album': owns_album,
+            'video_accessible': video_accessible
         }
         return render_template('album.html', album=safe_album)
     except Exception as e:
@@ -881,7 +996,9 @@ def edit_album(album_id):
                     albums[album_index]['video_filename'] = None
                     albums[album_index]['has_video'] = False
                 
-                if save_data(albums, app.config['ALBUMS_FILE']):
+                if save_data(albums, app.config['ALBUMS' ]
+
+                                             if save_data(albums, app.config['ALBUMS_FILE']):
                     flash('Album updated successfully', 'success')
                     return redirect(url_for('manage_albums'))
                 else:
