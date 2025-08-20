@@ -6,7 +6,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from dotenv import load_dotenv
-from markupsafe import escape
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configuration
+# Configuration - SIMPLE
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'dev-key-' + os.urandom(16).hex()),
     USERS_FILE=os.path.join('data', 'users.json'),
@@ -29,17 +28,6 @@ app.config.update(
     ADMIN_PASSWORD_HASH=generate_password_hash(os.getenv('ADMIN_PASSWORD', 'admin123')),
     MAX_CONTENT_LENGTH=int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
 )
-
-# Security headers middleware - FIXED
-@app.after_request
-def add_security_headers(response):
-    """Add security headers to all responses"""
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    # Only add HSTS in production
-    if not app.debug and request.url.startswith('https://'):
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000'
-    return response
 
 # Initialize app setup at startup
 def initialize_app():
@@ -86,29 +74,36 @@ def not_found(e):
 def internal_error(e):
     return render_template('500.html'), 500
 
-# Routes
+# Routes - SIMPLE AND WORKING
 @app.route('/')
 def home():
-    albums = load_data(app.config['ALBUMS_FILE'])
-    return render_template('index.html', albums=albums[:4] if albums else [])
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        return render_template('index.html', albums=albums[:4] if albums else [])
+    except Exception as e:
+        logger.error(f"Home error: {e}")
+        return render_template('index.html', albums=[])
 
 @app.route('/shop')
 def shop():
-    albums = load_data(app.config['ALBUMS_FILE'])
-    return render_template('shop.html', albums=albums if albums else [])
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        return render_template('shop.html', albums=albums if albums else [])
+    except Exception as e:
+        logger.error(f"Shop error: {e}")
+        return render_template('shop.html', albums=[])
 
 @app.route('/album/<int:album_id>')
 def album(album_id):
-    albums = load_data(app.config['ALBUMS_FILE'])
-    album = next((a for a in albums if a['id'] == album_id), None)
-    if not album:
-        abort(404)
-    
-    # Escape user content to prevent XSS
-    album['title'] = escape(album['title'])
-    album['artist'] = escape(album['artist'])
-    
-    return render_template('album.html', album=album)
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        album = next((a for a in albums if a['id'] == album_id), None)
+        if not album:
+            abort(404)
+        return render_template('album.html', album=album)
+    except Exception as e:
+        logger.error(f"Album error: {e}")
+        abort(500)
 
 # Admin routes
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -124,7 +119,8 @@ def admin_login():
                 flash('Logged in successfully', 'success')
                 return redirect(url_for('admin_dashboard'))
             flash('Invalid credentials', 'danger')
-        except:
+        except Exception as e:
+            logger.error(f"Login error: {e}")
             flash('Login failed', 'danger')
     
     return render_template('admin/login.html')
@@ -140,11 +136,15 @@ def admin_dashboard():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
-    albums = load_data(app.config['ALBUMS_FILE'])
-    users = load_data(app.config['USERS_FILE'])
-    return render_template('admin/dashboard.html',
-                           album_count=len(albums),
-                           user_count=len(users))
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        users = load_data(app.config['USERS_FILE'])
+        return render_template('admin/dashboard.html',
+                               album_count=len(albums),
+                               user_count=len(users))
+    except Exception as e:
+        logger.error(f"Dashboard error: {e}")
+        return render_template('admin/dashboard.html', album_count=0, user_count=0)
 
 @app.route('/admin/add-album', methods=['GET', 'POST'])
 def add_album():
@@ -168,14 +168,13 @@ def add_album():
             cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
             cover.save(cover_path)
             
-            # Escape user input to prevent XSS
             new_album = {
                 'id': len(albums) + 1,
-                'title': escape(request.form['title'].strip()),
-                'artist': escape(request.form['artist'].strip()),
-                'year': escape(request.form['year'].strip()),
+                'title': request.form['title'].strip(),
+                'artist': request.form['artist'].strip(),
+                'year': request.form['year'].strip(),
                 'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
-                'tracks': [escape(t.strip()) for t in request.form['tracks'].split('\n') if t.strip()],
+                'tracks': [t.strip() for t in request.form['tracks'].split('\n') if t.strip()],
                 'added': datetime.now().strftime("%Y-%m-%d"),
                 'price': round(float(request.form.get('price', 0)), 2)
             }
@@ -184,8 +183,11 @@ def add_album():
             if save_data(albums, app.config['ALBUMS_FILE']):
                 flash('Album added successfully', 'success')
                 return redirect(url_for('shop'))
+            else:
+                flash('Failed to save album', 'danger')
                 
-        except:
+        except Exception as e:
+            logger.error(f"Add album error: {e}")
             flash('Error adding album', 'danger')
     
     return render_template('admin/add_album.html')
@@ -207,11 +209,10 @@ def register():
                 flash('Email already registered', 'danger')
                 return redirect(request.url)
             
-            # Escape user input to prevent XSS
             new_user = {
                 'id': len(users) + 1,
-                'username': escape(username),
-                'email': escape(email),
+                'username': username,
+                'email': email,
                 'password': generate_password_hash(request.form['password']),
                 'joined': datetime.now().strftime("%Y-%m-%d")
             }
@@ -220,8 +221,11 @@ def register():
             if save_data(users, app.config['USERS_FILE']):
                 flash('Registration successful! Please login.', 'success')
                 return redirect(url_for('home'))
+            else:
+                flash('Registration failed', 'danger')
                 
-        except:
+        except Exception as e:
+            logger.error(f"Registration error: {e}")
             flash('Registration error', 'danger')
             
     return render_template('register.html')
