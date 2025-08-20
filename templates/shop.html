@@ -23,6 +23,7 @@
                         <span class="current-price">${{ album.sale_price }}</span>
                     {% else %}
                         <span class="current-price">${{ album.price }}</span>
+                    {% if track.duration %}<span class="duration">{{ track.duration }}</span>
                     {% endif %}
                 </div>
             </div>
