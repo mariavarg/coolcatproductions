@@ -1,1 +1,8 @@
+{
+  "id": 1,
+  "title": "Your Album",
+  "video_url": "https://www.youtube.com/ChjJjbJYLNA",
+  "has_video": true,
+  // ... other fields ...
+}
 []
