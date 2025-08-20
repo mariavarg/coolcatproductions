@@ -3,18 +3,13 @@
 {% block title %}Add Album | CoolCat Productions{% endblock %}
 
 {% block content %}
-<div class="content-box" style="max-width: 600px; margin: 50px auto; padding: 30px;">
+<div class="content-box" style="max-width: 800px; margin: 50px auto; padding: 30px;">
     <h2>Add New Album</h2>
     
-    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }}" style="padding: 10px; margin-bottom: 20px; border-radius: 4px; 
-                    background: {% if category == 'danger' %}#ff4444{% else %}#44ff44{% endif %}; 
-                    color: white; text-align: center;">
-                    {{ message }}
-                </div>
+                <div class="alert alert-{{ category }}">{{ message }}</div>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -47,15 +42,31 @@
         </div>
         
         <div style="margin-bottom: 20px;">
-            <label for="tracks" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Tracks (one per line)</label>
+            <label for="tracks" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">
+                Tracks (one per line) - MUST match MP3 upload order!
+            </label>
             <textarea id="tracks" name="tracks" rows="5" required
-                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px;"></textarea>
+                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px;"
+                   placeholder="Track 1&#10;Track 2&#10;Track 3"></textarea>
         </div>
         
-        <div style="margin-bottom: 30px;">
+        <div style="margin-bottom: 20px;">
             <label for="cover" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">Album Cover</label>
             <input type="file" id="cover" name="cover" accept=".jpg,.jpeg,.png,.webp" required
                    style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px;">
+        </div>
+        
+        <!-- CRITICAL: MP3 UPLOAD FIELD -->
+        <div style="margin-bottom: 30px;">
+            <label for="music_files" style="display: block; margin-bottom: 8px; font-size: 1.1rem;">
+                Music Files (MP3) - Upload in TRACK ORDER
+            </label>
+            <input type="file" id="music_files" name="music_files" multiple 
+                   accept=".mp3" required
+                   style="width: 100%; padding: 12px; background: #222; color: #fff; border: 1px solid #333; border-radius: 4px;">
+            <div style="color: #ff6b6b; margin-top: 8px; font-size: 0.9rem;">
+                ⚠️ Upload MP3 files in the exact same order as your track list above!
+            </div>
         </div>
         
         <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 1.1rem;">Add Album</button>
