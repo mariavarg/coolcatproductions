@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Download Music | CoolCat Productions{% endblock %}
+
+{% block content %}
+<div class="content-box" style="max-width: 800px; margin: 50px auto; padding: 30px;">
+    <h2>Download Your Music</h2>
+    
+    <div class="alert alert-success">
+        <h3>🎵 {{ album.title }} by {{ album.artist }}</h3>
+        <p>Your download is ready! Links valid for 24 hours.</p>
+    </div>
+
+    <div style="background: #222; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h4 style="margin-bottom: 20px;">Download Tracks:</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;">
+            {% for track in album.tracks %}
+            <div style="font-size: 1.1rem;">{{ loop.index }}. {{ track }}</div>
+            <a href="{{ url_for('download_track', token=token, track_index=loop.index0) }}" 
+               class="btn" style="padding: 8px 15px;">
+               Download MP3
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('shop') }}" class="btn">Back to Shop</a>
+    </div>
+</div>
+{% endblock %}
