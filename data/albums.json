@@ -11,7 +11,7 @@
     "price": 4.99,
     "on_sale": false,
     "sale_price": null,
-    "video_url": "https://www.youtube.com/embed/ChjJjbJYLNA",
+    "video_filename": "album_1_promo_video.mp4",
     "has_video": true,
     "added": "2024-01-15"
   }
