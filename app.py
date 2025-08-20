@@ -12,7 +12,7 @@ def shop():
 
 @app.route('/album/<int:album_id>')
 def album(album_id):
-    return render_template('album.html', album={})
+    return render_template('album.html', album={'id': album_id, 'title': 'Sample', 'artist': 'Artist'})
 
 @app.route('/admin/login')
 def admin_login():
@@ -23,4 +23,4 @@ def register():
     return render_template('register.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
