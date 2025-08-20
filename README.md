@@ -1,4 +1,4 @@
-# 🎵 Cool Cat Productions - Virtual Music Record Shop
+# 🎵 Cool Cat Productions-DrunaC. Virtual Music Record Shop
 
 Cool Cat Productions είναι ένα Flask-based web app για AI/virtual μουσικούς και groups.  
 Περιλαμβάνει online record shop, δυνατότητα προσθήκης album covers, υπολογισμό τιμής + VAT, και πώληση μουσικής όπως σε ένα κανονικό δισκοπωλείο.
