@@ -145,7 +145,7 @@ def is_password_complex(password):
     if not re.search(r'[A-Z]', password):
         return False, "Password must contain at least one uppercase letter"
     
-    if not re.search(r'[a-z', password):
+    if not re.search(r'[a-z]', password):
         return False, "Password must contain at least one lowercase letter"
     
     if not re.search(r'[0-9]', password):
@@ -547,7 +547,8 @@ def register():
     
     return render_template('register.html', csrf_token=generate_csrf_token())
 
-@app.route('/login', methods['GET', 'POST'])
+# FIXED: Changed methods['GET', 'POST'] to methods=('GET', 'POST')
+@app.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
         try:
