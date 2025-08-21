@@ -416,6 +416,7 @@ def protected_video(filename):
 
 # Routes
 @app.route('/')
+@app.route('/')
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
@@ -430,9 +431,8 @@ def home():
                              regular_albums=regular_albums,
                              get_video_url=get_video_url)
     except Exception as e:
-        logger.error(f"Home error: {e")
+        logger.error(f"Home error: {e}")  # FIXED: Added missing closing brace
         return render_template('index.html', featured_albums=[], regular_albums=[])
-
 @app.route('/shop')
 def shop():
     try:
