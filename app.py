@@ -1,8 +1,4 @@
-# Fixed app.py
-
-Here's the complete corrected app.py file with the syntax error fixed:
-
-```python
+python
 import os
 import json
 import logging
