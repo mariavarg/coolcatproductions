@@ -702,17 +702,6 @@ def generate_admin_hash():
     <code>ADMIN_PASSWORD_HASH={hashed}</code>
     <p>⚠️ Remove this route after setup!</p>
     '''
-#ADMIN_ROUTES        
-@app.route('/admin/dashboard')  
-def admin_dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    # ... your dashboard code here
-    # MAKE SURE THIS IS ALL INDENTED TOO!
-    return render_template('admin/dashboard.html')
-
-# ... rest of your admin routes
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
