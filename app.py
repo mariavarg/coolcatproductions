@@ -168,7 +168,7 @@ def is_password_complex(password):
     
     for pattern, requirement in checks:
         if not re.search(pattern, password):
-            return False, "Password must contain at least one {requirement}"
+            return False, f"Password must contain at least one {requirement}"
     
     return True, "Password is strong"
 
@@ -345,18 +345,20 @@ def stream_video(filename):
     if not session.get('user_id'):
         abort(403)
     
-    # Verify the user has access to this video
+    # Find which album contains this video and its category
     albums = load_data(app.config['ALBUMS_FILE'])
-    user_has_access = any(
-        album.get('video_filename') == filename and 
-        has_purchased(session['user_id'], album['id']) 
-        for album in albums
-    )
+    album = next((a for a in albums if a.get('video_filename') == filename), None)
     
-    if not user_has_access:
+    if not album:
+        abort(404)
+    
+    # Verify the user has access to this video
+    if not has_purchased(session['user_id'], album['id']):
         abort(403)
     
-    video_path = os.path.join(app.config['VIDEOS_FOLDER'], filename)
+    # Get the correct video path based on category
+    video_category = album.get('video_category', 'music_videos')
+    video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, filename)
     
     if not os.path.exists(video_path):
         abort(404)
@@ -498,7 +500,213 @@ def album(album_id):
         logger.error(f"Album error: {e}")
         abort(500)
 
-# ... (other routes remain the same until admin routes)
+# USER AUTHENTICATION ROUTES
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        try:
+            if not validate_csrf_token():
+                flash('Security token invalid. Please try again.', 'danger')
+                return render_template('register.html', csrf_token=generate_csrf_token())
+            
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip().lower()
+            password = request.form.get('password', '')
+            
+            # Validate input
+            if not all([username, email, password]):
+                flash('All fields are required', 'danger')
+                return render_template('register.html', csrf_token=generate_csrf_token())
+            
+            # Check password complexity
+            is_complex, message = is_password_complex(password)
+            if not is_complex:
+                flash(message, 'danger')
+                return render_template('register.html', csrf_token=generate_csrf_token())
+            
+            users = load_data(app.config['USERS_FILE'])
+            
+            # Check if username or email already exists
+            if any(u['username'].lower() == username.lower() for u in users):
+                flash('Username already taken', 'danger')
+                return render_template('register.html', csrf_token=generate_csrf_token())
+                
+            if any(u['email'].lower() == email.lower() for u in users):
+                flash('Email already registered', 'danger')
+                return render_template('register.html', csrf_token=generate_csrf_token())
+            
+            # Create new user
+            new_user = {
+                'id': len(users) + 1,
+                'username': escape(username),
+                'email': escape(email),
+                'password_hash': generate_password_hash(password),
+                'created_at': datetime.now().isoformat(),
+                'is_active': True
+            }
+            
+            users.append(new_user)
+            if save_data(users, app.config['USERS_FILE']):
+                flash('Registration successful. Please log in.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('Registration failed. Please try again.', 'danger')
+                
+        except Exception as e:
+            logger.error(f"Registration error: {e}")
+            flash('Registration error. Please try again.', 'danger')
+    
+    return render_template('register.html', csrf_token=generate_csrf_token())
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('user_id'):
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        ip = request.remote_addr
+        
+        if is_locked_out(ip, 'user_login'):
+            flash('Too many failed attempts. Please try again in 15 minutes.', 'warning')
+            return render_template('login.html', csrf_token=generate_csrf_token())
+        
+        if not validate_csrf_token():
+            flash('Security token invalid. Please try again.', 'danger')
+            return render_template('login.html', csrf_token=generate_csrf_token())
+        
+        if not check_rate_limit(ip, 'user_login', 5, 300):
+            flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
+            return render_template('login.html', csrf_token=generate_csrf_token())
+        
+        try:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
+            
+            users = load_data(app.config['USERS_FILE'])
+            user = next((u for u in users if u['username'].lower() == username.lower() and u['is_active']), None)
+            
+            if user and check_password_hash(user['password_hash'], password):
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session.permanent = True
+                flash('Logged in successfully', 'success')
+                return redirect(url_for('home'))
+            
+            flash('Invalid credentials', 'danger')
+        except Exception as e:
+            logger.error(f"Login error: {e}")
+            flash('Login failed. Please try again.', 'danger')
+    
+    return render_template('login.html', csrf_token=generate_csrf_token())
+
+@app.route('/logout')
+def user_logout():
+    session.pop('user_id', None)
+    session.pop('username', None)
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('home'))
+
+@app.route('/purchase/<int:album_id>', methods=['POST'])
+def purchase_album(album_id):
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    
+    try:
+        if not validate_csrf_token():
+            flash('Security token invalid. Please try again.', 'danger')
+            return redirect(url_for('album', album_id=album_id))
+        
+        albums = load_data(app.config['ALBUMS_FILE'])
+        album = next((a for a in albums if a['id'] == album_id), None)
+        
+        if not album:
+            flash('Album not found', 'danger')
+            return redirect(url_for('shop'))
+        
+        # Check if user already owns this album
+        if has_purchased(session['user_id'], album_id):
+            flash('You already own this album', 'info')
+            return redirect(url_for('album', album_id=album_id))
+        
+        # Get the price (use sale price if on sale)
+        price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
+        
+        # Record the purchase
+        purchase = record_purchase(session['user_id'], album_id, price)
+        
+        if purchase:
+            flash(f'Purchase successful! You can now download the album.', 'success')
+            return redirect(url_for('album', album_id=album_id))
+        else:
+            flash('Purchase failed. Please try again.', 'danger')
+            return redirect(url_for('album', album_id=album_id))
+            
+    except Exception as e:
+        logger.error(f"Purchase error: {e}")
+        flash('Purchase error. Please try again.', 'danger')
+        return redirect(url_for('album', album_id=album_id))
+
+@app.route('/download/<int:album_id>')
+def download_album(album_id):
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    
+    # Check if user owns this album
+    if not has_purchased(session['user_id'], album_id):
+        flash('You need to purchase this album before downloading', 'danger')
+        return redirect(url_for('album', album_id=album_id))
+    
+    # Generate download token
+    token = generate_download_token(session['user_id'], album_id)
+    
+    # Redirect to download with token
+    return redirect(url_for('download_with_token', token=token))
+
+@app.route('/download/token/<token>')
+def download_with_token(token):
+    # Validate token
+    token_data = validate_download_token(token)
+    if not token_data:
+        flash('Invalid or expired download link', 'danger')
+        return redirect(url_for('shop'))
+    
+    # Get album data
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == token_data['album_id']), None)
+    
+    if not album:
+        flash('Album not found', 'danger')
+        return redirect(url_for('shop'))
+    
+    # Update download count
+    purchases = load_data(app.config['PURCHASES_FILE'])
+    for purchase in purchases:
+        if purchase['user_id'] == token_data['user_id'] and purchase['album_id'] == token_data['album_id']:
+            purchase['downloads'] = purchase.get('downloads', 0) + 1
+            break
+    
+    save_data(purchases, app.config['PURCHASES_FILE'])
+    
+    # Create zip file with all tracks
+    # This is a simplified version - you might want to use a proper zip library
+    try:
+        album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album['id']}")
+        
+        # For now, we'll just redirect to the first track
+        # In a real implementation, you would create a zip file with all tracks
+        if album.get('tracks'):
+            first_track = get_track_filename(album['id'], 0, album['tracks'][0])
+            track_path = os.path.join(album_dir, first_track)
+            
+            if os.path.exists(track_path):
+                return send_file(track_path, as_attachment=True)
+        
+        flash('Download failed: files not found', 'danger')
+        return redirect(url_for('album', album_id=album['id']))
+    except Exception as e:
+        logger.error(f"Download error: {e}")
+        flash('Download error. Please try again.', 'danger')
+        return redirect(url_for('album', album_id=album['id']))
 
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
