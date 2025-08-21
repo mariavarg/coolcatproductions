@@ -682,19 +682,55 @@ def download_track(token, track_index):
 
 # ... (other routes above)
 
-# ⭐ TEMPORARY ROUTE - PUT THIS RIGHT HERE ⭐
+# ⭐ TEMPORARY ROUTE - PUT THIS ABOVE ADMIN ROUTES ⭐
 @app.route('/generate-admin-hash')
 def generate_admin_hash_temp():
     """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
-    password = "YourChosenPassword123!"
+    # ⭐ CHANGE THIS TO YOUR DESIRED PASSWORD ⭐
+    password = "YourSecurePassword123!"  # ← EDIT THIS LINE
+    
     hashed = generate_password_hash(password)
+    
     return f'''
-    <h1>Admin Password Hash</h1>
-    <p>Add this to Render Environment Variables:</p>
-    <code>ADMIN_PASSWORD_HASH={hashed}</code>
-    <p>⚠️ Remove this route after setup!</p>
-    '''
-
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Admin Password Setup</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; }}
+            .hash-box {{ background: #f4f4f4; padding: 20px; border-radius: 5px; word-break: break-all; }}
+            .warning {{ color: red; font-weight: bold; }}
+            .success {{ color: green; }}
+        </style>
+    </head>
+    <body>
+        <h1>🔒 Admin Password Setup</h1>
+        
+        <div class="hash-box">
+            <h3>Step 1: Add this to Render Environment Variables:</h3>
+            <code>ADMIN_PASSWORD_HASH={hashed}</code>
+        </div>
+        
+        <div class="success">
+            <h3>Step 2: Remember your password:</h3>
+            <p>Your admin password is: <strong>{password}</strong></p>
+            <p>You'll use this to login at <code>/admin/login</code></p>
+        </div>
+        
+        <p class="warning">⚠️ IMPORTANT: Remove this route after setup and redeploy!</p>
+        
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Copy the hash above</li>
+            <li>Go to your Render dashboard → Environment → Add Environment Variable</li>
+            <li>Set <code>ADMIN_PASSWORD_HASH</code> to the copied value</li>
+            <li>Remove this route from your code</li>
+            <li>Redeploy your application</li>
+            <li>Login at <code>/admin/login</code> with your password: <strong>{password}</strong></li>
+        </ol>
+    </body>
+    </html>
+    
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
