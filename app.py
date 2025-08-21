@@ -1,3 +1,6 @@
+I see the issue with the font. The problem is that the font "Sofia" isn't being properly loaded or referenced in the templates. Let me provide you with the complete, updated app.py file with proper font handling:
+
+```python
 import os
 import json
 import logging
@@ -282,7 +285,8 @@ def add_security_headers(response):
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
-        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob:; "
         "media-src 'self' blob:; "
         "frame-ancestors 'none'; "
@@ -416,7 +420,6 @@ def protected_video(filename):
 
 # Routes
 @app.route('/')
-@app.route('/')
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
@@ -431,8 +434,9 @@ def home():
                              regular_albums=regular_albums,
                              get_video_url=get_video_url)
     except Exception as e:
-        logger.error(f"Home error: {e}")  # FIXED: Added missing closing brace
+        logger.error(f"Home error: {e}")
         return render_template('index.html', featured_albums=[], regular_albums=[])
+
 @app.route('/shop')
 def shop():
     try:
@@ -542,7 +546,7 @@ def login():
                 return render_template('login.html', csrf_token=generate_csrf_token())
             
             users = load_data(app.config['USERS_FILE'])
-            username = request.form.get('username', '').strip()
+            username = request.form.get('username', '').strip())
             password = request.form.get('password', '')
             
             user = next((u for u in users if u['username'] == username), None)
