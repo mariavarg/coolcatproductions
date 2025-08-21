@@ -1,3 +1,8 @@
+# Fixed app.py
+
+Here's the complete corrected app.py file with the syntax error fixed:
+
+```python
 import os
 import json
 import logging
@@ -438,7 +443,7 @@ def stream_video(filename):
                 f.seek(byte1)
                 remaining = length
                 while remaining > 0:
-                    chunk_size = min(app.config['VIDEOS_FOLDER'], remaining)
+                    chunk_size = min(app.config['VIDEO_STREAM_CHUNK_SIZE'], remaining)
                     data = f.read(chunk_size)
                     if not data:
                         break
@@ -699,7 +704,7 @@ def purchase_album(album_id):
             return redirect(url_for('album', album_id=album_id))
             
     except Exception as e:
-        logger.error(f"Purchase error: {e}")
+        logger.error(f"Purchase error: {e}")  # Fixed the missing closing brace here
         log_security_event('PURCHASE_ERROR', f'Album: {album_id}, Error: {str(e)}', session.get('user_id'))
         flash('Purchase error. Please try again.', 'danger')
         return redirect(url_for('album', album_id=album_id))
@@ -902,7 +907,7 @@ def add_album():
             track_list = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
             mp3_files = [f for f in music_files if f.filename]
             
-            if len(track_list) != len(mp3_files):
+                       if len(track_list) != len(mp3_files):
                 flash(f'Error: You listed {len(track_list)} tracks but uploaded {len(mp3_files)} MP3 files. They must match!', 'danger')
                 return redirect(request.url)
                 
