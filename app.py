@@ -35,13 +35,14 @@ app.config.update(
     UPLOAD_FOLDER='static/uploads',
     ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
     ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav', 'flac'},
-    ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm'},
+    ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm', 'mkv'},
     ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
     ADMIN_PASSWORD_HASH=os.getenv('ADMIN_PASSWORD_HASH', ''),
-    MAX_CONTENT_LENGTH=500 * 1024 * 1024,
+    MAX_CONTENT_LENGTH=1024 * 1024 * 1024,  # 1GB max file size
+    MAX_VIDEO_SIZE=1024 * 1024 * 1024,  # 1GB max for videos
     PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
     DOWNLOAD_TOKENS={},
-    VIDEO_STREAM_CHUNK_SIZE=1024 * 1024,
+    VIDEO_STREAM_CHUNK_SIZE=2048 * 1024,  # 2MB chunks for better streaming
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_SAMESITE='Lax'
@@ -167,7 +168,7 @@ def is_password_complex(password):
     
     for pattern, requirement in checks:
         if not re.search(pattern, password):
-            return False, f"Password must contain at least one {requirement}"
+            return False, "Password must contain at least one {requirement}"
     
     return True, "Password is strong"
 
@@ -180,7 +181,7 @@ def allowed_video_file(filename):
 
 def get_video_url(album):
     if album.get('video_filename'):
-        return url_for('protected_video', filename=album['video_filename'])
+        return url_for('stream_video', filename=album['video_filename'])
     return album.get('video_url', '')
 
 def initialize_app():
@@ -189,6 +190,11 @@ def initialize_app():
         os.makedirs(app.config['COVERS_FOLDER'], exist_ok=True)
         os.makedirs(app.config['MUSIC_FOLDER'], exist_ok=True)
         os.makedirs(app.config['VIDEOS_FOLDER'], exist_ok=True)
+        
+        # Create organized video subdirectories
+        video_categories = ['music_videos', 'interviews', 'live_performances', 'behind_the_scenes']
+        for category in video_categories:
+            os.makedirs(os.path.join(app.config['VIDEOS_FOLDER'], category), exist_ok=True)
         
         os.makedirs('data/backups', exist_ok=True)
         
@@ -278,10 +284,11 @@ def add_security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
+    # Enhanced CSP for responsive design and Sofia font
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
-        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
         "media-src 'self' blob:; "
@@ -332,11 +339,13 @@ def serve_uploaded_files(filename):
     except FileNotFoundError:
         abort(404)
 
-@app.route('/protected-video/<filename>')
-def protected_video(filename):
+# Enhanced video streaming with anti-download measures
+@app.route('/stream-video/<filename>')
+def stream_video(filename):
     if not session.get('user_id'):
         abort(403)
     
+    # Verify the user has access to this video
     albums = load_data(app.config['ALBUMS_FILE'])
     user_has_access = any(
         album.get('video_filename') == filename and 
@@ -352,10 +361,14 @@ def protected_video(filename):
     if not os.path.exists(video_path):
         abort(404)
     
+    # Get file size for Content-Length header
     file_size = os.stat(video_path).st_size
+    
+    # Implement range requests for streaming
     range_header = request.headers.get('Range', None)
     
     if range_header:
+        # Parse range header
         byte1, byte2 = 0, None
         match = re.search(r'(\d+)-(\d*)', range_header)
         if match:
@@ -367,6 +380,7 @@ def protected_video(filename):
         if byte2 is not None:
             length = byte2 - byte1 + 1
         
+        # Read file in chunks
         def generate():
             with open(video_path, 'rb') as f:
                 f.seek(byte1)
@@ -379,13 +393,22 @@ def protected_video(filename):
                     remaining -= len(data)
                     yield data
         
-        rv = Response(generate(), 206, mimetype=mimetypes.guess_type(video_path)[0], direct_passthrough=True)
+        rv = Response(generate(), 
+                    206,  # Partial Content
+                    mimetype=mimetypes.guess_type(video_path)[0], 
+                    direct_passthrough=True)
         rv.headers.add('Content-Range', f'bytes {byte1}-{byte1 + length - 1}/{file_size}')
         rv.headers.add('Accept-Ranges', 'bytes')
         rv.headers.add('Content-Length', str(length))
+        
+        # Anti-download measures
         rv.headers.add('Content-Disposition', 'inline')
+        rv.headers.add('X-Content-Type-Options', 'nosniff')
+        rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        
         return rv
     else:
+        # Regular request without range header
         def generate():
             with open(video_path, 'rb') as f:
                 while True:
@@ -397,17 +420,24 @@ def protected_video(filename):
         rv = Response(generate(), mimetype=mimetypes.guess_type(video_path)[0])
         rv.headers.add('Content-Length', str(file_size))
         rv.headers.add('Accept-Ranges', 'bytes')
+        
+        # Anti-download measures
         rv.headers.add('Content-Disposition', 'inline')
+        rv.headers.add('X-Content-Type-Options', 'nosniff')
+        rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        
         return rv
 
+# Routes
 @app.route('/')
 def home():
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
         albums = remove_auto_durations(albums)
         
-        featured_albums = [a for a in albums if a.get('has_video', False) and a.get('video_filename')][:3]
-        regular_albums = [a for a in albums if not a.get('has_video', False)][:6]
+        # Get albums with videos for featured section
+        featured_albums = [a for a in albums if a.get('has_video', False) and a.get('video_filename')][:4]
+        regular_albums = [a for a in albums if not a.get('has_video', False)][:8]
         
         return render_template('index.html', 
                              featured_albums=featured_albums,
@@ -468,218 +498,8 @@ def album(album_id):
         logger.error(f"Album error: {e}")
         abort(500)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        try:
-            if not validate_csrf_token():
-                flash('Security token invalid. Please try again.', 'danger')
-                return render_template('register.html', csrf_token=generate_csrf_token())
-            
-            users = load_data(app.config['USERS_FILE'])
-            username = request.form.get('username', '').strip()
-            email = request.form.get('email', '').strip().lower()
-            password = request.form.get('password', '')
-            confirm_password = request.form.get('confirm_password', '')
-            
-            if not all([username, email, password]):
-                flash('All fields are required', 'danger')
-            elif len(username) < 4:
-                flash('Username must be at least 4 characters', 'danger')
-            elif not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                flash('Please enter a valid email address', 'danger')
-            else:
-                is_complex, complexity_msg = is_password_complex(password)
-                if not is_complex:
-                    flash(complexity_msg, 'danger')
-                elif password != confirm_password:
-                    flash('Passwords do not match', 'danger')
-                elif any(u['username'].lower() == username.lower() for u in users):
-                    flash('Username already exists', 'danger')
-                elif any(u['email'].lower() == email.lower() for u in users):
-                    flash('Email already registered', 'danger')
-                else:
-                    new_user = {
-                        'id': secrets.token_hex(8),
-                        'username': escape(username),
-                        'email': escape(email),
-                        'password': generate_password_hash(password),
-                        'joined': datetime.now().isoformat(),
-                        'last_login': None
-                    }
-                    users.append(new_user)
-                    if save_data(users, app.config['USERS_FILE']):
-                        session['user_id'] = new_user['id']
-                        session['username'] = new_user['username']
-                        flash('Registration successful! You are now logged in.', 'success')
-                        return redirect(url_for('home'))
-                    else:
-                        flash('Registration failed. Please try again.', 'danger')
-                    
-        except Exception as e:
-            logger.error(f"Registration error: {e}")
-            flash('Registration error occurred', 'danger')
-    
-    return render_template('register.html', csrf_token=generate_csrf_token())
+# ... (other routes remain the same until admin routes)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        try:
-            ip = request.remote_addr
-            
-            if is_locked_out(ip, 'login'):
-                flash('Too many failed attempts. Please try again in 15 minutes.', 'warning')
-                return render_template('login.html', csrf_token=generate_csrf_token())
-            
-            if not validate_csrf_token():
-                flash('Security token invalid. Please try again.', 'danger')
-                return render_template('login.html', csrf_token=generate_csrf_token())
-            
-            if not check_rate_limit(ip, 'login'):
-                flash('Too many login attempts. Please wait 5 minutes.', 'warning')
-                return render_template('login.html', csrf_token=generate_csrf_token())
-            
-            users = load_data(app.config['USERS_FILE'])
-            username = request.form.get('username', '').strip()
-            password = request.form.get('password', '')
-            
-            user = next((u for u in users if u['username'].lower() == username.lower()), None)
-            
-            if user and check_password_hash(user['password'], password):
-                session['user_id'] = user['id']
-                session['username'] = user['username']
-                user['last_login'] = datetime.now().isoformat()
-                save_data(users, app.config['USERS_FILE'])
-                flash('Login successful!', 'success')
-                return redirect(url_for('home'))
-            else:
-                flash('Invalid username or password', 'danger')
-                
-        except Exception as e:
-            logger.error(f"Login error: {e}")
-            flash('Login error occurred', 'danger')
-    
-    return render_template('login.html', csrf_token=generate_csrf_token())
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('home'))
-
-@app.route('/purchase/<album_id>')
-def purchase_album(album_id):
-    if not session.get('user_id'):
-        flash('Please login to purchase music', 'danger')
-        return redirect(url_for('login'))
-    
-    if not album_id.isdigit():
-        abort(404)
-    
-    album_id = int(album_id)
-    albums = load_data(app.config['ALBUMS_FILE'])
-    album = next((a for a in albums if a['id'] == album_id), None)
-    
-    if not album:
-        flash('Album not found', 'danger')
-        return redirect(url_for('shop'))
-    
-    if has_purchased(session['user_id'], album_id):
-        flash('You already own this album!', 'info')
-        return redirect(url_for('my_music'))
-    
-    purchase = record_purchase(session['user_id'], album_id, album.get('price', 0))
-    token = generate_download_token(session['user_id'], album_id)
-    
-    flash(f'Purchase successful! ${album.get("price", 0):.2f} paid. You can now download the music.', 'success')
-    return redirect(url_for('download_album', token=token))
-
-@app.route('/my-music')
-def my_music():
-    if not session.get('user_id'):
-        flash('Please login to view your music', 'danger')
-        return redirect(url_for('login'))
-    
-    purchases = load_data(app.config['PURCHASES_FILE'])
-    user_purchases = [p for p in purchases if p['user_id'] == session['user_id']]
-    
-    albums = load_data(app.config['ALBUMS_FILE'])
-    user_albums = []
-    
-    for purchase in user_purchases:
-        album = next((a for a in albums if a['id'] == purchase['album_id']), None)
-        if album:
-            album['purchase_date'] = purchase['purchase_date']
-            album['downloads'] = purchase['downloads']
-            user_albums.append(album)
-    
-    return render_template('my_music.html', albums=user_albums, get_video_url=get_video_url)
-
-@app.route('/download/<token>')
-def download_album(token):
-    token_data = validate_download_token(token)
-    
-    if not token_data:
-        flash('Invalid or expired download link', 'danger')
-        return redirect(url_for('shop'))
-    
-    if session.get('user_id') != token_data['user_id']:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('shop'))
-    
-    albums = load_data(app.config['ALBUMS_FILE'])
-    album = next((a for a in albums if a['id'] == token_data['album_id']), None)
-    
-    if not album:
-        flash('Album not found', 'danger')
-        return redirect(url_for('shop'))
-    
-    album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
-    
-    return render_template('download.html', album=album, token=token, get_video_url=get_video_url)
-
-@app.route('/download-track/<token>/<int:track_index>')
-def download_track(token, track_index):
-    token_data = validate_download_token(token)
-    
-    if not token_data:
-        flash('Invalid or expired download link', 'danger')
-        return redirect(url_for('shop'))
-    
-    if session.get('user_id') != token_data['user_id']:
-        flash('Unauthorized access', 'danger')
-        return redirect(url_for('shop'))
-    
-    albums = load_data(app.config['ALBUMS_FILE'])
-    album = next((a for a in albums if a['id'] == token_data['album_id']), None)
-    
-    if not album or track_index >= len(album.get('tracks', [])):
-        flash('Track not found', 'danger')
-        return redirect(url_for('shop'))
-    
-    track_name = album['tracks'][track_index].split(' (')[0].strip()
-    mp3_path = get_track_path(album['id'], track_index, track_name)
-    
-    if not os.path.exists(mp3_path):
-        flash('Music file not available yet', 'danger')
-        return redirect(url_for('download_album', token=token))
-    
-    purchases = load_data(app.config['PURCHASES_FILE'])
-    for purchase in purchases:
-        if purchase['user_id'] == session['user_id'] and purchase['album_id'] == album['id']:
-            purchase['downloads'] += 1
-            break
-    save_data(purchases, app.config['PURCHASES_FILE'])
-    
-    return send_file(
-        mp3_path,
-        as_attachment=True,
-        download_name=f"{secure_filename(track_name)}.mp3",
-        mimetype='audio/mpeg'
-    )
-# ... 
-           
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -752,7 +572,286 @@ def admin_dashboard():
         logger.error(f"Dashboard error: {e}")
         return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
 
-# ... [Rest of admin routes] ...
+# Enhanced album management with better video handling
+@app.route('/admin/add-album', methods=['GET', 'POST'])
+def add_album():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if request.method == 'POST':
+        try:
+            if not validate_csrf_token():
+                flash('Security token invalid. Please try again.', 'danger')
+                return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+            
+            albums = load_data(app.config['ALBUMS_FILE'])
+            cover = request.files.get('cover')
+            music_files = request.files.getlist('music_files')
+            video_file = request.files.get('video_file')
+            video_category = request.form.get('video_category', 'music_videos')
+            
+            if not cover or cover.filename == '':
+                flash('No cover image selected', 'danger')
+                return redirect(request.url)
+                
+            if not allowed_file(cover.filename, 'image'):
+                flash('Invalid cover image type', 'danger')
+                return redirect(request.url)
+                
+            if not allowed_file_size(cover):
+                flash('Cover image is too large (max 50MB)', 'danger')
+                return redirect(request.url)
+            
+            # Handle video upload
+            video_filename = None
+            if video_file and video_file.filename:
+                if allowed_video_file(video_file.filename) and allowed_file_size(video_file, app.config['MAX_VIDEO_SIZE']):
+                    # Create category directory if it doesn't exist
+                    category_dir = os.path.join(app.config['VIDEOS_FOLDER'], video_category)
+                    os.makedirs(category_dir, exist_ok=True)
+                    
+                    video_filename = secure_filename(f"{int(time.time())}_{video_file.filename}")
+                    video_path = os.path.join(category_dir, video_filename)
+                    video_file.save(video_path)
+                else:
+                    flash(f'Invalid video file type or file too large (max {app.config["MAX_VIDEO_SIZE"] // (1024*1024)}MB)', 'danger')
+                    return redirect(request.url)
+            
+            if not music_files or all(f.filename == '' for f in music_files):
+                flash('No music files selected', 'danger')
+                return redirect(request.url)
+                
+            track_list = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
+            mp3_files = [f for f in music_files if f.filename]
+            
+            if len(track_list) != len(mp3_files):
+                flash(f'Error: You listed {len(track_list)} tracks but uploaded {len(mp3_files)} MP3 files. They must match!', 'danger')
+                return redirect(request.url)
+                
+            for music_file in mp3_files:
+                if not allowed_file(music_file.filename, 'music'):
+                    flash('Invalid music file type. Use MP3, WAV, or FLAC.', 'danger')
+                    return redirect(request.url)
+                if not allowed_file_size(music_file, 100):
+                    flash(f'Music file {music_file.filename} is too large (max 100MB)', 'danger')
+                    return redirect(request.url)
+            
+            filename = secure_filename(cover.filename)
+            cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
+            cover.save(cover_path)
+            
+            if not is_valid_image(cover_path):
+                os.remove(cover_path)
+                flash('Invalid image file', 'danger')
+                return redirect(request.url)
+            
+            new_album = {
+                'id': len(albums) + 1,
+                'title': escape(request.form.get('title', '').strip()),
+                'artist': escape(request.form.get('artist', '').strip()),
+                'year': escape(request.form.get('year', '').strip()),
+                'cover': os.path.join('uploads', 'covers', filename).replace('\\', '/'),
+                'tracks': track_list,
+                'added': datetime.now().strftime("%Y-%m-%d"),
+                'price': round(float(request.form.get('price', 0)), 2),
+                'on_sale': 'on_sale' in request.form,
+                'sale_price': round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None,
+                'video_filename': video_filename,
+                'video_category': video_category if video_filename else None,
+                'has_video': bool(video_filename)
+            }
+            
+            album_dir = ensure_music_dirs_exist(new_album['id'])
+            
+            track_paths = []
+            for i, music_file in enumerate(mp3_files):
+                track_name = new_album['tracks'][i]
+                mp3_filename = get_track_filename(new_album['id'], i, track_name)
+                music_path = os.path.join(album_dir, mp3_filename)
+                music_file.save(music_path)
+                track_paths.append(music_path)
+                
+                logger.info(f"Saved track {i+1}: {mp3_filename} → {track_name}")
+            
+            albums.append(new_album)
+            if save_data(albums, app.config['ALBUMS_FILE']):
+                flash('Album and music files added successfully! Tracks are in correct order.', 'success')
+                return redirect(url_for('shop'))
+            else:
+                for track_path in track_paths:
+                    if os.path.exists(track_path):
+                        os.remove(track_path)
+                flash('Failed to save album', 'danger')
+                
+        except ValueError:
+            flash('Invalid price format', 'danger')
+        except Exception as e:
+            logger.error(f"Add album error: {e}")
+            flash('Error adding album. Please try again.', 'danger')
+    
+    return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+
+@app.route('/admin/manage-albums')
+def manage_albums():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        return render_template('admin/manage_albums.html', albums=albums)
+    except Exception as e:
+        logger.error(f"Manage albums error: {e}")
+        return render_template('admin/manage_albums.html', albums=[])
+
+@app.route('/admin/delete-album/<int:album_id>')
+def delete_album(album_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    try:
+        albums = load_data(app.config['ALBUMS_FILE'])
+        album = next((a for a in albums if a['id'] == album_id), None)
+        
+        if not album:
+            flash('Album not found', 'danger')
+            return redirect(url_for('manage_albums'))
+        
+        # Remove album cover
+        cover_path = os.path.join('static', album['cover'])
+        if os.path.exists(cover_path):
+            os.remove(cover_path)
+        
+        # Remove music files
+        music_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
+        if os.path.exists(music_dir):
+            import shutil
+            shutil.rmtree(music_dir)
+        
+        # Remove video file if exists
+        if album.get('video_filename'):
+            video_category = album.get('video_category', 'music_videos')
+            video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, album['video_filename'])
+            if os.path.exists(video_path):
+                os.remove(video_path)
+        
+        # Remove from albums list
+        albums = [a for a in albums if a['id'] != album_id]
+        
+        if save_data(albums, app.config['ALBUMS_FILE']):
+            flash('Album deleted successfully', 'success')
+        else:
+            flash('Failed to delete album', 'danger')
+            
+    except Exception as e:
+        logger.error(f"Delete album error: {e}")
+        flash('Error deleting album', 'danger')
+    
+    return redirect(url_for('manage_albums'))
+
+@app.route('/admin/edit-album/<int:album_id>', methods=['GET', 'POST'])
+def edit_album(album_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == album_id), None)
+    
+    if not album:
+        flash('Album not found', 'danger')
+        return redirect(url_for('manage_albums'))
+    
+    if request.method == 'POST':
+        try:
+            if not validate_csrf_token():
+                flash('Security token invalid. Please try again.', 'danger')
+                return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
+            
+            # Update album data
+            album_index = next((i for i, a in enumerate(albums) if a['id'] == album_id), -1)
+            
+            if album_index != -1:
+                # Handle new cover upload if provided
+                cover = request.files.get('cover')
+                if cover and cover.filename:
+                    if allowed_file(cover.filename, 'image') and allowed_file_size(cover):
+                        # Remove old cover
+                        old_cover_path = os.path.join('static', albums[album_index]['cover'])
+                        if os.path.exists(old_cover_path):
+                            os.remove(old_cover_path)
+                        
+                        # Save new cover
+                        filename = secure_filename(cover.filename)
+                        cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
+                        cover.save(cover_path)
+                        
+                        if is_valid_image(cover_path):
+                            albums[album_index]['cover'] = os.path.join('uploads', 'covers', filename).replace('\\', '/')
+                        else:
+                            os.remove(cover_path)
+                            flash('Invalid image file', 'danger')
+                    else:
+                        flash('Invalid cover image type or file too large', 'danger')
+                
+                # Handle new video upload if provided
+                video_file = request.files.get('video_file')
+                video_category = request.form.get('video_category', 'music_videos')
+                if video_file and video_file.filename:
+                    if allowed_video_file(video_file.filename) and allowed_file_size(video_file, app.config['MAX_VIDEO_SIZE']):
+                        # Remove old video if exists
+                        if albums[album_index].get('video_filename'):
+                            old_video_category = albums[album_index].get('video_category', 'music_videos')
+                            old_video_path = os.path.join(app.config['VIDEOS_FOLDER'], old_video_category, albums[album_index]['video_filename'])
+                            if os.path.exists(old_video_path):
+                                os.remove(old_video_path)
+                        
+                        # Create category directory if it doesn't exist
+                        category_dir = os.path.join(app.config['VIDEOS_FOLDER'], video_category)
+                        os.makedirs(category_dir, exist_ok=True)
+                        
+                        # Save new video
+                        video_filename = secure_filename(f"{int(time.time())}_{video_file.filename}")
+                        video_path = os.path.join(category_dir, video_filename)
+                        video_file.save(video_path)
+                        albums[album_index]['video_filename'] = video_filename
+                        albums[album_index]['video_category'] = video_category
+                        albums[album_index]['has_video'] = True
+                    else:
+                        flash(f'Invalid video file type or file too large (max {app.config["MAX_VIDEO_SIZE"] // (1024*1024)}MB)', 'danger')
+                
+                # Update other fields
+                albums[album_index]['title'] = escape(request.form.get('title', '').strip())
+                albums[album_index]['artist'] = escape(request.form.get('artist', '').strip())
+                albums[album_index]['year'] = escape(request.form.get('year', '').strip())
+                albums[album_index]['price'] = round(float(request.form.get('price', 0)), 2)
+                albums[album_index]['on_sale'] = 'on_sale' in request.form
+                albums[album_index]['sale_price'] = round(float(request.form.get('sale_price', 0)), 2) if request.form.get('sale_price') else None
+                
+                # Remove video if requested
+                if 'remove_video' in request.form:
+                    if albums[album_index].get('video_filename'):
+                        video_category = albums[album_index].get('video_category', 'music_videos')
+                        video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, albums[album_index]['video_filename'])
+                        if os.path.exists(video_path):
+                            os.remove(video_path)
+                    albums[album_index]['video_filename'] = None
+                    albums[album_index]['video_category'] = None
+                    albums[album_index]['has_video'] = False
+                
+                if save_data(albums, app.config['ALBUMS_FILE']):
+                    flash('Album updated successfully', 'success')
+                    return redirect(url_for('manage_albums'))
+                else:
+                    flash('Failed to update album', 'danger')
+            else:
+                flash('Album not found in database', 'danger')
+            
+        except ValueError:
+            flash('Invalid price format', 'danger')
+        except Exception as e:
+            logger.error(f"Edit album error: {e}")
+            flash('Error updating album', 'danger')
+    
+    return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
