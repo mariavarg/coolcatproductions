@@ -679,33 +679,7 @@ def download_track(token, track_index):
         mimetype='audio/mpeg'
     )
 # ... 
-    
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Admin Password Setup</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; }}
-            .hash-box {{ background: #f4f4f4; padding: 20px; border-radius: 5px; word-break: break-all; }}
-            .warning {{ color: red; font-weight: bold; }}
-            .success {{ color: green; }}
-        </style>
-    </head>
-    <body>
-       
-        <h3>Instructions:</h3>
-        <ol>
-            <li>Copy the hash above</li>
-            <li>Go to your Render dashboard → Environment → Add Environment Variable</li>
-            <li>Set <code>ADMIN_PASSWORD_HASH</code> to the copied value</li>
-            <li>Remove this route from your code</li>
-            <li>Redeploy your application</li>
-            <li>Login at <code>/admin/login</code> with your password: <strong>{password}</strong></li>
-        </ol>
-    </body>
-    </html>
-    '''
-    
+           
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
