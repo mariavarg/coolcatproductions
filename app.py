@@ -699,7 +699,7 @@ def purchase_album(album_id):
             return redirect(url_for('album', album_id=album_id))
             
     except Exception as e:
-        logger.error(f"Purchase error: {e")
+        logger.error(f"Purchase error: {e}")
         log_security_event('PURCHASE_ERROR', f'Album: {album_id}, Error: {str(e)}', session.get('user_id'))
         flash('Purchase error. Please try again.', 'danger')
         return redirect(url_for('album', album_id=album_id))
