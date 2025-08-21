@@ -8,7 +8,7 @@ import string
 import re
 import mimetypes
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -327,6 +327,11 @@ def favicon():
         return send_file('static/images/channel-logo.png', mimetype='image/png')
     except:
         return '', 204
+
+# Static file serving for uploaded content
+@app.route('/static/uploads/<path:filename>')
+def serve_uploaded_files(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # Protected video streaming route
 @app.route('/protected-video/<filename>')
