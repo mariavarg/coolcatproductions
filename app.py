@@ -680,6 +680,18 @@ def download_track(token, track_index):
     )
 
 # ADMIN ROUTES
+@app.route('/setup-admin')
+def setup_admin():
+    """Temporary route to generate admin password hash - REMOVE AFTER USE"""
+    password = "YourSecurePassword123!"  # Change this
+    hashed = generate_password_hash(password)
+    return f"""
+    <h1>Admin Password Hash</h1>
+    <p>Add this to your Render environment variables:</p>
+    <code>ADMIN_PASSWORD_HASH={hashed}</code>
+    <p><strong>IMPORTANT:</strong> Remove this route after setting up!</p>
+    """
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
