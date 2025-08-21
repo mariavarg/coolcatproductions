@@ -543,7 +543,7 @@ def login():
                 return render_template('login.html', csrf_token=generate_csrf_token())
             
             users = load_data(app.config['USERS_FILE'])
-            username = request.form.get('username', '').strip())
+            username = request.form.get('username', '').strip()
             password = request.form.get('password', '')
             
             user = next((u for u in users if u['username'] == username), None)
