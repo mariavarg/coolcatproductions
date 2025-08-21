@@ -678,20 +678,8 @@ def download_track(token, track_index):
         download_name=f"{secure_filename(track_name)}.mp3",
         mimetype='audio/mpeg'
     )
-# ... (other routes above)
-
-# ... (other routes above)
-
-# ⭐ TEMPORARY ROUTE - PUT THIS ABOVE ADMIN ROUTES ⭐
-@app.route('/generate-admin-hash')
-def generate_admin_hash_temp():
-    """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
-    # ⭐ CHANGE THIS TO YOUR DESIRED PASSWORD ⭐
-    password = "awGDbdYvq2H5MZa"  # ← EDIT THIS LINE
+# ... 
     
-    hashed = generate_password_hash(password)
-    
-    return f'''
     <!DOCTYPE html>
     <html>
     <head>
