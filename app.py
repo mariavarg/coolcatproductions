@@ -7,7 +7,7 @@ import secrets
 import string
 import re
 import mimetypes
-import imghdr
+from PIL import Image  # Replaced imghdr with PIL
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -267,10 +267,12 @@ def save_data(data, filename):
         return False
 
 def is_valid_image(file_path):
+    """Validate image using PIL instead of imghdr"""
     try:
-        image_type = imghdr.what(file_path)
-        return image_type in ['jpeg', 'png', 'gif', 'webp']
-    except:
+        with Image.open(file_path) as img:
+            img.verify()  # Verify if it's a valid image
+        return True
+    except (IOError, SyntaxError, Exception):
         return False
 
 def allowed_file_size(file, max_size_mb=50):
