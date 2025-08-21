@@ -688,21 +688,38 @@ def generate_admin_hash():
     hashed = generate_password_hash(password)
     return f'<h1>Hash: {hashed}</h1>'
 
-# 🔐 ADMIN ROUTES (put temporary route ABOVE these)
-@app.route('/admin/login')
-def admin_login():
-    # ... admin login code
+# ... (other routes above)
 
+# ⭐ TEMPORARY ROUTE - PUT THIS RIGHT HERE ⭐
+@app.route('/generate-admin-hash')
+def generate_admin_hash():
+    """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
+    password = "YourChosenPassword123!"  # ← CHANGE THIS
+    hashed = generate_password_hash(password)
+    return f'''
+    <h1>Admin Password Hash</h1>
+    <p>Add this to Render Environment Variables:</p>
+    <code>ADMIN_PASSWORD_HASH={hashed}</code>
+    <p>⚠️ Remove this route after setup!</p>
+    '''
+#ADMIN_ROUTES        
 @app.route('/admin/dashboard')  
 def admin_dashboard():
-    # ... dashboard code
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    # ... your dashboard code here
+    # MAKE SURE THIS IS ALL INDENTED TOO!
+    return render_template('admin/dashboard.html')
+
+# ... rest of your admin routes
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
         return redirect(url_for('admin_dashboard'))
     
-    if request.method == 'POST':
+    if request.method == 'POST'
         ip = request.remote_addr
         
         if is_locked_out(ip, 'admin_login'):
@@ -734,6 +751,7 @@ def admin_login():
         except Exception as e:
             logger.error(f"Admin login error: {e}")
             flash('Login failed. Please try again.', 'danger')
+    pass
     
     return render_template('admin/login.html', csrf_token=generate_csrf_token())
 
