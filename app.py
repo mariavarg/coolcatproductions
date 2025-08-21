@@ -692,21 +692,7 @@ def download_track(token, track_index):
         </style>
     </head>
     <body>
-        <h1>🔒 Admin Password Setup</h1>
-        
-        <div class="hash-box">
-            <h3>Step 1: Add this to Render Environment Variables:</h3>
-            <code>ADMIN_PASSWORD_HASH={hashed}</code>
-        </div>
-        
-        <div class="success">
-            <h3>Step 2: Remember your password:</h3>
-            <p>Your admin password is: <strong>{password}</strong></p>
-            <p>You'll use this to login at <code>/admin/login</code></p>
-        </div>
-        
-        <p class="warning">⚠️ IMPORTANT: Remove this route after setup and redeploy!</p>
-        
+       
         <h3>Instructions:</h3>
         <ol>
             <li>Copy the hash above</li>
