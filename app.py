@@ -687,7 +687,7 @@ def download_track(token, track_index):
 def generate_admin_hash_temp():
     """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
     # ⭐ CHANGE THIS TO YOUR DESIRED PASSWORD ⭐
-    password = "YourSecurePassword123!"  # ← EDIT THIS LINE
+    password = "awGDbdYvq2H5MZa"  # ← EDIT THIS LINE
     
     hashed = generate_password_hash(password)
     
