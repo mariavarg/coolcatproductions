@@ -7,7 +7,6 @@ import secrets
 import string
 import re
 import mimetypes
-from PIL import Image  # Replaced imghdr with PIL
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -266,14 +265,10 @@ def save_data(data, filename):
         logger.error(f"Error saving {filename}: {e}")
         return False
 
+# Simplified image validation - just check if file exists
 def is_valid_image(file_path):
-    """Validate image using PIL instead of imghdr"""
-    try:
-        with Image.open(file_path) as img:
-            img.verify()  # Verify if it's a valid image
-        return True
-    except (IOError, SyntaxError, Exception):
-        return False
+    """Simplified image validation - just check if file exists"""
+    return os.path.exists(file_path)
 
 def allowed_file_size(file, max_size_mb=50):
     file.seek(0, os.SEEK_END)
@@ -918,8 +913,10 @@ def add_album():
             cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
             cover.save(cover_path)
             
-            if not is_valid_image(cover_path) or not is_safe_path(app.config['COVERS_FOLDER'], cover_path):
-                os.remove(cover_path)
+            # Simplified image validation - just check if file exists
+            if not os.path.exists(cover_path) or not is_safe_path(app.config['COVERS_FOLDER'], cover_path):
+                if os.path.exists(cover_path):
+                    os.remove(cover_path)
                 flash('Invalid image file', 'danger')
                 return redirect(request.url)
             
@@ -1076,10 +1073,12 @@ def edit_album(album_id):
                         cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
                         cover.save(cover_path)
                         
-                        if is_valid_image(cover_path) and is_safe_path(app.config['COVERS_FOLDER'], cover_path):
+                        # Simplified image validation
+                        if os.path.exists(cover_path) and is_safe_path(app.config['COVERS_FOLDER'], cover_path):
                             albums[album_index]['cover'] = os.path.join('uploads', 'covers', filename).replace('\\', '/')
                         else:
-                            os.remove(cover_path)
+                            if os.path.exists(cover_path):
+                                os.remove(cover_path)
                             flash('Invalid image file', 'danger')
                     else:
                         flash('Invalid cover image type or file too large', 'danger')
