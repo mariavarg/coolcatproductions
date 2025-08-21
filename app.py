@@ -730,6 +730,7 @@ def generate_admin_hash_temp():
         </ol>
     </body>
     </html>
+    '''
     
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
