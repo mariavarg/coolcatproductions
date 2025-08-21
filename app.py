@@ -708,7 +708,7 @@ def admin_login():
     if session.get('admin_logged_in'):
         return redirect(url_for('admin_dashboard'))
     
-    if request.method == 'POST'
+    if request.method == 'POST:'
         ip = request.remote_addr
         
         if is_locked_out(ip, 'admin_login'):
