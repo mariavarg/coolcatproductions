@@ -223,13 +223,18 @@ def get_video_url(album):
     return album.get('video_url', '')
 
 def allowed_file(filename, file_type='image'):
+    if '.' not in filename:
+        return False
+        
+    ext = filename.rsplit('.', 1)[1].lower()
+    
     extensions = {
         'image': app.config['ALLOWED_EXTENSIONS'],
         'music': app.config['ALLOWED_MUSIC_EXTENSIONS'],
         'video': app.config['ALLOWED_VIDEO_EXTENSIONS']
-    }.get(file_type, set())
-        
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
+    }
+    
+    return ext in extensions.get(file_type, set())
 
 def load_data(filename):
     try:
@@ -433,7 +438,7 @@ def stream_video(filename):
                 f.seek(byte1)
                 remaining = length
                 while remaining > 0:
-                    chunk_size = min(app.config['VIDEO_STREAM_CHUNK_SIZE'], remaining)
+                    chunk_size = min(app.config['VIDEOS_FOLDER'], remaining)
                     data = f.read(chunk_size)
                     if not data:
                         break
@@ -694,7 +699,7 @@ def purchase_album(album_id):
             return redirect(url_for('album', album_id=album_id))
             
     except Exception as e:
-        logger.error(f"Purchase error: {e}")
+        logger.error(f"Purchase error: {e")
         log_security_event('PURCHASE_ERROR', f'Album: {album_id}, Error: {str(e)}', session.get('user_id'))
         flash('Purchase error. Please try again.', 'danger')
         return redirect(url_for('album', album_id=album_id))
