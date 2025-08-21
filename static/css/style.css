@@ -1,3 +1,107 @@
+/* Sofia Font for entire site */
+@import url('https://fonts.googleapis.com/css2?family=Sofia&display=swap');
+
+* {
+    font-family: 'Sofia', cursive;
+}
+
+body {
+    font-family: 'Sofia', cursive;
+}
+
+/* Ensure all text elements use Sofia */
+h1, h2, h3, h4, h5, h6,
+p, span, div, a,
+button, input, textarea,
+label, select, option {
+    font-family: 'Sofia', cursive;
+}
+
+/* Keep your existing styles below this line */
+.featured-video-card {
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.featured-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+}
+
+.hero-section {
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Video protection - disable right-click */
+.video-container {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.video-container video {
+    pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .featured-video-card {
+        margin: 0 -15px;
+        border-radius: 0;
+    }
+    
+    .hero-section {
+        padding: 2rem 0;
+    }
+}
+
+/* General styles */
+.album-card {
+    transition: transform 0.3s ease;
+}
+
+.album-card:hover {
+    transform: translateY(-5px);
+}
+
+.price {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.sale-price {
+    color: #dc3545;
+    text-decoration: line-through;
+}
+
+.btn-primary {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-primary:hover {
+    background-color: #5a2d91;
+    border-color: #5a2d91;
+}
+
 /* Featured Video Styles */
 .featured-video-card {
     border: none;
