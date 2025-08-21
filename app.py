@@ -682,26 +682,15 @@ def download_track(token, track_index):
 
 # ⭐ TEMPORARY ROUTE - PUT THIS RIGHT HERE ⭐
 @app.route('/generate-admin-hash')
-def generate_admin_hash():
+def generate_admin_hash_temp():  # ← ADD _temp or _setup to make unique
     """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
-    password = "YourChosenPassword123!"  # ← CHANGE THIS
-    hashed = generate_password_hash(password)
-    return f'<h1>Hash: {hashed}</h1>'
-
-# ... (other routes above)
-
-# ⭐ TEMPORARY ROUTE - PUT THIS RIGHT HERE ⭐
-@app.route('/generate-admin-hash')
-def generate_admin_hash():
-    """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
-    password = "YourChosenPassword123!"  # ← CHANGE THIS
+    password = "YourChosenPassword123!"
     hashed = generate_password_hash(password)
     return f'''
     <h1>Admin Password Hash</h1>
     <p>Add this to Render Environment Variables:</p>
     <code>ADMIN_PASSWORD_HASH={hashed}</code>
     <p>⚠️ Remove this route after setup!</p>
-    '''
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
