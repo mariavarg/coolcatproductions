@@ -680,9 +680,11 @@ def download_track(token, track_index):
     )
 # ... (other routes above)
 
+# ... (other routes above)
+
 # ⭐ TEMPORARY ROUTE - PUT THIS RIGHT HERE ⭐
 @app.route('/generate-admin-hash')
-def generate_admin_hash_temp():  # ← ADD _temp or _setup to make unique
+def generate_admin_hash_temp():
     """TEMPORARY: Generate admin password hash - REMOVE AFTER USE"""
     password = "YourChosenPassword123!"
     hashed = generate_password_hash(password)
@@ -691,6 +693,8 @@ def generate_admin_hash_temp():  # ← ADD _temp or _setup to make unique
     <p>Add this to Render Environment Variables:</p>
     <code>ADMIN_PASSWORD_HASH={hashed}</code>
     <p>⚠️ Remove this route after setup!</p>
+    '''
+
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -709,7 +713,7 @@ def admin_login():
             return render_template('admin/login.html', csrf_token=generate_csrf_token())
         
         if not check_rate_limit(ip, 'admin_login', 3, 300):
-            flash('Too many login attempts. Please wait 5 minutes.', 'warning')
+            flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
             return render_template('admin/login.html', csrf_token=generate_csrf_token())
         
         try:
@@ -729,7 +733,6 @@ def admin_login():
         except Exception as e:
             logger.error(f"Admin login error: {e}")
             flash('Login failed. Please try again.', 'danger')
-    pass
     
     return render_template('admin/login.html', csrf_token=generate_csrf_token())
 
@@ -764,7 +767,7 @@ def admin_dashboard():
         logger.error(f"Dashboard error: {e}")
         return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
 
-# ... [Rest of admin routes remain similar but with enhanced security] ...
+# ... [Rest of admin routes] ...
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
