@@ -1,6 +1,3 @@
-I see the issue with the font. The problem is that the font "Sofia" isn't being properly loaded or referenced in the templates. Let me provide you with the complete, updated app.py file with proper font handling:
-
-```python
 import os
 import json
 import logging
