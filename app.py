@@ -145,7 +145,7 @@ def is_password_complex(password):
     if not re.search(r'[A-Z]', password):
         return False, "Password must contain at least one uppercase letter"
     
-    if not re.search(r'[a-z]', password):
+    if not re.search(r'[a-z', password):
         return False, "Password must contain at least one lowercase letter"
     
     if not re.search(r'[0-9]', password):
@@ -328,10 +328,18 @@ def favicon():
     except:
         return '', 204
 
+# Contact route
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 # Static file serving for uploaded content
-@app.route('/static/uploads/<path:filename>')
+@app.route('/uploads/<path:filename>')
 def serve_uploaded_files(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    try:
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    except FileNotFoundError:
+        abort(404)
 
 # Protected video streaming route
 @app.route('/protected-video/<filename>')
@@ -539,7 +547,7 @@ def register():
     
     return render_template('register.html', csrf_token=generate_csrf_token())
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods['GET', 'POST'])
 def login():
     if request.method == 'POST':
         try:
