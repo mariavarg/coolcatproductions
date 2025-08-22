@@ -4,7 +4,7 @@
 
 #Add these new environment variables:
 
-```bash
+#bash
 # 2FA Configuration
 TOTP_SECRET=your_super_secure_totp_secret_here
 
