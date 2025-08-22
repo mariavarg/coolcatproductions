@@ -573,13 +573,7 @@ def register():
             if not is_complex:
                 flash(message, 'danger')
                 return render_template('register.html', csrf_token=generate_csrf_token())
-            
-            # Complete Fixed app.py (Continued)
-
-Here's the continuation of the fixed app.py file:
-
-```python
-            users = load_data(app.config['USERS_FILE'])
+                users = load_data(app.config['USERS_FILE'])
             
             # Check if username or email already exists
             if any(u['username'].lower() == username.lower() for u in users):
