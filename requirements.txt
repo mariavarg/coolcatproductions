@@ -1,9 +1,7 @@
 Flask==2.3.3
-Werkzeug==2.3.7
 python-dotenv==1.0.0
-gunicorn==21.2.0
-Flask==2.3.3
-stripe==7.0.0
+Werkzeug==2.3.7
+stripe==5.4.0  # Downgraded to a more stable version
 pyotp==2.8.0
-qrcode[pil]==7.4.2
-Pillow==10.0.0  # Required for qrcode[pil]
+qrcode==7.4.2  # Removed the [pil] extra
+Pillow==9.5.0  # Explicitly added Pillow for image support
