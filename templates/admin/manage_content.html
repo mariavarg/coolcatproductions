@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content-box">
+    <h2>Content Management</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>{{ album_count }}</h3>
+            <p>Total Albums</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ music_album_count }}</h3>
+            <p>Music Albums</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ video_album_count }}</h3>
+            <p>Video Albums</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ singles_count }}</h3>
+            <p>Singles</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ total_size }} MB</h3>
+            <p>Storage Used</p>
+        </div>
+    </div>
+</div>
+
+<div class="content-box">
+    <h2>Content Cleanup</h2>
+    <p>Remove old or unused content to free up storage space.</p>
+    
+    <form method="POST" action="{{ url_for('cleanup_content') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        
+        <div class="form-group">
+            <label>Older Than (days)</label>
+            <input type="number" name="older_than" min="0" class="form-control" placeholder="0 for all">
+        </div>
+        
+        <div class="form-group">
+            <label>Maximum Downloads</label>
+            <input type="number" name="min_downloads" min="0" class="form-control" placeholder="0 for all">
+            <small>Delete content with fewer downloads than this number</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Content Type</label>
+            <select name="content_type" class="form-control">
+                <option value="all">All Content</option>
+                <option value="music">Music Only</option>
+                <option value="video">Video Only</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn" onclick="return confirm('Are you sure you want to delete content? This action cannot be undone.')">Clean Up Content</button>
+    </form>
+</div>
+
+<div class="content-box">
+    <h2>All Content</h2>
+    
+    <div class="content-list">
+        {% for album in albums %}
+        <div class="content-item">
+            <img src="{{ url_for('static', filename=album.cover) }}" alt="{{ album.title }}" class="content-thumb">
+            <div class="content-info">
+                <h4>{{ album.title }} - {{ album.artist }}</h4>
+                <p>{{ album.tracks|length }} tracks • Added: {{ album.added }}</p>
+                {% if album.has_video %}
+                <span class="badge">Video</span>
+                {% endif %}
+            </div>
+            <div class="content-actions">
+                <a href="{{ url_for('edit_album', album_id=album.id) }}" class="btn">Edit</a>
+                <a href="{{ url_for('delete_album', album_id=album.id) }}" class="btn" onclick="return confirm('Delete this album?')">Delete</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    margin: 0;
+    color: #0d6efd;
+}
+
+.content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.content-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    gap: 15px;
+}
+
+.content-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.content-info {
+    flex-grow: 1;
+}
+
+.badge {
+    background: #0d6efd;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.content-actions {
+    display: flex;
+    gap: 10px;
+}
+</style>
+{% endblock %}
