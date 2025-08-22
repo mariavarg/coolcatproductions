@@ -1,4 +1,8 @@
-python
+# Complete Fixed app.py
+
+Here's the complete, fixed app.py with both the f-string syntax error and indentation error corrected:
+
+```python
 import os
 import json
 import logging
@@ -200,7 +204,7 @@ def is_password_complex(password):
     
     checks = [
         (r'[A-Z]', "uppercase letter"),
-        (r'[a-z]', "lowercase letter"),
+        (r'[a-z', "lowercase letter"),
         (r'[0-9]', "number"),
         (r'[!@#$%^&*(),.?":{}|<>]', "special character")
     ]
@@ -575,6 +579,11 @@ def register():
                 flash(message, 'danger')
                 return render_template('register.html', csrf_token=generate_csrf_token())
             
+            # Complete Fixed app.py (Continued)
+
+Here's the continuation of the fixed app.py file:
+
+```python
             users = load_data(app.config['USERS_FILE'])
             
             # Check if username or email already exists
@@ -903,7 +912,8 @@ def add_album():
             track_list = [t.strip() for t in request.form.get('tracks', '').split('\n') if t.strip()]
             mp3_files = [f for f in music_files if f.filename]
             
-                       if len(track_list) != len(mp3_files):
+            # Fixed indentation for this if statement
+            if len(track_list) != len(mp3_files):
                 flash(f'Error: You listed {len(track_list)} tracks but uploaded {len(mp3_files)} MP3 files. They must match!', 'danger')
                 return redirect(request.url)
                 
@@ -1117,7 +1127,7 @@ def edit_album(album_id):
                         else:
                             os.remove(video_path)
                             flash('Invalid video file path', 'danger')
-                    else:
+                                       else:
                         flash(f'Invalid video file type or file too large (max {app.config["MAX_VIDEO_SIZE"] // (1024*1024)}MB)', 'danger')
                 
                 # Update other fields
