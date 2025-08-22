@@ -214,7 +214,7 @@ def get_track_filename(album_id, track_index, track_name):
 
 def get_track_path(album_id, track_index, track_name):
     filename = get_track_filename(album_id, track_index, track_name)
-    return os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}", filename)
+    return os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id", filename)
 
 def ensure_music_dirs_exist(album_id):
     album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
@@ -386,6 +386,38 @@ def verify_2fa_token(secret, token):
 def generate_backup_codes(count=10):
     """Generate backup codes for 2FA"""
     return [secrets.token_hex(4).upper() for _ in range(count)]
+
+# Admin password change function
+def update_admin_password(new_username, new_password):
+    """Update admin credentials in environment variables and app config"""
+    try:
+        # Update environment variables
+        os.environ['ADMIN_USERNAME'] = new_username
+        os.environ['ADMIN_PASSWORD_HASH'] = generate_password_hash(new_password)
+        
+        # Update app configuration
+        app.config['ADMIN_USERNAME'] = new_username
+        app.config['ADMIN_PASSWORD_HASH'] = generate_password_hash(new_password)
+        
+        # Update .env file if it exists
+        env_file = '.env'
+        if os.path.exists(env_file):
+            with open(env_file, 'r') as f:
+                lines = f.readlines()
+            
+            with open(env_file, 'w') as f:
+                for line in lines:
+                    if line.startswith('ADMIN_USERNAME='):
+                        f.write(f'ADMIN_USERNAME={new_username}\n')
+                    elif line.startswith('ADMIN_PASSWORD_HASH='):
+                        f.write(f'ADMIN_PASSWORD_HASH={generate_password_hash(new_password)}\n')
+                    else:
+                        f.write(line)
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error updating admin credentials: {e}")
+        return False
 
 # Security middleware and headers
 @app.before_request
@@ -1234,7 +1266,69 @@ def admin_dashboard():
         logger.error(f"Dashboard error: {e}")
         return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
 
-# ... (rest of the admin routes remain the same as before)
+@app.route('/admin/settings', methods=['GET', 'POST'])
+def admin_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if request.method == 'POST':
+        if not validate_csrf_token():
+            flash('Security token invalid. Please try again.', 'danger')
+            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+        
+        current_username = request.form.get('current_username')
+        current_password = request.form.get('current_password')
+        new_username = request.form.get('new_username')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Verify current credentials
+        admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
+        
+        if (current_username != app.config['ADMIN_USERNAME'] or 
+            not check_password_hash(admin_password_hash, current_password)):
+            flash('Current username or password is incorrect', 'danger')
+            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+        
+        # Validate new password
+        if new_password:
+            if new_password != confirm_password:
+                flash('New passwords do not match', 'danger')
+                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+            
+            is_complex, message = is_password_complex(new_password)
+            if not is_complex:
+                flash(message, 'danger')
+                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+        
+        # Update credentials
+        updated = update_admin_password(
+            new_username or current_username, 
+            new_password or current_password
+        )
+        
+        if updated:
+            flash('Admin credentials updated successfully', 'success')
+            log_security_event('ADMIN_CREDENTIALS_UPDATED', 'Admin updated their credentials')
+            
+            # If username changed, update session
+            if new_username and new_username != current_username:
+                session['admin_logged_in'] = False
+                flash('Please log in with your new username', 'info')
+                return redirect(url_for('admin_login'))
+        else:
+            flash('Failed to update admin credentials', 'danger')
+        
+        return redirect(url_for('admin_settings'))
+    
+    return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Admin logged out successfully', 'success')
+    log_security_event('ADMIN_LOGOUT', 'Admin logged out')
+    return redirect(url_for('admin_login'))
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
