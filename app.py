@@ -1,23 +1,3 @@
-# Enhanced Security with 2FA and Payment Processing
-
-# 1. Update Your `.env` File
-# Add these new environment variables:
-# TOTP_SECRET=your_super_secure_totp_secret_here
-# STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-# STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
-# STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-# BACKUP_CODES=code1,code2,code3,code4,code5,code6,code7,code8,code9,code10
-
-# 2. Install Required Dependencies
-# Add these to your requirements.txt:
-# stripe==7.0.0
-# pyotp==2.8.0
-# qrcode[pil]==7.4.2
-
-# 3. Enhanced Security Implementation
-# Here's the complete updated `app.py` with 2FA and Stripe integration:
-
-#python
 import os
 import json
 import logging
@@ -30,13 +10,10 @@ import mimetypes
 import smtplib
 import stripe
 import pyotp
-import qrcode
-from io import BytesIO
-import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_file, Response, send_from_directory, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -401,27 +378,6 @@ def generate_2fa_secret():
     """Generate a new 2FA secret"""
     return pyotp.random_base32()
 
-def generate_2fa_qr_code(secret, username):
-    """Generate QR code for 2FA setup"""
-    totp = pyotp.TOTP(secret)
-    uri = totp.provisioning_uri(name=username, issuer_name="CoolCat Productions")
-    
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(uri)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
-    
-    return f"data:image/png;base64,{img_str}"
-
 def verify_2fa_token(secret, token):
     """Verify 2FA token"""
     totp = pyotp.TOTP(secret)
@@ -742,14 +698,9 @@ def register():
             
             users.append(new_user)
             if save_data(users, app.config['USERS_FILE']):
-                # Generate QR code for 2FA setup
-                qr_code = generate_2fa_qr_code(new_user['2fa_secret'], new_user['username'])
-                
-                flash('Registration successful. Please set up 2FA.', 'success')
-                return render_template('setup_2fa.html', 
-                                     qr_code=qr_code, 
-                                     backup_codes=new_user['backup_codes'],
-                                     csrf_token=generate_csrf_token())
+                flash('Registration successful. Please set up 2FA by manually entering this secret into your authenticator app:', 'success')
+                flash(f'Secret: {new_user["2fa_secret"]}', 'info')
+                return redirect(url_for('setup_2fa'))
             else:
                 flash('Registration failed. Please try again.', 'danger')
                 
@@ -759,13 +710,13 @@ def register():
     
     return render_template('register.html', csrf_token=generate_csrf_token())
 
-@app.route('/setup-2fa', methods=['POST'])
+@app.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa():
     """Complete 2FA setup by verifying the first token"""
     if not session.get('user_id'):
         return redirect(url_for('login'))
     
-    try:
+    if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
             return redirect(url_for('profile'))
@@ -794,11 +745,7 @@ def setup_2fa():
         else:
             flash('Invalid authentication code. Please try again.', 'danger')
             
-    except Exception as e:
-        logger.error(f"2FA setup error: {e}")
-        flash('Error setting up 2FA. Please try again.', 'danger')
-    
-    return redirect(url_for('profile'))
+    return render_template('setup_2fa.html', csrf_token=generate_csrf_token())
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -935,15 +882,9 @@ def profile():
                     'downloads': purchase.get('downloads', 0)
                 })
         
-        # Generate new QR code if 2FA is not enabled
-        qr_code = None
-        if not user.get('2fa_enabled', False):
-            qr_code = generate_2fa_qr_code(user['2fa_secret'], user['username'])
-        
         return render_template('profile.html', 
                              user=user,
                              purchase_history=purchase_history,
-                             qr_code=qr_code,
                              backup_codes=user.get('backup_codes', []))
     except Exception as e:
         logger.error(f"Profile error: {e}")
