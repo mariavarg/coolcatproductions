@@ -17,7 +17,7 @@
 # 3. Enhanced Security Implementation
 # Here's the complete updated `app.py` with 2FA and Stripe integration:
 
-#```python
+#python
 import os
 import json
 import logging
