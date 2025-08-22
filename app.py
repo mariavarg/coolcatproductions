@@ -214,8 +214,7 @@ def get_track_filename(album_id, track_index, track_name):
 
 def get_track_path(album_id, track_index, track_name):
     filename = get_track_filename(album_id, track_index, track_name)
-    return os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id", filename)
-
+    return os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}", filename)
 def ensure_music_dirs_exist(album_id):
     album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
     os.makedirs(album_dir, exist_ok=True)
