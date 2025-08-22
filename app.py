@@ -1111,7 +1111,7 @@ def stripe_webhook():
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
         logger.error(f"Invalid webhook signature: {e}")
-        return jsonify({'error': 'Invalid signature''), 400
+        return jsonify({'error': 'Invalid signature'}), 400
     
     # Handle the event
     if event['type'] == 'payment_intent.succeeded':
