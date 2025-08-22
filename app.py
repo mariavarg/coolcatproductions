@@ -17,15 +17,7 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 BACKUP_CODES=code1,code2,code3,code4,code5,code6,code7,code8,code9,code10
 ## 2. Install Required Dependencies
 
-Add these to your `requirements.txt`:
-
-```txt
-stripe==7.0.0
-pyotp==2.8.0
-qrcode[pil]==7.4.2
-```
-
-## 3. Enhanced Security Implementation
+# 3. Enhanced Security Implementation
 
 #Here's the complete updated `app.py` with 2FA and Stripe integration:
 
