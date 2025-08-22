@@ -396,6 +396,19 @@ def security_checks():
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
     
+    # Enhanced WAF checks
+    suspicious_patterns = [
+        '../', '/etc/passwd', '/bin/', '/cmd', ';', '|', '`', '$(',
+        'union select', 'insert into', 'drop table', 'sleep(', 'waitfor delay',
+        'script>', 'javascript:', 'onload=', 'onerror=', 'onclick='
+    ]
+    
+    # Check both path and query parameters
+    request_str = str(request.path) + str(request.query_string)
+    if any(pattern in request_str.lower() for pattern in suspicious_patterns):
+        log_security_event('SUSPICIOUS_REQUEST', f'Blocked request: {request_str}')
+        abort(400)
+    
     # Check for suspicious user agents
     user_agent = request.headers.get('User-Agent', '')
     suspicious_agents = ['bot', 'spider', 'crawl', 'scan', 'hack', 'sqlmap', 'nikto']
@@ -403,7 +416,6 @@ def security_checks():
         log_security_event('SUSPICIOUS_USER_AGENT', f'User-Agent: {user_agent}')
     
     # Check for common attack patterns in request path
-    suspicious_patterns = ['../', '/etc/passwd', '/bin/', '/cmd', ';', '|', '`', '$(']
     if any(pattern in request.path for pattern in suspicious_patterns):
         log_security_event('SUSPICIOUS_REQUEST', f'Path: {request.path}')
         abort(400)
@@ -416,7 +428,7 @@ def add_security_headers(response):
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
         'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
         'Cross-Origin-Embedder-Policy': 'require-corp',
         'Cross-Origin-Opener-Policy': 'same-origin',
@@ -1099,7 +1111,7 @@ def stripe_webhook():
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
         logger.error(f"Invalid webhook signature: {e}")
-        return jsonify({'error': 'Invalid signature'}), 400
+        return jsonify({'error': 'Invalid signature''), 400
     
     # Handle the event
     if event['type'] == 'payment_intent.succeeded':
