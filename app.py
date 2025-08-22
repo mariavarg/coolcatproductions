@@ -1,8 +1,3 @@
-# Complete Fixed app.py
-
-Here's the complete, fixed app.py with both the f-string syntax error and indentation error corrected:
-
-```python
 import os
 import json
 import logging
