@@ -244,7 +244,7 @@ def load_data(filename):
         return []
     except Exception as e:
         logger.error(f"Error loading {filename}: {e}")
-                backup_file = f"data/backups/{os.path.basename(filename)}.backup"
+        backup_file = f"data/backups/{os.path.basename(filename)}.backup"  # This is line 247
         if os.path.exists(backup_file):
             try:
                 with open(backup_file, 'r', encoding='utf-8') as f:
