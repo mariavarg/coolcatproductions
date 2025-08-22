@@ -15,8 +15,6 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Backup codes for 2FA (comma-separated)
 BACKUP_CODES=code1,code2,code3,code4,code5,code6,code7,code8,code9,code10
-```
-
 ## 2. Install Required Dependencies
 
 Add these to your `requirements.txt`:
