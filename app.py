@@ -1,26 +1,3 @@
-# Fixed Indentation Error
-
-The error on line 1119 is an indentation issue. Here's the corrected section of the `edit_album` function:
-
-```python
-                        if is_safe_path(app.config['VIDEOS_FOLDER'], video_path):
-                            albums[album_index]['video_filename'] = video_filename
-                            albums[album_index]['video_category'] = video_category
-                            albums[album_index]['has_video'] = True
-                        else:
-                            os.remove(video_path)
-                            flash('Invalid video file path', 'danger')
-                    else:
-                        flash(f'Invalid video file type or file too large (max {app.config["MAX_VIDEO_SIZE"] // (1024*1024)}MB)', 'danger')
-```
-
-The issue was that the `else` statement was incorrectly indented. I've fixed it to match the proper indentation level.
-
-## Complete Fixed app.py
-
-Since you're having trouble finding the exact line, here's the complete fixed app.py with all issues resolved:
-
-```python
 import os
 import json
 import logging
