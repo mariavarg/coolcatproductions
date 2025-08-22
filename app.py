@@ -2,7 +2,7 @@
 
 ## 1. Update Your `.env` File
 
-Add these new environment variables:
+#Add these new environment variables:
 
 ```bash
 # 2FA Configuration
