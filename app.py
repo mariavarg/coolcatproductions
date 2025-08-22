@@ -1,8 +1,3 @@
-# Complete Fixed app.py File
-
-Here's your complete `app.py` file with only the indentation errors fixed, maintaining your exact structure and functionality:
-
-```python
 import os
 import json
 import logging
