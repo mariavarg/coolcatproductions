@@ -568,42 +568,38 @@ def stream_video(filename):
             if match.group(2):
                 byte2 = int(match.group(2))
         
-                byte1 = int(match.group(1))
-        if match.group(2):
-            byte2 = int(match.group(2))
+        length = file_size - byte1
+        if byte2 is not None:
+            length = byte2 - byte1 + 1
+        
+        # Read file in chunks
+        def generate():
+            with open(video_path, 'rb') as f:
+                f.seek(byte1)
+                remaining = length
+                while remaining > 0:
+                    chunk_size = min(app.config['VIDEO_STREAM_CHUNK_SIZE'], remaining)
+                    data = f.read(chunk_size)
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+        
+        rv = Response(generate(), 
+                    206,
+                    mimetype=mimetypes.guess_type(video_path)[0], 
+                    direct_passthrough=True)
+        rv.headers.add('Content-Range', f'bytes {byte1}-{byte1 + length - 1}/{file_size}')
+        rv.headers.add('Accept-Ranges', 'bytes')
+        rv.headers.add('Content-Length', str(length))
+        
+        # Anti-download measures
+        rv.headers.add('Content-Disposition', 'inline')
+        rv.headers.add('X-Content-Type-Options', 'nosniff')
+        rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        
+        return rv
     
-    length = file_size - byte1
-    if byte2 is not None:
-        length = byte2 - byte1 + 1
-    
-    # Read file in chunks
-    def generate():
-        with open(video_path, 'rb') as f:
-            f.seek(byte1)
-            remaining = length
-            while remaining > 0:
-                chunk_size = min(app.config['VIDEO_STREAM_CHUNK_SIZE'], remaining)
-                data = f.read(chunk_size)
-                if not data:
-                    break
-                remaining -= len(data)
-                yield data
-    
-    rv = Response(generate(), 
-                206,
-                mimetype=mimetypes.guess_type(video_path)[0], 
-                direct_passthrough=True)
-    rv.headers.add('Content-Range', f'bytes {byte1}-{byte1 + length - 1}/{file_size}')
-    rv.headers.add('Accept-Ranges', 'bytes')
-    rv.headers.add('Content-Length', str(length))
-    
-    # Anti-download measures
-    rv.headers.add('Content-Disposition', 'inline')
-    rv.headers.add('X-Content-Type-Options', 'nosniff')
-    rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-    
-    return rv
-else:
     # Regular request without range header
     def generate():
         with open(video_path, 'rb') as f:
