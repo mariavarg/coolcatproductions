@@ -1,8 +1,6 @@
-Flask==2.3.3
-python-dotenv==1.0.0
-Werkzeug==2.3.7
+Flask==2.2.5
+python-dotenv==0.19.2
+Werkzeug==2.2.3
 stripe==5.5.0
 pyotp==2.8.0
-qrcode==7.4.2
-Pillow==9.5.0
 gunicorn==21.2.0
