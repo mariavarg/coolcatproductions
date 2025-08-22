@@ -29,7 +29,7 @@ qrcode[pil]==7.4.2
 
 ## 3. Enhanced Security Implementation
 
-Here's the complete updated `app.py` with 2FA and Stripe integration:
+#Here's the complete updated `app.py` with 2FA and Stripe integration:
 
 ```python
 import os
