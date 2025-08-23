@@ -59,7 +59,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; 
                                     padding: 10px; background: #222; border-radius: 4px;">
                             <span>{{ loop.index }}. {{ track }}</span>
-                            <a href="{{ url_for('purchase_album', album_id=album.id) }}" 
+                            <a href="{{ url_for('album', album_id=album.id) }}" 
                                class="btn" style="padding: 5px 15px; font-size: 0.9rem;">
                                Download MP3
                             </a>
