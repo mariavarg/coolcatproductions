@@ -372,7 +372,7 @@ def send_admin_notification(subject, message):
         server.send_message(msg)
         server.quit()
         
-        logger.info(f"Admin notification sent:极速分析 {subject}")
+        logger.info(f"Admin notification sent: {subject}")
         return True
     except Exception as e:
         logger.error(f"Failed to send admin notification: {e}")
@@ -468,8 +468,7 @@ def add_security_headers(response):
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
         'Permissions极速分析-Policy': 'geolocation=(), microphone=(), camera=()',
         'Cross-Origin-Embedder-Policy': 'require-corp',
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        '极速分析-Origin-Resource-Policy': 'same-origin'
+        'Cross-Origin-Resource-Policy': 'same-origin'
     }
     
     # Enhanced CSP
@@ -634,7 +633,7 @@ def home():
         
         # Get albums with videos for featured section
         featured_albums = [a for a in albums if a.get('has_video', False) and a.get('video_filename')][:4]
-        regular_albums = [a for极速分析 albums if not a.get('has_video', False)][:8]
+        regular_albums = [a for a in albums if not a.get('has_video', False)][:8]
         
         return render_template('index.html', 
                              featured_albums=featured_albums,
@@ -718,10 +717,10 @@ def register():
             # Check password complexity
             is_complex, message = is_password_complex(password)
             if not is_complex:
-                flash(message, '极速分析')
+                flash(message, 'danger')
                 return render_template('register.html', csrf_token=generate_csrf_token())
-            
-            users = load极速分析(app.config['USERS_FILE'])
+
+users = load_data(app.config['USERS_FILE'])
             
             # Check if username or email already exists
             if any(u['username'].lower() == username.lower() for u in users):
@@ -773,7 +772,7 @@ def setup_2fa():
         token = request.form.get('token', '')
         
         users = load_data(app.config['USERS_FILE'])
-        user = next((u for u in users if u['极速分析'] == session['user_id']), None)
+        user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
         
         if not user:
             flash('User not found', 'danger')
@@ -810,18 +809,18 @@ def login():
         
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('login极速分析', csrf_token=generate_csrf_token())
+            return render_template('admin/login.html', csrf_token=generate_csrf_token())
         
-        if not check_rate_limit(ip, 'user_login', 5, 极速分析):
+        if not check_rate_limit(ip, 'user_login', 5, 300):
             flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
             return render_template('login.html', csrf_token=generate_csrf_token())
         
         try:
-            username = request.form.get('username', '').strip()
-            password = request.form.get('password', '')
-            
-            users = load_data(app.config['USERS_FILE'])
-            user = next((极速分析 for u in users if u['username'].lower() == username.lower() and u['is_active']), None)
+           username = request.form.get('username', '').strip()
+           password = request.form.get('password', '')
+    
+    users = load_data(app.config['USERS_FILE'])
+    user = next((u for u in users if u['username'].lower() == username.lower() and u['is_active']), None)
             
             if user and check_password_hash(user['password_hash'], password):
                 # Check if 2FA is enabled
@@ -874,7 +873,7 @@ def verify_2fa_login():
         # Check backup code first
         if backup_code and backup_code in user.get('backup_codes', []):
             # Remove used backup code
-            user_index = next((i for i, u in enumerate(users极速分析 if u['id'] == user['id']), -1)
+            user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
             if user_index != -1:
                 users[user_index]['backup_codes'] = [code for code in user['backup_codes'] if code != backup_code]
                 if save_data(users, app.config['USERS_FILE']):
@@ -921,7 +920,7 @@ def profile():
         albums = load_data(app.config['ALBUMS_FILE'])
         purchase_history = []
         
-        for purchase in user极速分析:
+        for purchase in user_purchases:
             album = next((a for a in albums if a['id'] == purchase['album_id']), None)
             if album:
                 purchase_history.append({
@@ -929,7 +928,7 @@ def profile():
                     'purchase_date': purchase['purchase_date'],
                     'amount': purchase['amount'],
                     'downloads': purchase.get('downloads', 0)
-                })
+        })
         
         return render_template('profile.html', 
                              user=user,
