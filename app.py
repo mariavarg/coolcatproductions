@@ -446,7 +446,7 @@ def security_checks():
     
     # Check for suspicious user agents
     user_agent = request.headers.get('User-Agent', '')
-    suspicious_agents = ['bot', 'spider', 'crawl', 'scan', 'hack', 'sql极速分析, 'nikto']
+    suspicious_agents = ['bot', 'spider', 'crawl', 'scan', 'hack', 'sqlmap', 'nikto']
     if any(agent in user_agent.lower() for agent in suspicious_agents):
         log_security_event('SUSPICIOUS_USER_AGENT', f'User-Agent: {user_agent}')
     
