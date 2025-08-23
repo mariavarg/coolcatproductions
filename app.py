@@ -246,7 +246,7 @@ def is_password_complex(password):
 def generate_strong_password(length=16):
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(alphabet) for _ in range(length))
-
+    
 def allowed_video_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_VIDEO_EXTENSIONS']
 
