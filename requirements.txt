@@ -9,3 +9,4 @@ blinker==1.6.2
 stripe==7.0.0
 pyotp==2.8.0
 qrcode[pil]==7.4.2
+Pillow==9.5.0
