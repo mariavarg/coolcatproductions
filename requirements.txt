@@ -5,7 +5,7 @@ stripe==5.5.0
 pyotp==2.8.0
 gunicorn==20.1.0
 qrcode==7.4.2
-Pillow==9.5.0  # Change to this specific version
+Pillow==9.5.0; python_version < '3.13'
+Pillow==10.0.0; python_version >= '3.13'
 email-validator==1.3.1
 blinker==1.6.2
-setuptools==65.5.0  # Add this for compatibility
