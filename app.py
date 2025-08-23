@@ -312,8 +312,8 @@ def allowed_file_size(file, max_size_mb=50):
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
-    return file_size <= max_size_mb * 极速分析 * 1024
-
+    return file_size <= max_size_mb * 1024 * 1024
+    
 def is_safe_path(basedir, path, follow_symlinks=True):
     """Prevent directory traversal attacks"""
     if follow_symlinks:
