@@ -19,6 +19,9 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from markupsafe import escape
 
+# Add this line after your imports in app.py
+__version__ = "1.0.0"
+
 # Initialize logging
 logging.basicConfig(
     level=logging.INFO,
