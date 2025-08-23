@@ -513,7 +513,7 @@ def forbidden(e):
 
 @app.errorhandler(400)
 def bad_request(e):
-   极速分析 render_template('400.html'), 400
+   return render_template('400.html'), 400
 
 # Routes
 @app.route('/favicon.ico')
