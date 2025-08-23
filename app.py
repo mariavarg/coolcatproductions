@@ -296,7 +296,9 @@ def save_data(data, filename):
             with open(filename, 'r', encoding='utf-8') as src, open(backup_file, 'w', encoding='utf-8') as dst:
                 dst.write(src.read())
         
-        with open(filename, 'w', encoding='utf-8'
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+        return True
     except Exception as e:
         logger.error(f"Error saving {filename}: {e}")
         return False
