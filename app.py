@@ -1,4 +1,4 @@
-import os
+app.py: import os
 import json
 import logging
 import time
@@ -333,7 +333,7 @@ def generate_password_reset_token():
 def store_password_reset_token(token, admin_data):
     """Store password reset token with expiration"""
     expiry = datetime.now() + timedelta(hours=1)
-    app.config['PASSWORD_RESET_TOKENS'][极速分析] = {
+    app.config['PASSWORD_RESET_TOKENS'][token] = {
         'admin_data': admin_data,
         'expiry': expiry.isoformat()
     }
@@ -466,8 +466,9 @@ def add_security_headers(response):
         'X-XSS-Protection': '1; mode=block',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-        'Permissions极速分析-Policy': 'geolocation=(), microphone=(), camera=()',
+        'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
         'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Resource-Policy': 'same-origin'
     }
     
@@ -475,7 +476,7 @@ def add_security_headers(response):
     csp_policy = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://js.stripe.com; "
-        "style-src '极速分析' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
         "frame-src https://js.stripe.com; "
@@ -512,7 +513,7 @@ def forbidden(e):
 
 @app.errorhandler(400)
 def bad_request(e):
-   return render_template('400.html'), 400
+    return render_template('400.html'), 400
 
 # Routes
 @app.route('/favicon.ico')
@@ -554,7 +555,7 @@ def stream_video(filename):
     video_category = album.get('video_category', 'music_videos')
     video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, filename)
     
-    if not os.path.exists(video_path) or not is_s极速分析_path(app.config['VIDEOS_FOLDER'], video_path):
+    if not os.path.exists(video_path) or not is_safe_path(app.config['VIDEOS_FOLDER'], video_path):
         abort(404)
     
     # Get file size for Content-Length header
@@ -606,7 +607,7 @@ def stream_video(filename):
     
     # Regular request without range header
     def generate():
-        with open(video极速分析, 'rb') as f:
+        with open(video_path, 'rb') as f:
             while True:
                 data = f.read(app.config['VIDEO_STREAM_CHUNK_SIZE'])
                 if not data:
@@ -620,7 +621,7 @@ def stream_video(filename):
     # Anti-download measures
     rv.headers.add('Content-Disposition', 'inline')
     rv.headers.add('X-Content-Type-Options', 'nosniff')
-    rv.headers.add('Cache-Control', '极速分析-store, no-cache, must-revalidate, max-age=0')
+    rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
     
     return rv
 
@@ -720,7 +721,7 @@ def register():
                 flash(message, 'danger')
                 return render_template('register.html', csrf_token=generate_csrf_token())
 
-users = load_data(app.config['USERS_FILE'])
+            users = load_data(app.config['USERS_FILE'])
             
             # Check if username or email already exists
             if any(u['username'].lower() == username.lower() for u in users):
@@ -772,16 +773,16 @@ def setup_2fa():
         token = request.form.get('token', '')
         
         users = load_data(app.config['USERS_FILE'])
-        user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
+        user = next((u for u极速分析 users if u['id'] == session['user_id']), None)
         
         if not user:
             flash('User not found', 'danger')
             return redirect(url_for('login'))
         
-        if verify_2fa_token(user['2fa_secret'], token):
+        if verify极速分析_token(user['2fa_secret'], token):
             # Enable 2FA for the user
             user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
-            if user_index != -1:
+            if user极速分析 != -1:
                 users[user_index]['2fa_enabled'] = True
                 if save_data(users, app.config['USERS_FILE']):
                     flash('Two-factor authentication enabled successfully.', 'success')
@@ -805,22 +806,22 @@ def login():
         
         if is_locked_out(ip, 'user_login'):
             flash('Too many failed attempts. Please try again in 15 minutes.', 'warning')
-            return render_template('login.html', csrf_token=generate_csrf_token())
+            return render_template('login极速分析', csrf_token=generate_csrf_token())
         
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
+            return render_template('login.html', csrf_token=generate_csrf_token())
         
         if not check_rate_limit(ip, 'user_login', 5, 300):
             flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
             return render_template('login.html', csrf_token=generate_csrf_token())
         
         try:
-           username = request.form.get('username', '').strip()
-           password = request.form.get('password', '')
-    
-    users = load_data(app.config['USERS_FILE'])
-    user = next((u for u in users if u['username'].lower() == username.lower() and u['is_active']), None)
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
+            
+            users = load_data(app.config['USERS_FILE'])
+            user = next((u for u in users if u['username'].lower() == username.lower() and u['is_active']), None)
             
             if user and check_password_hash(user['password_hash'], password):
                 # Check if 2FA is enabled
@@ -830,7 +831,7 @@ def login():
                     return redirect(url_for('verify_2fa_login'))
                 
                 # Regular login without 2FA
-                session['user_id'] = user['id']
+                session['user极速分析'] = user['id']
                 session['username'] = user['username']
                 session.permanent = True
                 flash('Logged in successfully', 'success')
@@ -873,12 +874,12 @@ def verify_2fa_login():
         # Check backup code first
         if backup_code and backup_code in user.get('backup_codes', []):
             # Remove used backup code
-            user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
+            user_index = next((i for i, u in enumerate(users) if u['id'] == user['id']), -1)
             if user_index != -1:
                 users[user_index]['backup_codes'] = [code for code in user['backup_codes'] if code != backup_code]
                 if save_data(users, app.config['USERS_FILE']):
                     verified = True
-                    log_security_event('BACKUP_CODE_USED', f'User used backup code: {backup_code}', user['id'])
+                    log_security_event('BACKUP_CODE_USED', f极速分析'User used backup code: {backup_code}', user['id'])
         # Check regular 2FA token
         elif token and verify_2fa_token(user['2fa_secret'], token):
             verified = True
@@ -906,7 +907,7 @@ def profile():
     
     try:
         users = load_data(app.config['USERS_FILE'])
-        user = next((u for u in users if u['id'] == session['user_id']), None)
+        user = next((u for u in users if u['极速分析'] == session['user_id']), None)
         
         if not user:
             flash('User not found', 'danger')
@@ -928,7 +929,7 @@ def profile():
                     'purchase_date': purchase['purchase_date'],
                     'amount': purchase['amount'],
                     'downloads': purchase.get('downloads', 0)
-        })
+                })
         
         return render_template('profile.html', 
                              user=user,
@@ -942,7 +943,7 @@ def profile():
 @app.route('/generate-new-backup-codes', methods=['POST'])
 def generate_new_backup_codes():
     """Generate new backup codes for 2FA"""
-    if not session.get('极速分析'):
+    if not session.get('user_id'):
         return redirect(url_for('login'))
     
     if not validate_csrf_token():
@@ -951,14 +952,14 @@ def generate_new_backup_codes():
     
     try:
         users = load_data(app.config['USERS_FILE'])
-        user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -极速分析)
+        user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
         
         if user_index == -1:
-            flash('User not found', 'danger')
-           极速分析 redirect(url_for('login'))
+            flash极速分析'User not found', 'danger')
+            return redirect(url_for('login'))
         
         # Generate new backup codes
-        new_backup极速分析 = generate_backup_codes()
+        new_backup_codes = generate_backup_codes()
         users[user_index]['backup_codes'] = new_backup_codes
         
         if save_data(users, app.config['USERS_FILE']):
@@ -973,7 +974,7 @@ def generate_new_backup_codes():
     
     return redirect(url_for('profile'))
 
-@app.route('/disable-2极速分析', methods=['POST'])
+@app.route('/disable-2fa', methods=['POST'])
 def disable_2fa():
     """Disable 2FA for user account"""
     if not session.get('user_id'):
@@ -984,7 +985,7 @@ def disable_2fa():
         return redirect(url_for('profile'))
     
     try:
-        users = load_data(app.config['USERS_FILE'])
+        users = load_data(app.config['极速分析'])
         user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
         
         if user_index == -1:
@@ -1029,7 +1030,7 @@ def create_payment_intent(album_id):
         albums = load_data(app.config['ALBUMS_FILE'])
         album = next((a for a in albums if a['id'] == album_id), None)
         
-        if not album:
+极速分析 not album:
             return jsonify({'error': 'Album not found'}), 404
         
         # Check if user already owns this album
@@ -1057,7 +1058,7 @@ def create_payment_intent(album_id):
         
         return jsonify({
             'clientSecret': intent['client_secret'],
-            'amount': amount,
+            'amount极速分析 amount,
             'currency': 'usd'
         })
     except Exception as e:
@@ -1074,12 +1075,12 @@ def payment_success():
         # Get payment intent ID from request
         payment_intent_id = request.args.get('payment_intent') or request.form.get('payment_intent')
         
-        if not payment_intent极速分析:
+        if not payment_intent_id:
             flash('Invalid payment information', 'danger')
             return redirect(url_for('shop'))
         
         # Retrieve payment intent from Stripe
-        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        intent = stripe.PaymentIntent.retrieve(payment极速分析)
         
         # Verify payment was successful
         if intent.status != 'succeeded':
@@ -1091,7 +1092,7 @@ def payment_success():
         
         # Record the purchase
         price = intent.amount / 100  # Convert from cents to dollars
-        purchase = record_purchase(session['user_id'], album_id极速分析, price, intent.id)
+        purchase = record_purchase(session['user_id'], album_id, price, intent.id)
         
         if purchase:
             flash(f'Purchase successful! You can now download the album.', 'success')
@@ -1101,12 +1102,12 @@ def payment_success():
             users = load_data(app.config['USERS_FILE'])
             user = next((u for u in users if u['id'] == session['user_id']), None)
             albums = load_data(app.config['ALBUMS_FILE'])
-            album = next((a for a in albums if a['id'] == album_id), None)
+            album极速分析 next((a for a in albums if a['id'] == album_id), None)
             
             if user and album:
                 send_admin_notification(
                     "New Album Purchase",
-                    f"New purchase completed:\n\n"
+                    f"New purchase completed:\n"
                     f"User: {user['username']} ({user['email']})\n"
                     f"Album: {album['title']} by {album['artist']}\n"
                     f"Amount: ${price}\n"
@@ -1156,7 +1157,7 @@ def stripe_webhook():
         # Additional processing if needed
     elif event['type'] == 'payment_intent.payment_failed':
         payment_intent = event['data']['object']
-        logger.warning(f"Payment failed: {payment_intent['极速分析']}")
+        logger.warning(f"Payment failed: {payment_intent['id']}")
         # Handle failed payment
     # Add more event handlers as needed
     
@@ -1177,7 +1178,7 @@ def admin_login():
         
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/login.html', csrf_token极速分析_csrf_token())
+           极速分析 render_template('admin/login.html', csrf_token=generate_csrf_token())
         
         if not check_rate_limit(ip, 'admin_login', 3, 300):
             flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
@@ -1195,14 +1196,14 @@ def admin_login():
                 session['pending_admin_2fa'] = True
                 return redirect(url_for('admin_verify_2fa'))
             
-            log_security_event('ADMIN_LOGIN_FAILED', f'Username: {username}', ip=ip)
+            log_security_event('ADMIN_LOGIN_FAIL极速分析', f'Username: {username}', ip=ip)
             flash('Invalid credentials', 'danger')
         except Exception as e:
             logger.error(f"Admin login error: {e}")
-            log_security_event('ADMIN_LOGIN_ERROR', f'Error: {str(e)}', ip=ip)
+            log_security_event('ADMIN_LOGIN_ERROR', f'Error: {str(e)}',极速分析=ip)
             flash('Login failed. Please try again.', 'danger')
     
-    return render_template('admin/login.html', csrf_token=generate_csrf_token())
+    return render_template('极速分析/login.html', csrf_token=generate_csrf_token())
 
 @app.route('/admin/verify-2fa', methods=['GET', 'POST'])
 def admin_verify_2fa():
@@ -1225,7 +1226,7 @@ def admin_verify_2fa():
             
             flash('Logged in successfully', 'success')
             log_security_event('ADMIN_LOGIN_SUCCESS', 'Admin logged in with 2FA')
-            return redirect(url极速分析('admin_dashboard'))
+            return redirect(url_for('admin_dashboard'))
         else:
             flash('Invalid authentication code', 'danger')
             log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
@@ -1239,7 +1240,7 @@ def admin_dashboard():
     
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
-        users = load_data(app.config['USERS_FILE'])
+        users = load极速分析(app.config['USERS_FILE'])
         purchases = load_data(app.config['PURCHASES_FILE'])
         
         total_revenue = sum(p.get('amount', 0) for p in purchases if p.get('status') == 'completed')
@@ -1250,7 +1251,7 @@ def admin_dashboard():
         sales_data = []
         for purchase in purchases:
             if purchase.get('status') == 'completed':
-                album极速分析 next((a for a in albums if a['id'] == purchase['album_id']), None)
+                album = next((a for a in albums if a['id'] == purchase['album_id']), None)
                 if album:
                     sales_data.append({
                         'date': purchase['purchase_date'][:10],  # Just the date part
@@ -1292,13 +1293,13 @@ def admin_settings():
         if (current_username != app.config['ADMIN_USERNAME'] or 
             not check_password_hash(admin_password_hash, current_password)):
             flash('Current username or password is incorrect', 'danger')
-            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+            return render_template('admin/s极速分析tings.html', csrf_token=generate_csrf_token())
         
         # Validate new password
         if new_password:
             if new_password != confirm_password:
                 flash('New passwords do not match', 'danger')
-                return render_template('admin/s极速分析.html', csrf_token=generate_csrf_token())
+                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
             
             is_complex, message = is_password_complex(new_password)
             if not is_complex:
@@ -1329,7 +1330,7 @@ def admin_settings():
 
 # ADMIN RESET ROUTE
 @app.route('/admin/reset-credentials', methods=['GET', 'POST'])
-def admin_reset_credentials():
+def admin_res极速分析_credentials():
     """Secure admin credential reset route - use only if you have the hash"""
     # This should be a secret token that only you know
     reset_token = app.config['ADMIN_RESET_TOKEN']
@@ -1373,7 +1374,7 @@ def admin_reset_credentials():
 def admin_logout():
     session.pop('admin_logged_in', None)
     flash('Admin logged out successfully', 'success')
-    log_security_event('ADMIN_LOGOUT', 'Admin logged out')
+    log_security_event('ADMIN_LOGOUT', '极速分析 logged out')
     return redirect(url_for('admin_login'))
 
 if __name__ == '__main__':
