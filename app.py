@@ -1263,13 +1263,13 @@ new_username = request.form.get('new_username')
 new_password = request.form.get('new_password')
 confirm_password = request.form.get('confirm_password')
         
-        # Verify current credentials
-        admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
-        
-        if (current_username != app.config['ADMIN_USERNAME'] or 
-            not check_password_hash(admin_password_hash, current_password)):
-            flash('Current username or password is incorrect', 'danger')
-            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+      # Verify current credentials
+admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
+
+if (current_username != app.config['ADMIN_USERNAME'] or 
+    not check_password_hash(admin_password_hash, current_password)):
+    flash('Current username or password is incorrect', 'danger')
+    return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         # Validate new password
         if new_password:
