@@ -1335,17 +1335,16 @@ def admin_reset_credentials():
             flash(message, 'danger')
             return render_template('admin/reset_credentials.html')
         
-        # Update admin credentials
+      # Update admin credentials
 if update_admin_password(new_username, new_password):
     flash('Admin credentials updated successfully. Please log in with your new credentials.', 'success')
     log_security_event('ADMIN_CREDENTIALS_RESET', 'Admin credentials were reset via reset token')
     return redirect(url_for('admin_login'))
-        else:
-            flash('Failed to update admin credentials', 'danger')
-            return render_template('admin/reset_credentials.html')
-    
+else:
+    flash('Failed to update admin credentials', 'danger')
     return render_template('admin/reset_credentials.html')
 
+return render_template('admin/reset_credentials.html')
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
