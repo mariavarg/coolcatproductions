@@ -1,0 +1,64 @@
+name: Clean and Fix app.py
+
+on:
+  workflow_dispatch:  # This allows manual triggering
+
+jobs:
+  clean-and-fix:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Clean Chinese characters from app.py
+      run: |
+        # Remove Chinese characters
+        python -c "
+        import re
+        with open('app.py', 'r') as f:
+            content = f.read()
+        
+        # Remove Chinese characters
+        cleaned_content = re.sub(r'[\u4e00-\u9fff]+', '', content)
+        
+        # Fix common syntax issues that might occur after removal
+        # Fix 1: Ensure proper commas in function calls
+        cleaned_content = re.sub(r'(\w+)\s*极速分析\s*(\w+)', r'\1, \2', cleaned_content)
+        
+        # Fix 2: Ensure proper parameter names
+        cleaned_content = re.sub(r'(\w+极速分析)', r'user_id', cleaned_content)
+        
+        # Fix 3: Ensure proper string formatting
+        cleaned_content = re.sub(r'极速分析\'', "'", cleaned_content)
+        cleaned_content = re.sub(r'极速分析\"', '"', cleaned_content)
+        
+        # Fix 4: Ensure proper parentheses
+        cleaned_content = re.sub(r'极速分析\)', ')', cleaned_content)
+        cleaned_content = re.sub(r'\(\s*极速分析', '(', cleaned_content)
+        
+        # Fix 5: Ensure proper variable assignments
+        cleaned_content = re.sub(r'=\s*极速分析\s*', ' = ', cleaned_content)
+        
+        with open('app.py', 'w') as f:
+            f.write(cleaned_content)
+        "
+        
+    - name: Validate Python syntax
+      run: |
+        python -m py_compile app.py
+        echo "✓ Python syntax is valid"
+        
+    - name: Commit and push changes
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add app.py
+        git commit -m 'Clean Chinese characters and fix syntax in app.py'
+        git push
