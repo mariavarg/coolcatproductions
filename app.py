@@ -346,7 +346,7 @@ def validate_password_reset_token(token):
     token_data = app.config['PASSWORD_RESET_TOKENS'][token]
     expiry = datetime.fromisoformat(token_data['expiry'])
     
-   极速分析 datetime.now() > expiry:
+    if datetime.now() > expiry:
         app.config['PASSWORD_RESET_TOKENS'].pop(token)
         return False
         
