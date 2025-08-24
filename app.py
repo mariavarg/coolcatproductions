@@ -358,12 +358,12 @@ def send_admin_notification(subject, message):
             logger.warning("Email not configured. Notification not sent.")
             return False
         
-       msg = MIMEMultipart()
-msg['From'] = app.config['SMTP_USERNAME']
-msg['To'] = app.config['ADMIN_EMAIL']
-msg['Subject'] = f"CoolCat Productions: {subject}"
-
-msg.attach(MIMEText(message, 'plain'))
+        msg = MIMEMultipart()
+        msg['From'] = app.config['SMTP_USERNAME']
+        msg['To'] = app.config['ADMIN_EMAIL']
+        msg['Subject'] = f"CoolCat Productions: {subject}"
+        
+        msg.attach(MIMEText(message, 'plain'))
         
         server = smtplib.SMTP(app.config['SMTP_SERVER'], app.config['SMTP_PORT'])
         server.starttls()
