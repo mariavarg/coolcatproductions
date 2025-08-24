@@ -1,62 +1,68 @@
 {% extends "admin/base.html" %}
+
+{% block title %}Add New Album | CoolCat Productions{% endblock %}
+
+{% block page_title %}Add New Album{% endblock %}
+
 {% block content %}
-<h2>Add New Album</h2>
-<form method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    
-    <div class="mb-3">
-        <label class="form-label">Album Title</label>
-        <input type="text" name="title" class="form-control" required>
+<div class="card">
+    <div class="card-header">
+        <h3>Add New Album</h3>
     </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Artist</label>
-        <input type="text" name="artist" class="form-control" required>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            
+            <div class="mb-3">
+                <label class="form-label">Album Title</label>
+                <input type="text" name="title" class="form-control" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Artist</label>
+                <input type="text" name="artist" class="form-control" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Year</label>
+                <input type="number" name="year" class="form-control" required min="1900" max="2030">
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Price ($)</label>
+                <input type="number" step="0.01" name="price" class="form-control" required min="0">
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Cover Image</label>
+                <input type="file" name="cover" class="form-control" accept="image/*" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Promo Video (MP4, MOV, AVI, WebM - max 500MB)</label>
+                <input type="file" name="video_file" class="form-control" accept="video/*">
+                <div class="form-text">Upload a video to feature this album on the homepage</div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Track List (one track per line)</label>
+                <textarea name="tracks" class="form-control" rows="5" required placeholder="Track 1&#10;Track 2&#10;Track 3"></textarea>
+                <div class="form-text">Enter track names, one per line. Order matters!</div>
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="on_sale" id="on_sale" class="form-check-input">
+                <label class="form-check-label" for="on_sale">Put this album on sale</label>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Sale Price ($)</label>
+                <input type="number" step="0.01" name="sale_price" class="form-control" min="0">
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Add Album</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </form>
     </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Year</label>
-        <input type="text" name="year" class="form-control" required>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Price ($)</label>
-        <input type="number" step="0.01" name="price" class="form-control" required>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Cover Image</label>
-        <input type="file" name="cover" class="form-control" accept="image/*" required>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Promo Video (MP4, MOV, AVI, WebM - max 500MB)</label>
-        <input type="file" name="video_file" class="form-control" accept="video/*">
-        <div class="form-text">Upload a video to feature this album on the homepage</div>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Track List (one track per line)</label>
-        <textarea name="tracks" class="form-control" rows="5" required></textarea>
-        <div class="form-text">Enter track names, one per line. Order matters!</div>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Music Files</label>
-        <input type="file" name="music_files" class="form-control" multiple accept="audio/*" required>
-        <div class="form-text">Select MP3 files. File order must match track list order above.</div>
-    </div>
-    
-    <div class="mb-3 form-check">
-        <input type="checkbox" name="on_sale" class="form-check-input">
-        <label class="form-check-label">Put this album on sale</label>
-    </div>
-    
-    <div class="mb-3">
-        <label class="form-label">Sale Price ($)</label>
-        <input type="number" step="0.01" name="sale_price" class="form-control">
-    </div>
-    
-    <button type="submit" class="btn btn-primary">Add Album</button>
-</form>
+</div>
 {% endblock %}
