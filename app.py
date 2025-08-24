@@ -847,36 +847,29 @@ def login():
     
     return render_template('login.html', csrf_token=generate_csrf_token())
 
-@app.route('/admin/verify-2fa', methods=['GET', 'POST'])
-def admin_verify_2fa():
-    """Verify 2FA for admin login"""
-    # Check if admin is pending 2FA verification
-    if 'pending_admin_2fa' not in session:
-        flash('Please login first', 'warning')
-        return redirect(url_for('admin_login'))
+@app.route('/verify-2fa-login', methods=['GET', 'POST'])
+def verify_2fa_login():
+    """Verify 2FA code during login"""
+    if 'pending_2fa_user' not in session:
+        return redirect(url_for('login'))
     
     if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+            return render_template('verify_2fa.html', csrf_token=generate_csrf_token())
         
         token = request.form.get('token', '')
+        backup_code = request.form.get('backup_code', '')
         
-        # Verify admin 2FA token
-        if verify_2fa_token(app.config['TOTP_SECRET'], token):
-            session['admin_logged_in'] = True
-            session.permanent = True
-            session.pop('pending_admin_2fa', None)
-            
-            flash('Logged in successfully', 'success')
-            log_security_event('ADMIN_LOGIN_SUCCESS', 'Admin logged in with 2FA')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid authentication code', 'danger')
-            log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
-    
-    # For GET requests, render the verification form
-    return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+        users = load_data(app.config['USERS_FILE'])
+        user = next((u for u in users if u['id'] == session['pending_2fa_user']), None)
+        
+        if not user:
+            flash('User not found', 'danger')
+            session.pop('pending_2fa_user', None)
+            return redirect(url_for('login'))
+        
+        verified = False
         
         # Check backup code first
         if backup_code and backup_code in user.get('backup_codes', []):
