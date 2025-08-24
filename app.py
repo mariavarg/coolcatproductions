@@ -682,7 +682,7 @@ def album(album_id):
     'owns_album': owns_album,
     'video_accessible': video_accessible
 }
-        }
+        
         return render_template('album.html', album=safe_album, 
                              stripe_publishable_key=app.config['STRIPE_PUBLISHABLE_KEY'])
     except Exception as e:
