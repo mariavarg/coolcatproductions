@@ -81,8 +81,8 @@ app.config.update(
     STRIPE_SECRET_KEY=os.getenv('STRIPE_SECRET_KEY', ''),
     STRIPE_PUBLISHABLE_KEY=os.getenv('STRIPE_PUBLISHABLE_KEY', ''),
     STRIPE_WEBHOOK_SECRET=os.getenv('STRIPE_WEBHOOK_SECRET', ''),
-    # Admin reset token
-    ADMIN_RESET_TOKEN=os.getenv('ADMIN_RESET_TOKEN', 'default_reset_token_change_me'),
+    # Admin reset token - MUST be changed in production
+    ADMIN_RESET_TOKEN=os.getenv('ADMIN_RESET_TOKEN', secrets.token_urlsafe(32)),
 )
 
 # Initialize Stripe
@@ -232,7 +232,7 @@ def is_password_complex(password):
     
     checks = [
         (r'[A-Z]', "uppercase letter"),
-        (r'[a-z', "lowercase letter"),
+        (r'[a-z]', "lowercase letter"),
         (r'[0-9]', "number"),
         (r'[!@#$%^&*(),.?":{}|<>]', "special character")
     ]
@@ -1208,7 +1208,9 @@ def admin_login():
 @app.route('/admin/verify-2fa', methods=['GET', 'POST'])
 def admin_verify_2fa():
     """Verify 2FA for admin login"""
+    # Check if admin is pending 2FA verification
     if 'pending_admin_2fa' not in session:
+        flash('Please login first', 'warning')
         return redirect(url_for('admin_login'))
     
     if request.method == 'POST':
@@ -1231,7 +1233,40 @@ def admin_verify_2fa():
             flash('Invalid authentication code', 'danger')
             log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
     
-    return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+    # For GET requests, render the verification form
+    try:
+        return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+    except Exception as e:
+        logger.error(f"Error rendering 2FA template: {e}")
+        # Create a simple fallback response if template is missing
+        return '''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Admin 2FA Verification</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Sofia&display=swap');
+                body { font-family: 'Sofia', cursive; max-width: 500px; margin: 50px auto; padding: 20px; }
+                .form-group { margin-bottom: 15px; }
+                label { display: block; margin-bottom: 5px; }
+                input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; font-family: 'Sofia', cursive; }
+                button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; font-family: 'Sofia', cursive; }
+            </style>
+        </head>
+        <body>
+            <h1>Admin Two-Factor Authentication</h1>
+            <p>Please enter the verification code from your authenticator app:</p>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{0}">
+                <div class="form-group">
+                    <label for="token">Verification Code:</label>
+                    <input type="text" id="token" name="token" required autofocus>
+                </div>
+                <button type="submit">Verify</button>
+            </form>
+        </body>
+        </html>
+        '''.format(generate_csrf_token())
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
