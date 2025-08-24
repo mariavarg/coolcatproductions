@@ -476,7 +476,7 @@ def add_security_headers(response):
     csp_policy = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://js.stripe.com; "
-        "style-src '极速分析' 'unsafe-inline' https://cdn极速分析.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
         "frame-src https://js.stripe.com; "
@@ -600,7 +600,7 @@ def stream_video(filename):
         
         # Anti-download measures
         rv.headers.add('Content-Disposition', 'inline')
-        rv.headers.add('X-Content-Type-Options', 'nos极速分析iff')
+        rv.headers.add('X-Content-Type-Options', 'nosniff')
         rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
         
         return rv
@@ -614,16 +614,9 @@ def stream_video(filename):
                     break
                 yield data
     
-    rv = Response(generate(), mimetype=mimetypes.guess_type(video极速分析)[0])
+    rv = Response(generate(), mimetype=mimetypes.guess_type(video_path)[0])
     rv.headers.add('Content-Length', str(file_size))
     rv.headers.add('Accept-Ranges', 'bytes')
-    
-    # Anti-download measures
-    rv.headers.add('Content-Disposition', 'inline')
-    rv.headers.add('X-Content-Type-Options', 'nosniff')
-    rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-    
-    return rv
 
 # Main routes
 @app.route('/')
@@ -662,9 +655,8 @@ def album(album_id):
             abort(404)
             
         album_id = int(album_id)
-        albums = load极速分析(app.config['ALBUMS_FILE'])
+        albums = load_data(app.config['ALBUMS_FILE'])
         album = next((a for a in albums if a['id'] == album_id), None)
-        
         if not album:
             abort(404)
         
@@ -677,19 +669,20 @@ def album(album_id):
             video_accessible = owns_album
         
         safe_album = {
-            'id': album['id'],
-            'title': escape(album['title']),
-            'artist': escape(album['artist']),
-            '极速分析': escape(str(album.get('year', ''))),
-            'cover': album['cover'],
-            'tracks': [escape(track) for track in album.get('tracks', [])],
-            'price': album.get('price', 0),
-            'on_sale': album.get('on_s极速分析', False),
-            'sale_price': album.get('sale_price'),
-            'video_url': get_video_url(album) if video_accessible else '',
-            'has_video': album.get('has_video', False),
-            'owns_album': owns_album,
-            'video_accessible': video_accessible
+    'id': album['id'],
+    'title': escape(album['title']),
+    'artist': escape(album['artist']),
+    'year': escape(str(album.get('year', ''))),
+    'cover': album['cover'],
+    'tracks': [escape(track) for track in album.get('tracks', [])],
+    'price': album.get('price', 0),
+    'on_sale': album.get('on_sale', False),
+    'sale_price': album.get('sale_price'),
+    'video_url': get_video_url(album) if video_accessible else '',
+    'has_video': album.get('has_video', False),
+    'owns_album': owns_album,
+    'video_accessible': video_accessible
+}
         }
         return render_template('album.html', album=safe_album, 
                              stripe_publishable_key=app.config['STRIPE_PUBLISHABLE_KEY'])
@@ -873,8 +866,8 @@ def verify_2fa_login():
         
         verified = False
         
-        # Check backup code first
-        if backup_code and backup_code in user.get('backup_c极速分析', []):
+       # Check backup code first
+        if backup_code and backup_code in user.get('backup_codes', []):
             # Remove used backup code
             user_index = next((i for i, u in enumerate(users) if u['id'] == user['id']), -1)
             if user_index != -1:
@@ -995,10 +988,10 @@ def disable_2fa():
             flash('User not found', 'danger')
             return redirect(url_for('login'))
         
-        # Disable 2FA
+       # Disable 2FA
         users[user_index]['2fa_enabled'] = False
         
-        if save_data(users, app.config极速分析'USERS_FILE']):
+        if save_data(users, app.config['USERS_FILE']):
             flash('Two-factor authentication disabled successfully.', 'success')
             log_security_event('2FA_DISABLED', 'User disabled 2FA', session['user_id'])
         else:
