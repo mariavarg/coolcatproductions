@@ -999,7 +999,6 @@ def user_logout():
     flash('Logged out successfully', 'success')
     log_security_event('USER_LOGOUT', f'User: {username}', user_id)
     return redirect(url_for('home'))
-
 # STRIPE PAYMENT PROCESSING
 @app.route('/create-payment-intent/<int:album_id>', methods=['POST'])
 def create_payment_intent(album_id):
@@ -1024,7 +1023,7 @@ def create_payment_intent(album_id):
         # Get the price (use sale price if on sale)
         price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
         amount = int(price * 100)  # Convert to cents
-            
+        
         # Create PaymentIntent
         intent = stripe.PaymentIntent.create(
             amount=amount,
