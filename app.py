@@ -165,7 +165,7 @@ def remove_auto_durations(albums):
         if 'tracks' in album:
             album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
     return albums
-    
+
 def generate_download_token(user_id, album_id):
     token = secrets.token_urlsafe(32)
     expiry = datetime.now() + timedelta(hours=24)
@@ -232,7 +232,7 @@ def is_password_complex(password):
     
     checks = [
         (r'[A-Z]', "uppercase letter"),
-        (r'[a-z]', "lowercase letter"),
+        (r'[a-z', "lowercase letter"),
         (r'[0-9]', "number"),
         (r'[!@#$%^&*(),.?":{}|<>]', "special character")
     ]
@@ -242,6 +242,7 @@ def is_password_complex(password):
             return False, f"Password must contain at least one {requirement}"
     
     return True, "Password is strong"
+
 def generate_strong_password(length=16):
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(alphabet) for _ in range(length))
@@ -616,6 +617,13 @@ def stream_video(filename):
     rv = Response(generate(), mimetype=mimetypes.guess_type(video_path)[0])
     rv.headers.add('Content-Length', str(file_size))
     rv.headers.add('Accept-Ranges', 'bytes')
+    
+    # Anti-download measures
+    rv.headers.add('Content-Disposition', 'inline')
+    rv.headers.add('X-Content-Type-Options', 'nosniff')
+    rv.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+    
+    return rv
 
 # Main routes
 @app.route('/')
@@ -656,6 +664,7 @@ def album(album_id):
         album_id = int(album_id)
         albums = load_data(app.config['ALBUMS_FILE'])
         album = next((a for a in albums if a['id'] == album_id), None)
+        
         if not album:
             abort(404)
         
@@ -668,21 +677,20 @@ def album(album_id):
             video_accessible = owns_album
         
         safe_album = {
-    'id': album['id'],
-    'title': escape(album['title']),
-    'artist': escape(album['artist']),
-    'year': escape(str(album.get('year', ''))),
-    'cover': album['cover'],
-    'tracks': [escape(track) for track in album.get('tracks', [])],
-    'price': album.get('price', 0),
-    'on_sale': album.get('on_sale', False),
-    'sale_price': album.get('sale_price'),
-    'video_url': get_video_url(album) if video_accessible else '',
-    'has_video': album.get('has_video', False),
-    'owns_album': owns_album,
-    'video_accessible': video_accessible
-}
-        
+            'id': album['id'],
+            'title': escape(album['title']),
+            'artist': escape(album['artist']),
+            'year': escape(str(album.get('year', ''))),
+            'cover': album['cover'],
+            'tracks': [escape(track) for track in album.get('tracks', [])],
+            'price': album.get('price', 0),
+            'on_sale': album.get('on_sale', False),
+            'sale_price': album.get('sale_price'),
+            'video_url': get_video_url(album) if video_accessible else '',
+            'has_video': album.get('has_video', False),
+            'owns_album': owns_album,
+            'video_accessible': video_accessible
+        }
         return render_template('album.html', album=safe_album, 
                              stripe_publishable_key=app.config['STRIPE_PUBLISHABLE_KEY'])
     except Exception as e:
@@ -788,8 +796,6 @@ def setup_2fa():
             
     return render_template('setup_2fa.html', csrf_token=generate_csrf_token())
 
-# ... (previous code remains the same)
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('user_id'):
@@ -865,7 +871,7 @@ def verify_2fa_login():
         
         verified = False
         
-       # Check backup code first
+        # Check backup code first
         if backup_code and backup_code in user.get('backup_codes', []):
             # Remove used backup code
             user_index = next((i for i, u in enumerate(users) if u['id'] == user['id']), -1)
@@ -967,6 +973,16 @@ def generate_new_backup_codes():
         flash('Error generating backup codes. Please try again.', 'danger')
     
     return redirect(url_for('profile'))
+
+@app.route('/disable-2fa', methods=['POST'])
+def disable_2fa():
+    """Disable 2FA for user account"""
+    if not session.get('user_id'):
+        return redirect(url_for('login'))
+    
+    if not validate_csrf_token():
+        flash('Security token invalid. Please try again.', 'danger')
+        return redirect(url_for('profile'))
     
     try:
         users = load_data(app.config['USERS_FILE'])
@@ -976,7 +992,7 @@ def generate_new_backup_codes():
             flash('User not found', 'danger')
             return redirect(url_for('login'))
         
-       # Disable 2FA
+        # Disable 2FA
         users[user_index]['2fa_enabled'] = False
         
         if save_data(users, app.config['USERS_FILE']):
@@ -999,6 +1015,7 @@ def user_logout():
     flash('Logged out successfully', 'success')
     log_security_event('USER_LOGOUT', f'User: {username}', user_id)
     return redirect(url_for('home'))
+
 # STRIPE PAYMENT PROCESSING
 @app.route('/create-payment-intent/<int:album_id>', methods=['POST'])
 def create_payment_intent(album_id):
@@ -1201,20 +1218,21 @@ def admin_verify_2fa():
         
         token = request.form.get('token', '')
         
-      # Verify admin 2FA token
-if verify_2fa_token(app.config['TOTP_SECRET'], token):
-    session['admin_logged_in'] = True
-    session.permanent = True
-    session.pop('pending_admin_2fa', None)
+        # Verify admin 2FA token
+        if verify_2fa_token(app.config['TOTP_SECRET'], token):
+            session['admin_logged_in'] = True
+            session.permanent = True
+            session.pop('pending_admin_2fa', None)
+            
+            flash('Logged in successfully', 'success')
+            log_security_event('ADMIN_LOGIN_SUCCESS', 'Admin logged in with 2FA')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid authentication code', 'danger')
+            log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
     
-    flash('Logged in successfully', 'success')
-    log_security_event('ADMIN_LOGIN_SUCCESS', 'Admin logged in with 2FA')
-    return redirect(url_for('admin_dashboard'))
-else:
-    flash('Invalid authentication code', 'danger')
-    log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
+    return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
 
-return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('admin_logged_in'):
@@ -1240,7 +1258,8 @@ def admin_dashboard():
                         'amount': purchase['amount'],
                         'album': album['title']
                     })
-            return render_template('admin/dashboard.html',
+        
+        return render_template('admin/dashboard.html',
                                album_count=len(albums),
                                user_count=len(users),
                                purchase_count=len([p for p in purchases if p.get('status') == 'completed']),
@@ -1251,6 +1270,11 @@ def admin_dashboard():
     except Exception as e:
         logger.error(f"Dashboard error: {e}")
         return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
+
+@app.route('/admin/settings', methods=['GET', 'POST'])
+def admin_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
     
     if request.method == 'POST':
         if not validate_csrf_token():
@@ -1258,29 +1282,29 @@ def admin_dashboard():
             return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         current_username = request.form.get('current_username')
-current_password = request.form.get('current_password')
-new_username = request.form.get('new_username')
-new_password = request.form.get('new_password')
-confirm_password = request.form.get('confirm_password')
+        current_password = request.form.get('current_password')
+        new_username = request.form.get('new_username')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
         
-      # Verify current credentials
-admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
-
-if (current_username != app.config['ADMIN_USERNAME'] or 
-    not check_password_hash(admin_password_hash, current_password)):
-    flash('Current username or password is incorrect', 'danger')
-    return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+        # Verify current credentials
+        admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
+        
+        if (current_username != app.config['ADMIN_USERNAME'] or 
+            not check_password_hash(admin_password_hash, current_password)):
+            flash('Current username or password is incorrect', 'danger')
+            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         # Validate new password
-if new_password:
-    if new_password != confirm_password:
-        flash('New passwords do not match', 'danger')
-        return render_template('admin/settings.html', csrf_token=generate_csrf_token())
-    
-    is_complex, message = is_password_complex(new_password)
-    if not is_complex:
-        flash(message, 'danger')
-        return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+        if new_password:
+            if new_password != confirm_password:
+                flash('New passwords do not match', 'danger')
+                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+            
+            is_complex, message = is_password_complex(new_password)
+            if not is_complex:
+                flash(message, 'danger')
+                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         # Update credentials
         updated = update_admin_password(
@@ -1335,16 +1359,17 @@ def admin_reset_credentials():
             flash(message, 'danger')
             return render_template('admin/reset_credentials.html')
         
-      # Update admin credentials
-if update_admin_password(new_username, new_password):
-    flash('Admin credentials updated successfully. Please log in with your new credentials.', 'success')
-    log_security_event('ADMIN_CREDENTIALS_RESET', 'Admin credentials were reset via reset token')
-    return redirect(url_for('admin_login'))
-else:
-    flash('Failed to update admin credentials', 'danger')
+        # Update admin credentials
+        if update_admin_password(new_username, new_password):
+            flash('Admin credentials updated successfully. Please log in with your new credentials.', 'success')
+            log_security_event('ADMIN_CREDENTIALS_RESET', 'Admin credentials were reset via reset token')
+            return redirect(url_for('admin_login'))
+        else:
+            flash('Failed to update admin credentials', 'danger')
+            return render_template('admin/reset_credentials.html')
+    
     return render_template('admin/reset_credentials.html')
 
-return render_template('admin/reset_credentials.html')
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
@@ -1362,4 +1387,3 @@ if __name__ == '__main__':
         app.config['PREFERRED_URL_SCHEME'] = 'https'
     
     app.run(host='0.0.0.0', port=port, debug=debug)
-        
