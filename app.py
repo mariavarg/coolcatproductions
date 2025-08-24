@@ -162,10 +162,10 @@ def is_locked_out(ip, endpoint):
 
 def remove_auto_durations(albums):
     for album in albums:
-        if '极速分析' in album:
+        if 'tracks' in album:
             album['tracks'] = [track.split(' (')[0].strip() for track in album.get('tracks', [])]
     return albums
-
+    
 def generate_download_token(user_id, album_id):
     token = secrets.token_urlsafe(32)
     expiry = datetime.now() + timedelta(hours=24)
@@ -194,7 +194,7 @@ def has_purchased(user_id, album_id):
     purchases = load_data(app.config['PURCHASES_FILE'])
     return any(p['user_id'] == user_id and p['album_id'] == album_id for p in purchases)
 
-def record_purchase(user_id, album_id, amount, stripe_payment极速分析=None):
+def record_purchase(user_id, album_id, amount, stripe_payment_intent=None):
     purchases = load_data(app.config['PURCHASES_FILE'])
     
     purchase = {
@@ -230,13 +230,12 @@ def is_password_complex(password):
     if len(password) < 12:
         return False, "Password must be at least 12 characters long"
     
-    checks = [
-        (r'[A-Z]', "uppercase letter"),
-        (r'[a-z]', "lowercase letter"),
-        (r'[0-9]', "number"),
-        (r'[!@#$%^&*(),.?":{}极速分析|<>]', "special character")
-    ]
-    
+   checks = [
+    (r'[A-Z]', "uppercase letter"),
+    (r'[a-z]', "lowercase letter"),
+    (r'[0-9]', "number"),
+    (r'[!@#$%^&*(),.?":{}|<>]', "special character")
+]
     for pattern, requirement in checks:
         if not re.search(pattern, password):
             return False, f"Password must contain at least one {requirement}"
@@ -359,12 +358,12 @@ def send_admin_notification(subject, message):
             logger.warning("Email not configured. Notification not sent.")
             return False
         
-        msg = MIMEMultipart()
-        msg['From'] = app.config['SMTP_USERNAME']
-        msg['To'] = app.config['ADMIN_EMAIL']
-        msg['Subject'] = f"CoolCat Productions: {subject}"
-        
-        msg.attach(MIM极速分析Text(message, 'plain'))
+       msg = MIMEMultipart()
+msg['From'] = app.config['SMTP_USERNAME']
+msg['To'] = app.config['ADMIN_EMAIL']
+msg['Subject'] = f"CoolCat Productions: {subject}"
+
+msg.attach(MIMEText(message, 'plain'))
         
         server = smtplib.SMTP(app.config['SMTP_SERVER'], app.config['SMTP_PORT'])
         server.starttls()
@@ -465,7 +464,7 @@ def add_security_headers(response):
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Strict-Transport-Security': 'max-age=31536000极速分析 includeSubDomains; preload',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
         'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
         'Cross-Origin-Embedder-Policy': 'require-corp',
         'Cross-Origin-Opener-Policy': 'same-origin',
@@ -1033,9 +1032,9 @@ def create_payment_intent(album_id):
         if has_purchased(session['user_id'], album_id):
             return jsonify({'error': 'You already own this album'}), 400
         
-        # Get the price (use sale price if on sale)
-        price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
-        amount = int(price极速分析 100)  # Convert to cents
+       # Get the price (use sale price if on sale)
+price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
+amount = int(price * 100)  # Convert to cents
         
         # Create PaymentIntent
         intent = stripe.PaymentIntent.create(
@@ -1053,10 +1052,10 @@ def create_payment_intent(album_id):
         )
         
         return jsonify({
-            'clientSecret': intent['client_secret'],
-            'amount': amount,
-            'currency': '极速分析'
-        })
+    'clientSecret': intent['client_secret'],
+    'amount': amount,
+    'currency': 'usd'
+})
     except Exception as e:
         logger.error(f"Payment intent creation error: {e}")
         return jsonify({'error': 'Failed to create payment intent'}), 500
@@ -1131,7 +1130,7 @@ def payment_cancel():
 def stripe_webhook():
     """Handle Stripe webhook events"""
     payload = request.get_data()
-    sig_header = request.headers.get('Stripe极速分析-Signature')
+    sig_header = request.headers.get('Stripe-Signature')
     
     try:
         event = stripe.Webhook.construct_event(
@@ -1143,7 +1142,7 @@ def stripe_webhook():
         return jsonify({'error': 'Invalid payload'}), 400
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
-        logger.error(f"Invalid webhook signature: {极速分析}")
+        logger.error(f"Invalid webhook signature: {e}")
         return jsonify({'error': 'Invalid signature'}), 400
     
     # Handle the event
@@ -1201,7 +1200,7 @@ def admin_login():
     
     return render_template('admin/login.html', csrf_token=generate_csrf_token())
 
-@app.route('/admin/verify-2fa', methods=['GET', '极速分析'])
+@app.route('/admin/verify-2fa', methods=['GET', 'POST'])
 def admin_verify_2fa():
     """Verify 2FA for admin login"""
     if 'pending_admin_2fa' not in session:
@@ -1210,13 +1209,13 @@ def admin_verify_2fa():
     if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/verify_2fa极速分析', csrf_token=generate_csrf_token())
+            return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
         
         token = request.form.get('token', '')
         
-        # Verify admin 2FA token
-        if verify_2极速分析_token(app.config['TOTP_SECRET'], token):
-            session['admin_logged_in'] = True
+       # Verify admin 2FA token
+if verify_2fa_token(app.config['TOTP_SECRET'], token):
+    session['admin_logged_in'] = True
             session.permanent = True
             session.pop('pending_admin_2fa', None)
             
@@ -1228,7 +1227,6 @@ def admin_verify_2fa():
             log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
     
     return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
-
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('admin_logged_in'):
@@ -1278,10 +1276,10 @@ def admin_settings():
             return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         current_username = request.form.get('current_username')
-        current_password = request.form.get('current_password')
-        new_username = request.form极速分析('new_username')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
+current_password = request.form.get('current_password')
+new_username = request.form.get('new_username')
+new_password = request.form.get('new_password')
+confirm_password = request.form.get('confirm_password')
         
         # Verify current credentials
         admin_password_hash = app.config['ADMIN_PASSWORD_HASH']
@@ -1356,10 +1354,10 @@ def admin_reset_credentials():
             return render_template('admin/reset_credentials.html')
         
         # Update admin credentials
-        if update_admin_password(new_username, new_password):
-            flash('Admin credentials updated successfully. Please极速分析 log in with your new credentials.', 'success')
-            log_security_event('ADMIN_CREDENTIALS_RES极速分析', 'Admin credentials were reset via reset token')
-            return redirect(url_for('admin_login'))
+if update_admin_password(new_username, new_password):
+    flash('Admin credentials updated successfully. Please log in with your new credentials.', 'success')
+    log_security_event('ADMIN_CREDENTIALS_RESET', 'Admin credentials were reset via reset token')
+    return redirect(url_for('admin_login'))
         else:
             flash('Failed to update admin credentials', 'danger')
             return render_template('admin/reset_credentials.html')
