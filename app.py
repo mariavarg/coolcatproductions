@@ -230,18 +230,18 @@ def is_password_complex(password):
     if len(password) < 12:
         return False, "Password must be at least 12 characters long"
     
-   checks = [
-    (r'[A-Z]', "uppercase letter"),
-    (r'[a-z]', "lowercase letter"),
-    (r'[0-9]', "number"),
-    (r'[!@#$%^&*(),.?":{}|<>]', "special character")
-]
+    checks = [
+        (r'[A-Z]', "uppercase letter"),
+        (r'[a-z]', "lowercase letter"),
+        (r'[0-9]', "number"),
+        (r'[!@#$%^&*(),.?":{}|<>]', "special character")
+    ]
+    
     for pattern, requirement in checks:
         if not re.search(pattern, password):
             return False, f"Password must contain at least one {requirement}"
     
     return True, "Password is strong"
-
 def generate_strong_password(length=16):
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(alphabet) for _ in range(length))
