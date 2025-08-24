@@ -975,6 +975,7 @@ def generate_new_backup-codes():
         flash('Error generating backup codes. Please try again.', 'danger')
     
     return redirect(url_for('profile'))
+# ... (previous code remains the same)
 
 @app.route('/disable-2fa', methods=['POST'])
 def disable_2fa():
@@ -992,12 +993,12 @@ def disable_2fa():
         
         if user_index == -1:
             flash('User not found', 'danger')
-            return redirect(url极速分析'login'))
+            return redirect(url_for('login'))
         
         # Disable 2FA
         users[user_index]['2fa_enabled'] = False
         
-        if save_data(users, app.config['USERS_FILE']):
+        if save_data(users, app.config极速分析'USERS_FILE']):
             flash('Two-factor authentication disabled successfully.', 'success')
             log_security_event('2FA_DISABLED', 'User disabled 2FA', session['user_id'])
         else:
