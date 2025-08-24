@@ -1201,20 +1201,20 @@ def admin_verify_2fa():
         
         token = request.form.get('token', '')
         
-       # Verify admin 2FA token
+      # Verify admin 2FA token
 if verify_2fa_token(app.config['TOTP_SECRET'], token):
     session['admin_logged_in'] = True
-            session.permanent = True
-            session.pop('pending_admin_2fa', None)
-            
-            flash('Logged in successfully', 'success')
-            log_security_event('ADMIN_LOGIN_SUCCESS', 'Admin logged in with 2FA')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Invalid authentication code', 'danger')
-            log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
+    session.permanent = True
+    session.pop('pending_admin_2fa', None)
     
-    return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+    flash('Logged in successfully', 'success')
+    log_security_event('ADMIN_LOGIN_SUCCESS', 'Admin logged in with 2FA')
+    return redirect(url_for('admin_dashboard'))
+else:
+    flash('Invalid authentication code', 'danger')
+    log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
+
+return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('admin_logged_in'):
