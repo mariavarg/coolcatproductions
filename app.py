@@ -952,21 +952,21 @@ def generate_new_backup_codes():
             flash('User not found', 'danger')
             return redirect(url_for('login'))
         
-# Generate new backup codes
-new_backup_codes = generate_backup_codes()
-users[user_index]['backup_codes'] = new_backup_codes
-
-if save_data(users, app.config['USERS_FILE']):
-    flash('New backup codes generated successfully. Please save them in a secure place.', 'success')
-    log_security_event('BACKUP_CODES_REGENERATED', 'User generated new backup codes', session['user_id'])
-else:
-    flash('Failed to generate new backup codes. Please try again.', 'danger')
-
-except Exception as e:
-    logger.error(f"Backup code generation error: {e}")
-    flash('Error generating backup codes. Please try again.', 'danger')
-
-return redirect(url_for('profile'))
+        # Generate new backup codes
+        new_backup_codes = generate_backup_codes()
+        users[user_index]['backup_codes'] = new_backup_codes
+        
+        if save_data(users, app.config['USERS_FILE']):
+            flash('New backup codes generated successfully. Please save them in a secure place.', 'success')
+            log_security_event('BACKUP_CODES_REGENERATED', 'User generated new backup codes', session['user_id'])
+        else:
+            flash('Failed to generate new backup codes. Please try again.', 'danger')
+            
+    except Exception as e:
+        logger.error(f"Backup code generation error: {e}")
+        flash('Error generating backup codes. Please try again.', 'danger')
+    
+    return redirect(url_for('profile'))
     
     try:
         users = load_data(app.config['USERS_FILE'])
