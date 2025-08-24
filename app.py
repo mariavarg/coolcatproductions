@@ -1021,11 +1021,10 @@ def create_payment_intent(album_id):
         if has_purchased(session['user_id'], album_id):
             return jsonify({'error': 'You already own this album'}), 400
         
-    try:
-    # Get the price (use sale price if on sale)
-    price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
-    amount = int(price * 100)  # Convert to cents
-        
+        # Get the price (use sale price if on sale)
+        price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
+        amount = int(price * 100)  # Convert to cents
+            
         # Create PaymentIntent
         intent = stripe.PaymentIntent.create(
             amount=amount,
@@ -1042,10 +1041,10 @@ def create_payment_intent(album_id):
         )
         
         return jsonify({
-    'clientSecret': intent['client_secret'],
-    'amount': amount,
-    'currency': 'usd'
-})
+            'clientSecret': intent['client_secret'],
+            'amount': amount,
+            'currency': 'usd'
+        })
     except Exception as e:
         logger.error(f"Payment intent creation error: {e}")
         return jsonify({'error': 'Failed to create payment intent'}), 500
