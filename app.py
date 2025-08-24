@@ -796,6 +796,8 @@ def setup_2fa():
             
     return render_template('setup_2fa.html', csrf_token=generate_csrf_token())
 
+# ... (previous code remains the same)
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('user_id'):
@@ -805,7 +807,7 @@ def login():
         ip = request.remote_addr
         
         if is_locked_out(ip, 'user_login'):
-            flash('Too many failed attempts. Please try again in 极速分析 minutes.', 'warning')
+            flash('Too many failed attempts. Please try again in 15 minutes.', 'warning')
             return render_template('login.html', csrf_token=generate_csrf_token())
         
         if not validate_csrf_token():
@@ -832,7 +834,7 @@ def login():
                 
                 # Regular login without 2FA
                 session['user_id'] = user['id']
-                session['username极速分析 = user['username']
+                session['username'] = user['username']
                 session.permanent = True
                 flash('Logged in successfully', 'success')
                 log_security_event('USER_LOGIN_SUCCESS', f'User: {username}', user['id'], ip)
