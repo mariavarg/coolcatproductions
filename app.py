@@ -1021,7 +1021,8 @@ def create_payment_intent(album_id):
         if has_purchased(session['user_id'], album_id):
             return jsonify({'error': 'You already own this album'}), 400
         
-       # Get the price (use sale price if on sale)
+    try:
+    # Get the price (use sale price if on sale)
     price = album.get('sale_price') if album.get('on_sale') else album.get('price', 0)
     amount = int(price * 100)  # Convert to cents
         
