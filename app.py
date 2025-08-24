@@ -1272,15 +1272,15 @@ if (current_username != app.config['ADMIN_USERNAME'] or
     return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         # Validate new password
-        if new_password:
-            if new_password != confirm_password:
-                flash('New passwords do not match', 'danger')
-                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
-            
-            is_complex, message = is_password_complex(new_password)
-            if not is_complex:
-                flash(message, 'danger')
-                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+if new_password:
+    if new_password != confirm_password:
+        flash('New passwords do not match', 'danger')
+        return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+    
+    is_complex, message = is_password_complex(new_password)
+    if not is_complex:
+        flash(message, 'danger')
+        return render_template('admin/settings.html', csrf_token=generate_csrf_token())
         
         # Update credentials
         updated = update_admin_password(
