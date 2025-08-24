@@ -1306,6 +1306,75 @@ def admin_dashboard():
         logger.error(f"Dashboard error: {e}")
         return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
 
+@app.route('/admin/add-album', methods=['GET', 'POST'])
+def add_album():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    if request.method == 'POST':
+        if not validate_csrf_token():
+            flash('Security token invalid. Please try again.', 'danger')
+            return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+        
+        try:
+            # Extract form data
+            title = request.form.get('title')
+            artist = request.form.get('artist')
+            year = request.form.get('year')
+            price = float(request.form.get('price'))
+            tracks = [track.strip() for track in request.form.get('tracks').split('\n') if track.strip()]
+            
+            # Create a new album ID
+            albums = load_data(app.config['ALBUMS_FILE'])
+            new_album_id = max([a['id'] for a in albums], default=0) + 1
+            
+            # Create the album object
+            new_album = {
+                'id': new_album_id,
+                'title': title,
+                'artist': artist,
+                'year': year,
+                'price': price,
+                'tracks': tracks,
+                'cover': '',  # Will be updated after file upload
+                'created_at': datetime.now().isoformat(),
+                'on_sale': bool(request.form.get('on_sale')),
+                'sale_price': float(request.form.get('sale_price', 0)) if request.form.get('sale_price') else None
+            }
+            
+            # Handle file uploads
+            cover_file = request.files.get('cover')
+            if cover_file and allowed_file(cover_file.filename, 'image'):
+                filename = secure_filename(f"album_{new_album_id}_{cover_file.filename}")
+                cover_path = os.path.join(app.config['COVERS_FOLDER'], filename)
+                cover_file.save(cover_path)
+                new_album['cover'] = f"uploads/covers/{filename}"
+            
+            # Add video if provided
+            video_file = request.files.get('video_file')
+            if video_file and allowed_file(video_file.filename, 'video') and allowed_file_size(video_file, 500):
+                filename = secure_filename(f"album_{new_album_id}_{video_file.filename}")
+                video_path = os.path.join(app.config['VIDEOS_FOLDER'], 'music_videos', filename)
+                video_file.save(video_path)
+                new_album['video_filename'] = filename
+                new_album['has_video'] = True
+                new_album['video_category'] = 'music_videos'
+            
+            # Add the album to the list
+            albums.append(new_album)
+            
+            if save_data(albums, app.config['ALBUMS_FILE']):
+                flash('Album created successfully!', 'success')
+                return redirect(url_for('admin_dashboard'))
+            else:
+                flash('Failed to save album. Please try again.', 'danger')
+                
+        except Exception as e:
+            logger.error(f"Error creating album: {e}")
+            flash('Error creating album. Please try again.', 'danger')
+    
+    return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+
 @app.route('/admin/settings', methods=['GET', 'POST'])
 def admin_settings():
     if not session.get('admin_logged_in'):
