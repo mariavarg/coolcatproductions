@@ -1241,18 +1241,17 @@ def admin_dashboard():
                         'album': album['title']
                     })
         
-       return render_template('admin/dashboard.html',
-                       album_count=len(albums),
-                       user_count=len(users),
-                       purchase_count=len([p for p in purchases if p.get('status') == 'completed']),
-                       total_revenue=total_revenue,
-                       recent_purchases=recent_purchases,
-                       sales_data=sales_data,
-                       current_date=datetime.now().strftime("%Y-%m-%d"))
-    except Exception as e:
-        logger.error(f"Dashboard error: {e}")
-        return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
-
+          return render_template('admin/dashboard.html',
+                           album_count=len(albums),
+                           user_count=len(users),
+                           purchase_count=len([p for p in purchases if p.get('status') == 'completed']),
+                           total_revenue=total_revenue,
+                           recent_purchases=recent_purchases,
+                           sales_data=sales_data,
+                           current_date=datetime.now().strftime("%Y-%m-%d"))
+except Exception as e:
+    logger.error(f"Dashboard error: {e}")
+    return render_template('admin/dashboard.html', album_count=0, user_count=0, purchase_count=0, total_revenue=0)
 @app.route('/admin/settings', methods=['GET', 'POST'])
 def admin_settings():
     if not session.get('admin_logged_in'):
