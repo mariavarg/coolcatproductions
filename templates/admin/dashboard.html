@@ -1,25 +1,30 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block title %}Admin Dashboard | CoolCat Productions{% endblock %}
 
+{% block page_title %}Dashboard Overview{% endblock %}
+
 {% block content %}
 <div class="content-box">
-    <h2>Admin Dashboard</h2>
-    
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; margin: 40px 0;">
         <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
             <h3>Albums</h3>
-            <p style="font-size: 2.8rem; margin: 15px 0;">{{ album_count }}</p>
+            <p style="font-size: 2.8rem; margin: 15px 0; color: #0d6efd;">{{ album_count }}</p>
         </div>
         
         <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
             <h3>Users</h3>
-            <p style="font-size: 2.8rem; margin: 15px 0;">{{ user_count }}</p>
+            <p style="font-size: 2.8rem; margin: 15px 0; color: #0d6efd;">{{ user_count }}</p>
         </div>
         
         <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
-            <h3>Today</h3>
-            <p style="font-size: 2.2rem; margin: 15px 0;">{{ current_date }}</p>
+            <h3>Sales</h3>
+            <p style="font-size: 2.8rem; margin: 15px 0; color: #0d6efd;">{{ purchase_count }}</p>
+        </div>
+        
+        <div style="background: #111; padding: 25px; border-radius: 8px; text-align: center; border: 1px solid #333;">
+            <h3>Revenue</h3>
+            <p style="font-size: 2.2rem; margin: 15px 0; color: #0d6efd;">${{ total_revenue }}</p>
         </div>
     </div>
     
@@ -30,14 +35,35 @@
         </a>
         
         <a href="{{ url_for('shop') }}" style="display: block; background: #111; padding: 30px; border: 1px solid #333; border-radius: 8px; text-align: center; transition: all 0.3s; text-decoration: none;">
-            <h3 style="color: #0d6efd; margin-bottom: 15px;">Manage Albums</h3>
-            <p style="color: #aaa;">Edit or remove existing albums</p>
+            <h3 style="color: #0d6efd; margin-bottom: 15px;">View Shop</h3>
+            <p style="color: #aaa;">Browse all albums in the shop</p>
         </a>
         
-        <a href="#" style="display: block; background: #111; padding: 30px; border: 1px solid #333; border-radius: 8px; text-align: center; transition: all 0.3s; text-decoration: none;">
+        <div style="display: block; background: #111; padding: 30px; border: 1px solid #333; border-radius: 8px; text-align: center;">
             <h3 style="color: #0d6efd; margin-bottom: 15px;">Manage Users</h3>
             <p style="color: #aaa;">View and manage user accounts</p>
-        </a>
+            <p style="color: #ff6b6b; font-size: 0.9rem; margin-top: 10px;">(Coming Soon)</p>
+        </div>
     </div>
+
+    {% if recent_purchases %}
+    <div style="margin-top: 50px;">
+        <h2>Recent Purchases</h2>
+        <div style="background: #111; padding: 20px; border-radius: 8px; border: 1px solid #333; margin-top: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px;">
+                <div>Date</div>
+                <div>Album</div>
+                <div>Amount</div>
+            </div>
+            {% for purchase in recent_purchases %}
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; padding: 10px 0; border-bottom: 1px solid #222;">
+                <div>{{ purchase.purchase_date[:10] }}</div>
+                <div>{{ purchase.album.title }}</div>
+                <div>${{ purchase.amount }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
