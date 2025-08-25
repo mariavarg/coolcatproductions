@@ -1163,7 +1163,6 @@ def stripe_webhook():
     return jsonify({'success': True})
     # Complete Updated app.py (Part 1)
 
-```python
 import os
 import json
 import logging
