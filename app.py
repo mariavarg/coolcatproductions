@@ -1660,7 +1660,8 @@ def edit_album(album_id):
                 album['year'] = request.form.get('year')
                 album['price'] = float(request.form.get('price'))
                 album['tracks'] = [track.strip() for track in request.form.get('tracks').split('\n') if track.strip()]
-                                album['sale_price'] = float(request.form.get('sale_price', 0)) if request.form.get('sale_price') else None
+                album['on_sale'] = bool(request.form.get('on_sale'))
+                album['sale_price'] = float(request.form.get('sale_price', 0)) if request.form.get('sale_price') else None
                 
                 # Handle file uploads
                 cover_file = request.files.get('cover')
