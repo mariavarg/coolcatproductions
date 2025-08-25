@@ -2,190 +2,172 @@
 
 {% block title %}Content Management - CoolCat Productions{% endblock %}
 
+{% block page_title %}Content Management{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title">Content Management Dashboard</h5>
-                    <p class="card-subtitle text-muted">Manage your music and video content</p>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Total Albums</h3>
+            <div class="number">{{ album_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Music Albums</h3>
+            <div class="number">{{ music_album_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Video Albums</h3>
+            <div class="number">{{ video_album_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Singles</h3>
+            <div class="number">{{ singles_count }}</div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Storage Information</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">Total storage used: <strong>{{ total_size }} MB</strong></p>
+            <div class="progress-wrapper">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-sm">Storage Usage</span>
+                    <span class="text-sm">{{ (total_size/1024)*100|round(1) }}% of 1 GB</span>
                 </div>
-                <div class="card-body">
-                    <div class="admin-stats">
-                        <div class="stat-card">
-                            <h3>Total Albums</h3>
-                            <div class="number">{{ album_count }}</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Music Albums</h3>
-                            <div class="number">{{ music_album_count }}</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Video Albums</h3>
-                            <div class="number">{{ video_album_count }}</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Singles</h3>
-                            <div class="number">{{ singles_count }}</div>
-                        </div>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ (total_size/1024)*100 }}%;"
+                         aria-valuenow="{{ (total_size/1024)*100 }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title">Storage Information</h5>
-                    <p class="card-subtitle text-muted">Total storage used: <strong>{{ total_size }} MB</strong></p>
-                </div>
-                <div class="card-body">
-                    <div class="progress-wrapper">
-                        <div class="progress-info">
-                            <div class="progress-percentage">
-                                <span class="text-sm font-weight-bold">{{ (total_size/1024)*100|round(1) }}% of 1 GB</span>
-                            </div>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar bg-primary" role="progressbar" 
-                                 style="width: {{ (total_size/1024)*100 }}%;"
-                                 aria-valuenow="{{ (total_size/1024)*100 }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                {{ (total_size/1024)*100|round(1) }}%
-                            </div>
-                        </div>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Content Cleanup</h5>
+            <p class="text-muted mb-0">Remove old or unused content to free up storage space</p>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('cleanup_content') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="older-than" class="form-label">Older Than (days)</label>
+                        <input class="form-control" type="number" name="older_than" id="older-than" min="0" placeholder="0 for all">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="min-downloads" class="form-label">Minimum Downloads</label>
+                        <input class="form-control" type="number" name="min_downloads" id="min-downloads" min="0" placeholder="0 for all">
+                        <div class="form-text">Delete content with fewer downloads than this number</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="content-type" class="form-label">Content Type</label>
+                        <select class="form-control" name="content_type" id="content-type">
+                            <option value="all">All Content</option>
+                            <option value="music">Music Only</option>
+                            <option value="video">Video Only</option>
+                        </select>
                     </div>
                 </div>
-            </div>
+                
+                <button type="submit" class="btn btn-danger mt-2" onclick="return confirm('Are you sure you want to delete content? This action cannot be undone.')">
+                    <i class="fas fa-trash me-2"></i> Clean Up Content
+                </button>
+            </form>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title">Content Cleanup</h5>
-                    <p class="card-subtitle text-muted">Remove old or unused content to free up storage space</p>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('cleanup_content') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="older-than" class="form-label">Older Than (days)</label>
-                                    <input class="form-control" type="number" name="older_than" id="older-than" min="0" placeholder="0 for all">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="min-downloads" class="form-label">Minimum Downloads</label>
-                                    <input class="form-control" type="number" name="min_downloads" id="min-downloads" min="0" placeholder="0 for all">
-                                    <div class="form-text">Delete content with fewer downloads than this number</div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="content-type" class="form-label">Content Type</label>
-                                    <select class="form-control" name="content_type" id="content-type">
-                                        <option value="all">All Content</option>
-                                        <option value="music">Music Only</option>
-                                        <option value="video">Video Only</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-danger mt-4" onclick="return confirm('Are you sure you want to delete content? This action cannot be undone.')">
-                            <i class="fas fa-trash me-2"></i> Clean Up Content
-                        </button>
-                    </form>
-                </div>
-            </div>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">All Content</h5>
+            <span class="badge bg-primary">{{ albums|length }} items</span>
         </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">All Content</h5>
-                    <span class="badge bg-primary rounded-pill">{{ albums|length }} items</span>
-                </div>
-                <div class="card-body">
-                    {% if albums %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Album</th>
-                                    <th>Tracks</th>
-                                    <th class="text-center">Type</th>
-                                    <th class="text-center">Added</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for album in albums %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="{{ url_for('static', filename=album.cover) if album.cover else url_for('static', filename='images/default-cover.jpg') }}" 
-                                                 class="rounded me-3" width="60" height="60" alt="{{ album.title }}">
-                                            <div>
-                                                <h6 class="mb-0">{{ album.title }}</h6>
-                                                <small class="text-muted">{{ album.artist }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary rounded-pill">{{ album.tracks|length }} tracks</span>
-                                    </td>
-                                    <td class="text-center">
-                                        {% if album.has_video %}
-                                        <span class="badge bg-info">Video</span>
-                                        {% else %}
-                                        <span class="badge bg-success">Music</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        <small class="text-muted">{{ album.added }}</small>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="{{ url_for('edit_album', album_id=album.id) }}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit album">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <form method="POST" action="{{ url_for('delete_album', album_id=album.id) }}" class="d-inline">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this album?')" data-bs-toggle="tooltip" title="Delete album">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No content available. Add your first album to get started.</p>
-                        <a href="{{ url_for('add_album') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Add Album
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
+        <div class="card-body">
+            {% if albums %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Album</th>
+                            <th>Tracks</th>
+                            <th class="text-center">Type</th>
+                            <th class="text-center">Added</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for album in albums %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename=album.cover) if album.cover else url_for('static', filename='images/default-cover.jpg') }}" 
+                                         class="rounded me-3" width="60" height="60" alt="{{ album.title }}">
+                                    <div>
+                                        <h6 class="mb-0">{{ album.title }}</h6>
+                                        <small class="text-muted">{{ album.artist }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ album.tracks|length }} tracks</span>
+                            </td>
+                            <td class="text-center">
+                                {% if album.has_video %}
+                                <span class="badge bg-info">Video</span>
+                                {% else %}
+                                <span class="badge bg-success">Music</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <small class="text-muted">{{ album.added }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('edit_album', album_id=album.id) }}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit album">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_album', album_id=album.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Delete this album?')" data-bs-toggle="tooltip" title="Delete album">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No content available. Add your first album to get started.</p>
+                <a href="{{ url_for('add_album') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add Album
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enable tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
 {% endblock %}
