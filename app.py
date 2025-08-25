@@ -1,6 +1,3 @@
-I'll provide you with the complete updated app.py file that includes all the admin functionality with a consistent black and white style. I've also ensured proper indentation throughout.
-
-```python
 import os
 import json
 import logging
