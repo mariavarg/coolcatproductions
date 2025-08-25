@@ -186,3 +186,32 @@ label, select, option {
     background-color: #5a2d91;
     border-color: #5a2d91;
 }
+
+.bg-gradient-primary {
+    background: linear-gradient(87.4deg, #4e73df 0%, #224abe 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(87.4deg, #1cc88a 0%, #13855c 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(87.4deg, #36b9cc 0%, #258391 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(87.4deg, #f6c23e 0%, #dda20a 100%);
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(87.4deg, #e74a3b 0%, #be2617 100%);
+}
+
+.icon-shape {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
