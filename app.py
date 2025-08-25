@@ -2326,11 +2326,7 @@ def stripe_webhook():
     # Add more event handlers as needed
     
     return jsonify({'success': True})
-```
 
-# Complete Updated app.py (Part 2)
-
-```python
 # ADMIN ROUTES
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
