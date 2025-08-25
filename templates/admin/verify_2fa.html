@@ -3,59 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify 2FA - CoolCat Productions</title>
+    <title>Verify 2FA - CoolCat Productions Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sofia&display=swap');
-        body { font-family: 'Sofia', cursive; }
+        body { 
+            font-family: 'Sofia', cursive; 
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
         .verify-container {
-            max-width: 400px;
-            margin: 5rem auto;
-            padding: 2rem;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            border-radius: 10px;
+            max-width: 450px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .logo-text {
+            font-size: 2.2rem;
+            color: #0d6efd;
+            margin-bottom: 0.5rem;
+        }
+        .form-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: 'Sofia', cursive;
+            font-size: 1.1rem;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #0d6efd;
+            border-bottom: 3px solid #0d6efd;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .backup-note {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .btn-verify {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            border: none;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+        .btn-verify:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="verify-container">
-            <h2 class="text-center mb-4"><i class="fas fa-shield-alt"></i> Verify 2FA Code</h2>
+    <div class="verify-container">
+        <div class="logo">
+            <div class="logo-text">
+                <i class="fas fa-shield-alt me-2"></i>CoolCat Admin
+            </div>
+            <p class="text-muted">Two-Factor Authentication Required</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="form-tabs">
+            <button type="button" class="tab-btn active" id="tab-auth-code">
+                <i class="fas fa-mobile-alt me-2"></i>Authenticator App
+            </button>
+            <button type="button" class="tab-btn" id="tab-backup-code">
+                <i class="fas fa-key me-2"></i>Backup Code
+            </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('admin_verify_2fa') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            
-            <form method="POST" action="{{ url_for('admin_verify_2fa') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                
+            <div class="tab-content active" id="content-auth-code">
                 <div class="mb-3">
                     <label for="token" class="form-label">Authentication Code</label>
-                    <input type="text" class="form-control" id="token" name="token" required 
-                           placeholder="Enter 6-digit code from your authenticator app">
-                    <div class="form-text">Enter the code from your authenticator app</div>
+                    <input type="text" class="form-control form-control-lg" id="token" name="token" 
+                           placeholder="Enter 6-digit code from your authenticator app" required autofocus>
+                    <div class="form-text">Open your authenticator app to get your verification code</div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="content-backup-code">
+                <div class="mb-3">
+                    <label for="backup_code" class="form-label">Backup Code</label>
+                    <input type="text" class="form-control form-control-lg" id="backup_code" name="backup_code" 
+                           placeholder="Enter your backup code">
+                    <div class="form-text">Each backup code can be used only once</div>
                 </div>
                 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-check-circle"></i> Verify Code
-                    </button>
-                    <a href="{{ url_for('admin_login') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Login
-                    </a>
+                <div class="backup-note">
+                    <i class="fas fa-info-circle me-2"></i>
+                    If you've lost access to your authenticator app, you can use one of your backup codes to sign in.
                 </div>
-            </form>
-        </div>
+            </div>
+            
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-verify btn-lg">
+                    <i class="fas fa-check-circle me-2"></i> Verify & Continue
+                </button>
+                <a href="{{ url_for('admin_login') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Login
+                </a>
+            </div>
+        </form>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching functionality
+            const tabAuthCode = document.getElementById('tab-auth-code');
+            const tabBackupCode = document.getElementById('tab-backup-code');
+            const contentAuthCode = document.getElementById('content-auth-code');
+            const contentBackupCode = document.getElementById('content-backup-code');
+            
+            tabAuthCode.addEventListener('click', function() {
+                tabAuthCode.classList.add('active');
+                tabBackupCode.classList.remove('active');
+                contentAuthCode.classList.add('active');
+                contentBackupCode.classList.remove('active');
+                document.getElementById('token').setAttribute('required', 'required');
+                document.getElementById('backup_code').removeAttribute('required');
+            });
+            
+            tabBackupCode.addEventListener('click', function() {
+                tabBackupCode.classList.add('active');
+                tabAuthCode.classList.remove('active');
+                contentBackupCode.classList.add('active');
+                contentAuthCode.classList.remove('active');
+                document.getElementById('backup_code').setAttribute('required', 'required');
+                document.getElementById('token').removeAttribute('required');
+            });
+            
+            // Auto-submit when 6 digits are entered
+            const tokenInput = document.getElementById('token');
+            tokenInput.addEventListener('input', function() {
+                if (this.value.length === 6) {
+                    this.form.submit();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
