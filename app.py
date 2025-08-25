@@ -884,7 +884,7 @@ def verify_2fa_login():
         elif token and verify_2fa_token(user['2fa_secret'], token):
             verified = True
         
-        if verified:
+                if verified:
             # Complete login
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -892,12 +892,11 @@ def verify_2fa_login():
             session.pop('pending_2fa_user', None)
             
             flash('Logged in successfully', 'success')
-                        log_security_event('USER_LOGIN_SUCCESS', f'User: {user["username"]} (2FA verified)', user['id'])
+            log_security_event('USER_LOGIN_SUCCESS', f'User: {user["username"]} (2FA verified)', user['id'])
             return redirect(url_for('home'))
         else:
             flash('Invalid authentication code or backup code', 'danger')
             log_security_event('2FA_FAILED', 'Invalid 2FA code during login', user['id'])
-    
     return render_template('verify_2fa.html', csrf_token=generate_csrf_token())
 
 @app.route('/profile')
