@@ -446,16 +446,16 @@ def security_checks():
         log_security_event('SUSPICIOUS_REQUEST', f'Blocked request: {request_str}')
         abort(400)
     
-            # Check for suspicious user agents
-        user_agent = request.headers.get('User-Agent', '')
-        suspicious_agents = ['bot', 'spider', 'crawl', 'scan', 'hack', 'sqlmap', 'nikto']
-        if any(agent in user_agent.lower() for agent in suspicious_agents):
-            log_security_event('SUSPICIOUS_USER_AGENT', f'User-Agent: {user_agent}')
-        
-        # Check for common attack patterns in request path
-        if any(pattern in request.path for pattern in suspicious_patterns):
-            log_security_event('SUSPICIOUS_REQUEST', f'Path: {request.path}')
-            abort(400)
+    # Check for suspicious user agents
+    user_agent = request.headers.get('User-Agent', '')
+    suspicious_agents = ['bot', 'spider', 'crawl', 'scan', 'hack', 'sqlmap', 'nikto']
+    if any(agent in user_agent.lower() for agent in suspicious_agents):
+        log_security_event('SUSPICIOUS_USER_AGENT', f'User-Agent: {user_agent}')
+    
+    # Check for common attack patterns in request path
+    if any(pattern in request.path for pattern in suspicious_patterns):
+        log_security_event('SUSPICIOUS_REQUEST', f'Path: {request.path}')
+        abort(400)
 
 @app.after_request
 def add_security_headers(response):
@@ -892,7 +892,7 @@ def verify_2fa_login():
             session.pop('pending_2fa_user', None)
             
             flash('Logged in successfully', 'success')
-            log_security_event('USER_LOGIN_SUCCESS', f'User: {user["username"]} (2FA verified)', user['id'])
+                        log_security_event('USER_LOGIN_SUCCESS', f'User: {user["username"]} (2FA verified)', user['id'])
             return redirect(url_for('home'))
         else:
             flash('Invalid authentication code or backup code', 'danger')
@@ -952,7 +952,7 @@ def generate_new_backup_codes():
     
     try:
         users = load_data(app.config['USERS_FILE'])
-        user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
+        user_index = next((i for i, u in enumerate(users if u['id'] == session['user_id']), -1)
         
         if user_index == -1:
             flash('User not found', 'danger')
@@ -1031,7 +1031,7 @@ def create_payment_intent(album_id):
         album = next((a for a in albums if a['id'] == album_id), None)
         
         if not album:
-            return jsonify({'error': 'Album not found'}), 404
+        return jsonify({'error': 'Album not found'}), 404
         
         # Check if user already owns this album
         if has_purchased(session['user_id'], album_id):
@@ -1260,7 +1260,7 @@ def admin_verify_2fa():
                 <input type="hidden" name="csrf_token" value="{0}">
                 <div class="form-group">
                     <label for="token">Verification Code:</label>
-                    <input type="text" id"token" name="token" required autofocus>
+                    <input type="text" id="token" name="token" required autofocus>
                 </div>
                 <button type="submit">Verify</button>
             </form>
