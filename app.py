@@ -1488,6 +1488,7 @@ def manage_content():
     
     try:
         albums = load_data(app.config['ALBUMS_FILE'])
+        print(f"DEBUG: Loaded {len(albums)} albums")  # Debug line
         
         # Calculate statistics
         album_count = len(albums)
@@ -1498,7 +1499,11 @@ def manage_content():
         # Calculate actual storage size
         total_size = 0
         for album in albums:
-            total_size += get_album_size(album['id'])
+            album_size = get_album_size(album['id'])
+            total_size += album_size
+            print(f"DEBUG: Album {album['id']} - {album['title']} size: {album_size} MB")  # Debug line
+        
+        print(f"DEBUG: Total size: {total_size} MB")  # Debug line
         
         # Format dates for display
         for album in albums:
@@ -1518,6 +1523,7 @@ def manage_content():
                              total_size=round(total_size, 2),
                              albums=albums)
     except Exception as e:
+        print(f"ERROR in manage_content: {e}")  # Debug line
         logger.error(f"Error loading content management: {e}")
         flash('Error loading content management', 'danger')
         return redirect(url_for('admin_dashboard'))
