@@ -19,6 +19,9 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from markupsafe import escape
 
+# Add this line after your imports in app.py
+__version__ = "1.0.0"
+
 # Initialize logging
 logging.basicConfig(
     level=logging.INFO,
@@ -421,6 +424,36 @@ def update_admin_password(new_username, new_password):
         logger.error(f"Error updating admin credentials: {e}")
         return False
 
+def get_album_size(album_id):
+    """Calculate the total size of an album's files in MB"""
+    total_size = 0
+    
+    # Check cover image
+    albums = load_data(app.config['ALBUMS_FILE'])
+    album = next((a for a in albums if a['id'] == album_id), None)
+    
+    if album and album.get('cover'):
+        cover_path = os.path.join('static', album['cover'])
+        if os.path.exists(cover_path):
+            total_size += os.path.getsize(cover_path) / (1024 * 1024)  # Convert to MB
+    
+    # Check video file
+    if album and album.get('video_filename'):
+        video_category = album.get('video_category', 'music_videos')
+        video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, album['video_filename'])
+        if os.path.exists(video_path):
+            total_size += os.path.getsize(video_path) / (1024 * 1024)  # Convert to MB
+    
+    # Check music files
+    album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
+    if os.path.exists(album_dir):
+        for file in os.listdir(album_dir):
+            file_path = os.path.join(album_dir, file)
+            if os.path.isfile(file_path):
+                total_size += os.path.getsize(file_path) / (1024 * 1024)  # Convert to MB
+    
+    return total_size
+
 # Security middleware and headers
 @app.before_request
 def security_checks():
@@ -524,7 +557,7 @@ def favicon():
 def contact():
     return render_template('contact.html')
 
-@app.route('/uploads/<path:filename>')
+@app.route('/uploads/<path:filename')
 def serve_uploaded_files(filename):
     try:
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -580,7 +613,7 @@ def stream_video(filename):
                 f.seek(byte1)
                 remaining = length
                 while remaining > 0:
-                    chunk_size = min(app.config['VIDEO_STREAM_CHUNK_SIZE'], remaining)
+                    chunk_size = min(app.config['VIDEOS_STREAM_CHUNK_SIZE'], remaining)
                     data = f.read(chunk_size)
                     if not data:
                         break
@@ -1451,36 +1484,6 @@ def add_album():
     
     return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
 
-def get_album_size(album_id):
-    """Calculate the total size of an album's files in MB"""
-    total_size = 0
-    
-    # Check cover image
-    albums = load_data(app.config['ALBUMS_FILE'])
-    album = next((a for a in albums if a['id'] == album_id), None)
-    
-    if album and album.get('cover'):
-        cover_path = os.path.join('static', album['cover'])
-        if os.path.exists(cover_path):
-            total_size += os.path.getsize(cover_path) / (1024 * 1024)  # Convert to MB
-    
-    # Check video file
-    if album and album.get('video_filename'):
-        video_category = album.get('video_category', 'music_videos')
-        video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, album['video_filename'])
-        if os.path.exists(video_path):
-            total_size += os.path.getsize(video_path) / (1024 * 1024)  # Convert to MB
-    
-    # Check music files
-    album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
-    if os.path.exists(album_dir):
-        for file in os.listdir(album_dir):
-            file_path = os.path.join(album_dir, file)
-            if os.path.isfile(file_path):
-                total_size += os.path.getsize(file_path) / (1024 * 1024)  # Convert to MB
-    
-    return total_size
-
 @app.route('/admin/manage-content')
 def manage_content():
     if not session.get('admin_logged_in'):
@@ -1522,105 +1525,6 @@ def manage_content():
         flash('Error loading content management', 'danger')
         return redirect(url_for('admin_dashboard'))
 
-@app.route('/cleanup-content', methods=['POST'])
-def cleanup_content():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    if not validate_csrf_token():
-        flash('Security token invalid. Please try again.', 'danger')
-        return redirect(url_for('manage_content'))
-    
-    try:
-        older_than = request.form.get('older_than', type=int)
-        min_downloads = request.form.get('min_downloads', type=int)
-        content_type = request.form.get('content_type', 'all')
-        
-        # Load all data
-        albums = load_data(app.config['ALBUMS_FILE'])
-        purchases = load_data(app.config['PURCHASES_FILE'])
-        
-        # Get current date for comparison
-        now = datetime.now()
-        deleted_count = 0
-        freed_space = 0  # In MB
-        
-        # Create a copy of albums to iterate over while modifying the original
-        albums_copy = albums.copy()
-        
-        for album in albums_copy:
-            # Check if album meets deletion criteria
-            should_delete = True
-            
-            # Check age criteria
-            if older_than and older_than > 0:
-                try:
-                    created_date = datetime.fromisoformat(album.get('created_at', ''))
-                    days_old = (now - created_date).days
-                    if days_old < older_than:
-                        should_delete = False
-                except:
-                    # If we can't parse the date, skip age check
-                    pass
-            
-            # Check download count criteria
-            if min_downloads and min_downloads > 0:
-                album_purchases = [p for p in purchases if p['album_id'] == album['id']]
-                total_downloads = sum(p.get('downloads', 0) for p in album_purchases)
-                if total_downloads >= min_downloads:
-                    should_delete = False
-            
-            # Check content type criteria
-            if content_type != 'all':
-                if content_type == 'music' and album.get('has_video', False):
-                    should_delete = False
-                elif content_type == 'video' and not album.get('has_video', False):
-                    should_delete = False
-            
-            # Delete album if it meets criteria
-            if should_delete:
-                # Remove cover image if exists
-                if album.get('cover'):
-                    cover_path = os.path.join('static', album['cover'])
-                    if os.path.exists(cover_path):
-                        os.remove(cover_path)
-                        freed_space += os.path.getsize(cover_path) / (1024 * 1024)  # Convert to MB
-                
-                # Remove video if exists
-                if album.get('video_filename'):
-                    video_category = album.get('video_category', 'music_videos')
-                    video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, album['video_filename'])
-                    if os.path.exists(video_path):
-                        os.remove(video_path)
-                        freed_space += os.path.getsize(video_path) / (1024 * 1024)  # Convert to MB
-                
-                # Remove music files if they exist
-                album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album['id']}")
-                if os.path.exists(album_dir):
-                    for file in os.listdir(album_dir):
-                        file_path = os.path.join(album_dir, file)
-                        if os.path.isfile(file_path):
-                            freed_space += os.path.getsize(file_path) / (1024 * 1024)  # Convert to MB
-                            os.remove(file_path)
-                    os.rmdir(album_dir)
-                
-                # Remove album from list
-                albums = [a for a in albums if a['id'] != album['id']]
-                deleted_count += 1
-        
-        # Save updated albums list
-        if deleted_count > 0:
-            save_data(albums, app.config['ALBUMS_FILE'])
-            flash(f'Deleted {deleted_count} items and freed {freed_space:.2f} MB of space.', 'success')
-        else:
-            flash('No content matched your cleanup criteria.', 'info')
-            
-        return redirect(url_for('manage_content'))
-    
-    except Exception as e:
-        logger.error(f"Error during content cleanup: {e}")
-        flash('Error during content cleanup', 'danger')
-        return redirect(url_for('manage_content'))
 @app.route('/cleanup-content', methods=['POST'])
 def cleanup_content():
     if not session.get('admin_logged_in'):
