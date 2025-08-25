@@ -951,7 +951,7 @@ def generate_new_backup_codes():
     
     try:
         users = load_data(app.config['USERS_FILE'])
-        user_index = next((i for i, u in enumerate(users if u['id'] == session['user_id']), -1)
+        user_index = next((i for i, u in enumerate(users) if u['id'] == session['user_id']), -1)
         
         if user_index == -1:
             flash('User not found', 'danger')
@@ -1030,7 +1030,7 @@ def create_payment_intent(album_id):
         album = next((a for a in albums if a['id'] == album_id), None)
         
         if not album:
-        return jsonify({'error': 'Album not found'}), 404
+            return jsonify({'error': 'Album not found'}), 404
         
         # Check if user already owns this album
         if has_purchased(session['user_id'], album_id):
