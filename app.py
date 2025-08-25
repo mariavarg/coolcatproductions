@@ -557,7 +557,7 @@ def favicon():
 def contact():
     return render_template('contact.html')
 
-@app.route('/uploads/<path:filename')
+@app.route('/uploads/<path:filename>')
 def serve_uploaded_files(filename):
     try:
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
