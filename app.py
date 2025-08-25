@@ -1571,7 +1571,7 @@ def delete_album(album_id):
             flash('Failed to delete album. Please try again.', 'danger')
             
     except Exception as e:
-        logger.error(f"Error deleting album: {e"})
+        logger.error(f"Error deleting album: {e}")
         flash('Error deleting album. Please try again.', 'danger')
     
     return redirect(url_for('manage_albums'))
