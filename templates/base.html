@@ -17,13 +17,13 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Sofia', cursive;
         }
         
         body {
             background-color: #000;
             color: #fff;
             line-height: 1.6;
+            font-family: 'Sofia', cursive;
         }
         
         /* Channel Header */
@@ -50,6 +50,8 @@
             display: flex;
             justify-content: center;
             list-style: none;
+            margin: 0;
+            padding: 0;
         }
         
         .nav-links li {
@@ -65,6 +67,7 @@
         
         .nav-links a:hover {
             color: #0d6efd;
+            text-decoration: none;
         }
         
         /* Main Content */
@@ -123,6 +126,7 @@
         .btn:hover {
             background-color: #0b5ed7;
             text-decoration: none;
+            color: white;
         }
         
         .btn:disabled {
@@ -190,6 +194,12 @@
             color: #d1ecf1;
         }
         
+        .alert-warning {
+            background-color: #856404;
+            border-color: #664d03;
+            color: #fff3cd;
+        }
+        
         /* Footer */
         .site-footer {
             background-color: #111;
@@ -204,6 +214,7 @@
             justify-content: center;
             list-style: none;
             margin: 20px 0;
+            padding: 0;
         }
         
         .footer-links li {
@@ -218,6 +229,7 @@
         
         .footer-links a:hover {
             color: #0d6efd;
+            text-decoration: none;
         }
         
         .copyright {
@@ -233,6 +245,41 @@
         
         .admin-access a {
             color: #ff6b6b;
+        }
+        
+        /* Table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        
+        th {
+            background-color: #222;
+            font-weight: bold;
+        }
+        
+        /* Form styles */
+        .form-control {
+            background-color: #222;
+            border: 1px solid #333;
+            color: white;
+        }
+        
+        .form-control:focus {
+            background-color: #222;
+            border-color: #0d6efd;
+            color: white;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .form-label {
+            color: #fff;
         }
     </style>
     {% block head %}{% endblock %}
@@ -252,7 +299,13 @@
             <li><a href="{{ url_for('shop') }}">Shop</a></li>
             <li><a href="#">Artists</a></li>
             <li><a href="#">About</a></li>
-            <li><a href="{{ url_for('register') }}">Register</a></li>
+            {% if session.get('user_id') %}
+                <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                <li><a href="{{ url_for('user_logout') }}">Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}">Login</a></li>
+                <li><a href="{{ url_for('register') }}">Register</a></li>
+            {% endif %}
         </ul>
     </nav>
 
@@ -272,8 +325,8 @@
     <!-- Footer -->
     <footer class="site-footer">
         <ul class="footer-links">
-            <li><a href="#">Home</a></li>
-            <li><a href="#">Shop</a></li>
+            <li><a href="{{ url_for('home') }}">Home</a></li>
+            <li><a href="{{ url_for('shop') }}">Shop</a></li>
             <li><a href="#">Contact</a></li>
             <li><a href="#">Privacy Policy</a></li>
             <li><a href="#">Terms of Service</a></li>
@@ -313,7 +366,15 @@
                 document.cookie = "cookies_accepted=true; max-age=2592000; path=/"; // 30 days
                 cookieConsent.style.display = 'none';
             });
+            
+            // Enable Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
         });
     </script>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>
