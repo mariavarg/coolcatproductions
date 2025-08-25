@@ -884,7 +884,7 @@ def verify_2fa_login():
         elif token and verify_2fa_token(user['2fa_secret'], token):
             verified = True
         
-                if verified:
+        if verified:
             # Complete login
             session['user_id'] = user['id']
             session['username'] = user['username']
