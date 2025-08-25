@@ -1,148 +1,274 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="content-box">
-    <h2>Content Management</h2>
-    
-    <div class="stats-grid">
-        <div class="stat-card">
-            <h3>{{ album_count }}</h3>
-            <p>Total Albums</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ music_album_count }}</h3>
-            <p>Music Albums</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ video_album_count }}</h3>
-            <p>Video Albums</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ singles_count }}</h3>
-            <p>Singles</p>
-        </div>
-        <div class="stat-card">
-            <h3>{{ total_size }} MB</h3>
-            <p>Storage Used</p>
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Content Management Dashboard</h2>
+            
+            <!-- Stats Overview -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stat-card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3">
+                                    <i class="fas fa-compact-disc fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">{{ album_count }}</h5>
+                                    <p class="card-text mb-0">Total Albums</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stat-card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3">
+                                    <i class="fas fa-music fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">{{ music_album_count }}</h5>
+                                    <p class="card-text mb-0">Music Albums</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stat-card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3">
+                                    <i class="fas fa-video fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">{{ video_album_count }}</h5>
+                                    <p class="card-text mb-0">Video Albums</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stat-card bg-warning text-dark">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3">
+                                    <i class="fas fa-star fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-0">{{ singles_count }}</h5>
+                                    <p class="card-text mb-0">Singles</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Storage Info -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-database me-2"></i>Storage Information</h5>
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ (total_size/1024)*100 }}%;" 
+                                     aria-valuenow="{{ (total_size/1024)*100 }}" 
+                                     aria-valuemin="0" aria-valuemax="100">
+                                    {{ total_size }} MB / 1 GB
+                                </div>
+                            </div>
+                            <p class="card-text">Total storage used: <strong>{{ total_size }} MB</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-
-<div class="content-box">
-    <h2>Content Cleanup</h2>
-    <p>Remove old or unused content to free up storage space.</p>
     
-    <form method="POST" action="{{ url_for('cleanup_content') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <div class="form-group">
-            <label>Older Than (days)</label>
-            <input type="number" name="older_than" min="0" class="form-control" placeholder="0 for all">
-        </div>
-        
-        <div class="form-group">
-            <label>Maximum Downloads</label>
-            <input type="number" name="min_downloads" min="0" class="form-control" placeholder="0 for all">
-            <small>Delete content with fewer downloads than this number</small>
-        </div>
-        
-        <div class="form-group">
-            <label>Content Type</label>
-            <select name="content_type" class="form-control">
-                <option value="all">All Content</option>
-                <option value="music">Music Only</option>
-                <option value="video">Video Only</option>
-            </select>
-        </div>
-        
-        <button type="submit" class="btn" onclick="return confirm('Are you sure you want to delete content? This action cannot be undone.')">Clean Up Content</button>
-    </form>
-</div>
-
-<div class="content-box">
-    <h2>All Content</h2>
-    
-    <div class="content-list">
-        {% for album in albums %}
-        <div class="content-item">
-            <img src="{{ url_for('static', filename=album.cover) }}" alt="{{ album.title }}" class="content-thumb">
-            <div class="content-info">
-                <h4>{{ album.title }} - {{ album.artist }}</h4>
-                <p>{{ album.tracks|length }} tracks • Added: {{ album.added }}</p>
-                {% if album.has_video %}
-                <span class="badge">Video</span>
-                {% endif %}
-            </div>
-            <div class="content-actions">
-                <a href="{{ url_for('edit_album', album_id=album.id) }}" class="btn">Edit</a>
-                <form method="POST" action="{{ url_for('delete_album', album_id=album.id) }}" style="display: inline;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn" onclick="return confirm('Delete this album?')">Delete</button>
-                </form>
+    <!-- Content Cleanup Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-broom me-2"></i>Content Cleanup</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Remove old or unused content to free up storage space.</p>
+                    
+                    <form method="POST" action="{{ url_for('cleanup_content') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Older Than (days)</label>
+                                <input type="number" name="older_than" min="0" class="form-control" placeholder="0 for all">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Maximum Downloads</label>
+                                <input type="number" name="min_downloads" min="0" class="form-control" placeholder="0 for all">
+                                <div class="form-text">Delete content with fewer downloads than this number</div>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Content Type</label>
+                                <select name="content_type" class="form-control">
+                                    <option value="all">All Content</option>
+                                    <option value="music">Music Only</option>
+                                    <option value="video">Video Only</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete content? This action cannot be undone.')">
+                            <i class="fas fa-trash me-2"></i>Clean Up Content
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-        {% endfor %}
+    </div>
+    
+    <!-- All Content Section -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>All Content</h5>
+                    <span class="badge bg-primary">{{ albums|length }} items</span>
+                </div>
+                <div class="card-body">
+                    {% if albums %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Cover</th>
+                                    <th>Title & Artist</th>
+                                    <th>Tracks</th>
+                                    <th>Type</th>
+                                    <th>Added</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for album in albums %}
+                                <tr>
+                                    <td>
+                                        <img src="{{ url_for('static', filename=album.cover) if album.cover else url_for('static', filename='images/default-cover.jpg') }}" 
+                                             alt="{{ album.title }}" class="content-thumb rounded">
+                                    </td>
+                                    <td>
+                                        <h6 class="mb-0">{{ album.title }}</h6>
+                                        <p class="text-muted mb-0">{{ album.artist }}</p>
+                                    </td>
+                                    <td>{{ album.tracks|length }} tracks</td>
+                                    <td>
+                                        {% if album.has_video %}
+                                        <span class="badge bg-info"><i class="fas fa-video me-1"></i>Video</span>
+                                        {% else %}
+                                        <span class="badge bg-success"><i class="fas fa-music me-1"></i>Music</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ album.added }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('edit_album', album_id=album.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('delete_album', album_id=album.id) }}" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this album?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No content available. Add your first album to get started.</p>
+                        <a href="{{ url_for('add_album') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add Album
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
-}
-
 .stat-card {
-    background: #1a1a1a;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.3s;
 }
 
-.stat-card h3 {
-    font-size: 2rem;
-    margin: 0;
-    color: #0d6efd;
+.stat-card:hover {
+    transform: translateY(-5px);
 }
 
-.content-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.content-item {
+.stat-icon {
+    background: rgba(255, 255, 255, 0.2);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    padding: 15px;
-    background: #1a1a1a;
-    border-radius: 8px;
-    gap: 15px;
+    justify-content: center;
 }
 
 .content-thumb {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     object-fit: cover;
-    border-radius: 4px;
 }
 
-.content-info {
-    flex-grow: 1;
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
 }
 
-.badge {
-    background: #0d6efd;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
 }
 
-.content-actions {
-    display: flex;
-    gap: 10px;
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.btn-group .btn {
+    border-radius: 5px;
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    font-weight: 600;
 }
 </style>
 {% endblock %}
