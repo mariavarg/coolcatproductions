@@ -1802,7 +1802,7 @@ def admin_settings():
             new_password or current_password
         )
         
-         if updated:
+        if updated:
             flash('Admin credentials updated successfully', 'success')
             log_security_event('ADMIN_CREDENTIALS_UPDATED', 'Admin updated their credentials')
             
@@ -1817,7 +1817,6 @@ def admin_settings():
         return redirect(url_for('admin_settings'))
     
     return render_template('admin/settings.html')
-
 # ADMIN RESET ROUTE
 @app.route('/admin/reset-credentials', methods=['GET', 'POST'])
 def admin_reset_credentials():
