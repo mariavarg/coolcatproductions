@@ -600,9 +600,6 @@ def stream_video(filename):
     # Implement range requests for streaming
     range_header = request.headers.get('Range', None)
     
-    I'll continue with the rest of the app.py file:
-
-```python
     if range_header:
         # Parse range header
         byte1, byte2 = 0, None
