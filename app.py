@@ -1802,7 +1802,7 @@ def admin_settings():
             new_password or current_password
         )
         
-                if updated:
+         if updated:
             flash('Admin credentials updated successfully', 'success')
             log_security_event('ADMIN_CREDENTIALS_UPDATED', 'Admin updated their credentials')
             
