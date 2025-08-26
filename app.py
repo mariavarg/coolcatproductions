@@ -160,6 +160,11 @@ def is_locked_out(ip, endpoint):
             del failed_login_lockout[key]
     return False
 
+# Add CSRF token to all templates
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf_token())
+
 def remove_auto_durations(albums):
     for album in albums:
         if 'tracks' in album:
@@ -557,6 +562,7 @@ def favicon():
 def contact():
     return render_template('contact.html')
 
+# FIXED ROUTE - Added missing closing bracket
 @app.route('/uploads/<path:filename>')
 def serve_uploaded_files(filename):
     try:
@@ -594,6 +600,9 @@ def stream_video(filename):
     # Implement range requests for streaming
     range_header = request.headers.get('Range', None)
     
+    I'll continue with the rest of the app.py file:
+
+```python
     if range_header:
         # Parse range header
         byte1, byte2 = 0, None
@@ -734,7 +743,7 @@ def register():
         try:
             if not validate_csrf_token():
                 flash('Security token invalid. Please try again.', 'danger')
-                return render_template('register.html', csrf_token=generate_csrf_token())
+                return render_template('register.html')
             
             username = request.form.get('username', '').strip()
             email = request.form.get('email', '').strip().lower()
@@ -743,24 +752,24 @@ def register():
             # Validate input
             if not all([username, email, password]):
                 flash('All fields are required', 'danger')
-                return render_template('register.html', csrf_token=generate_csrf_token())
+                return render_template('register.html')
             
             # Check password complexity
             is_complex, message = is_password_complex(password)
             if not is_complex:
                 flash(message, 'danger')
-                return render_template('register.html', csrf_token=generate_csrf_token())
+                return render_template('register.html')
 
             users = load_data(app.config['USERS_FILE'])
             
             # Check if username or email already exists
             if any(u['username'].lower() == username.lower() for u in users):
                 flash('Username already taken', 'danger')
-                return render_template('register.html', csrf_token=generate_csrf_token())
+                return render_template('register.html')
                 
             if any(u['email'].lower() == email.lower() for u in users):
                 flash('Email already registered', 'danger')
-                return render_template('register.html', csrf_token=generate_csrf_token())
+                return render_template('register.html')
             
             # Create new user
             new_user = {
@@ -787,7 +796,7 @@ def register():
             logger.error(f"Registration error: {e}")
             flash('Registration error. Please try again.', 'danger')
     
-    return render_template('register.html', csrf_token=generate_csrf_token())
+    return render_template('register.html')
 
 @app.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa():
@@ -824,7 +833,7 @@ def setup_2fa():
         else:
             flash('Invalid authentication code. Please try again.', 'danger')
             
-    return render_template('setup_2fa.html', csrf_token=generate_csrf_token())
+    return render_template('setup_2fa.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -836,15 +845,15 @@ def login():
         
         if is_locked_out(ip, 'user_login'):
             flash('Too many failed attempts. Please try again in 15 minutes.', 'warning')
-            return render_template('login.html', csrf_token=generate_csrf_token())
+            return render_template('login.html')
         
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('login.html', csrf_token=generate_csrf_token())
+            return render_template('login.html')
         
         if not check_rate_limit(ip, 'user_login', 5, 300):
             flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
-            return render_template('login.html', csrf_token=generate_csrf_token())
+            return render_template('login.html')
         
         try:
             username = request.form.get('username', '').strip()
@@ -875,7 +884,7 @@ def login():
             log_security_event('LOGIN_ERROR', f'Error: {str(e)}', ip=ip)
             flash('Login failed. Please try again.', 'danger')
     
-    return render_template('login.html', csrf_token=generate_csrf_token())
+    return render_template('login.html')
 
 @app.route('/verify-2fa-login', methods=['GET', 'POST'])
 def verify_2fa_login():
@@ -886,7 +895,7 @@ def verify_2fa_login():
     if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('verify_2fa.html', csrf_token=generate_csrf_token())
+            return render_template('verify_2fa.html')
         
         token = request.form.get('token', '')
         backup_code = request.form.get('backup_code', '')
@@ -927,7 +936,7 @@ def verify_2fa_login():
         else:
             flash('Invalid authentication code or backup code', 'danger')
             log_security_event('2FA_FAILED', 'Invalid 2FA code during login', user['id'])
-    return render_template('verify_2fa.html', csrf_token=generate_csrf_token())
+    return render_template('verify_2fa.html')
 
 @app.route('/profile')
 def profile():
@@ -1203,15 +1212,15 @@ def admin_login():
         
         if is_locked_out(ip, 'admin_login'):
             flash('Too many failed attempts. Please try again in 15 minutes.', 'warning')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
+            return render_template('admin/login.html')
         
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
+            return render_template('admin/login.html')
         
         if not check_rate_limit(ip, 'admin_login', 3, 300):
             flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
+            return render_template('admin/login.html')
         
         try:
             username = request.form.get('username', '')
@@ -1241,7 +1250,7 @@ def admin_login():
             log_security_event('ADMIN_LOGIN_ERROR', f'Error: {str(e)}', ip=ip)
             flash('Login failed. Please try again.', 'danger')
     
-    return render_template('admin/login.html', csrf_token=generate_csrf_token())
+    return render_template('admin/login.html')
 
 @app.route('/admin/verify-2fa', methods=['GET', 'POST'])
 def admin_verify_2fa():
@@ -1254,7 +1263,7 @@ def admin_verify_2fa():
     if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+            return render_template('admin/verify_2fa.html')
         
         token = request.form.get('token', '')
         backup_code = request.form.get('backup_code', '')
@@ -1285,7 +1294,7 @@ def admin_verify_2fa():
             flash('Invalid authentication code or backup code', 'danger')
             log_security_event('ADMIN_2FA_FAILED', 'Invalid 2FA code during admin login')
     
-    return render_template('admin/verify_2fa.html', csrf_token=generate_csrf_token())
+    return render_template('admin/verify_2fa.html')
 
 @app.route('/admin/2fa-setup', methods=['GET', 'POST'])
 def admin_2fa_setup():
@@ -1347,7 +1356,6 @@ def admin_2fa_setup():
         logger.warning("QR code generation requires qrcode library. Install with: pip install qrcode[pil]")
     
     return render_template('admin/2fa_setup.html', 
-                         csrf_token=generate_csrf_token(),
                          secret=app.config['TOTP_SECRET'],
                          qr_code_b64=qr_code_b64)
 
@@ -1423,7 +1431,7 @@ def add_album():
     if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+            return render_template('admin/add_album.html')
         
         try:
             # Extract form data
@@ -1482,7 +1490,7 @@ def add_album():
             logger.error(f"Error creating album: {e}")
             flash('Error creating album. Please try again.', 'danger')
     
-    return render_template('admin/add_album.html', csrf_token=generate_csrf_token())
+    return render_template('admin/add_album.html')
 
 @app.route('/admin/manage-content')
 def manage_content():
@@ -1654,7 +1662,7 @@ def edit_album(album_id):
         if request.method == 'POST':
             if not validate_csrf_token():
                 flash('Security token invalid. Please try again.', 'danger')
-                return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
+                return render_template('admin/edit_album.html', album=album)
             
             try:
                 # Update album data
@@ -1706,7 +1714,7 @@ def edit_album(album_id):
                 logger.error(f"Error updating album: {e}")
                 flash('Error updating album. Please try again.', 'danger')
         
-        return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
+        return render_template('admin/edit_album.html', album=album)
     
     except Exception as e:
         logger.error(f"Error loading album: {e}")
@@ -1764,7 +1772,7 @@ def admin_settings():
     if request.method == 'POST':
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+            return render_template('admin/settings.html')
         
         current_username = request.form.get('current_username')
         current_password = request.form.get('current_password')
@@ -1778,18 +1786,18 @@ def admin_settings():
         if (current_username != app.config['ADMIN_USERNAME'] or 
             not check_password_hash(admin_password_hash, current_password)):
             flash('Current username or password is incorrect', 'danger')
-            return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+            return render_template('admin/settings.html')
         
         # Validate new password
         if new_password:
             if new_password != confirm_password:
                 flash('New passwords do not match', 'danger')
-                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+                return render_template('admin/settings.html')
             
             is_complex, message = is_password_complex(new_password)
             if not is_complex:
                 flash(message, 'danger')
-                return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+                return render_template('admin/settings.html')
         
         # Update credentials
         updated = update_admin_password(
@@ -1797,7 +1805,7 @@ def admin_settings():
             new_password or current_password
         )
         
-        if updated:
+                if updated:
             flash('Admin credentials updated successfully', 'success')
             log_security_event('ADMIN_CREDENTIALS_UPDATED', 'Admin updated their credentials')
             
@@ -1811,7 +1819,7 @@ def admin_settings():
         
         return redirect(url_for('admin_settings'))
     
-    return render_template('admin/settings.html', csrf_token=generate_csrf_token())
+    return render_template('admin/settings.html')
 
 # ADMIN RESET ROUTE
 @app.route('/admin/reset-credentials', methods=['GET', 'POST'])
@@ -1868,7 +1876,7 @@ if __name__ == '__main__':
     
     if not debug:
         # Production settings
-        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['SESSION_COookie_SECURE'] = True
         app.config['PREFERRED_URL_SCHEME'] = 'https'
     
     app.run(host='0.0.0.0', port=port, debug=debug)
