@@ -1,0 +1,96 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Albums - CoolCat Productions{% endblock %}
+
+{% block page_title %}Manage Albums{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">All Albums</h5>
+            <a href="{{ url_for('add_album') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-2"></i>Add Album
+            </a>
+        </div>
+        <div class="card-body">
+            {% if albums %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Album</th>
+                            <th>Artist</th>
+                            <th>Tracks</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for album in albums %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename=album.cover) if album.cover else url_for('static', filename='images/default-cover.jpg') }}" 
+                                         class="rounded me-3" width="60" height="60" alt="{{ album.title }}">
+                                    <div>
+                                        <h6 class="mb-0">{{ album.title }}</h6>
+                                        <small class="text-muted">{{ album.year }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ album.artist }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ album.tracks|length }} tracks</span>
+                            </td>
+                            <td>
+                                {% if album.on_sale and album.sale_price %}
+                                    <span class="text-danger">${{ album.sale_price }}</span>
+                                    <small class="text-muted text-decoration-line-through">${{ album.price }}</small>
+                                {% else %}
+                                    ${{ album.price }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('edit_album', album_id=album.id) }}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit album">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_album', album_id=album.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" onclick="return confirm('Delete this album?')" data-bs-toggle="tooltip" title="Delete album">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No albums available. Add your first album to get started.</p>
+                <a href="{{ url_for('add_album') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Add Album
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enable tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% endblock %}
