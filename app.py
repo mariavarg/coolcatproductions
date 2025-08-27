@@ -557,7 +557,8 @@ def favicon():
 def contact():
     return render_template('contact.html')
 
-@app.route('/uploads/<path:filename')
+# FIXED: Added missing closing bracket in URL rule
+@app.route('/uploads/<path:filename>')
 def serve_uploaded_files(filename):
     try:
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -1709,7 +1710,7 @@ def edit_album(album_id):
         return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
     
     except Exception as e:
-        logger.error(f"Error loading album: {e}")
+        logger.error(f"Error loading album: {e")
         flash('Error loading album', 'danger')
         return redirect(url_for('manage_albums'))
 
@@ -1871,5 +1872,4 @@ if __name__ == '__main__':
         app.config['SESSION_COOKIE_SECURE'] = True
         app.config['PREFERRED_URL_SCHEME'] = 'https'
     
-    app.run(host='0.0.0.0', port=port, debug=debug)
     app.run(host='0.0.0.0', port=port, debug=debug)
