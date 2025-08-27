@@ -10,6 +10,7 @@ import mimetypes
 import smtplib
 import stripe
 import pyotp
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -19,8 +20,13 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from markupsafe import escape
 
-# Add this line after your imports in app.py
-__version__ = "1.0.0"
+# Import security enhancements
+from security import (
+    log_security_event, generate_csrf_token, validate_csrf_token,
+    AdvancedRateLimiter, is_malicious_input, validate_environment,
+    check_password_breach, rotate_session, validate_file_content,
+    check_vulnerable_dependencies, generate_nonce
+)
 
 # Initialize logging
 logging.basicConfig(
@@ -38,57 +44,15 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Production Configuration
-app.config.update(
-    SECRET_KEY=os.getenv('SECRET_KEY', secrets.token_hex(32)),
-    USERS_FILE=os.path.join('data', 'users.json'),
-    ALBUMS_FILE=os.path.join('data', 'albums.json'),
-    PURCHASES_FILE=os.path.join('data', 'purchases.json'),
-    COVERS_FOLDER=os.path.join('static', 'uploads', 'covers'),
-    MUSIC_FOLDER=os.path.join('static', 'uploads', 'music'),
-    VIDEOS_FOLDER=os.path.join('static', 'uploads', 'videos'),
-    UPLOAD_FOLDER='static/uploads',
-    ALLOWED_EXTENSIONS={'png', 'jpg', 'jpeg', 'webp'},
-    ALLOWED_MUSIC_EXTENSIONS={'mp3', 'wav', 'flac'},
-    ALLOWED_VIDEO_EXTENSIONS={'mp4', 'mov', 'avi', 'webm', 'mkv'},
-    ADMIN_USERNAME=os.getenv('ADMIN_USERNAME', 'admin'),
-    ADMIN_PASSWORD_HASH=os.getenv('ADMIN_PASSWORD_HASH', ''),
-    MAX_CONTENT_LENGTH=1024 * 1024 * 1024,
-    MAX_VIDEO_SIZE=1024 * 1024 * 1024,
-    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
-    DOWNLOAD_TOKENS={},
-    VIDEO_STREAM_CHUNK_SIZE=2048 * 1024,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-    MAX_LOGIN_ATTEMPTS=5,
-    LOCKOUT_TIME=900,
-    # Email configuration
-    SMTP_SERVER=os.getenv('SMTP_SERVER', ''),
-    SMTP_PORT=int(os.getenv('SMTP_PORT', 587)),
-    SMTP_USERNAME=os.getenv('SMTP_USERNAME', ''),
-    SMTP_PASSWORD=os.getenv('SMTP_PASSWORD', ''),
-    ADMIN_EMAIL=os.getenv('ADMIN_EMAIL', 'drunac192@gmail.com'),
-    SECURITY_QUESTION_1=os.getenv('SECURITY_QUESTION_1', 'What was your first pet\'s name?'),
-    SECURITY_QUESTION_2=os.getenv('SECURITY_QUESTION_2', 'What city were you born in?'),
-    SECURITY_ANSWER_1_HASH=os.getenv('SECURITY_ANSWER_1_HASH', ''),
-    SECURITY_ANSWER_2_HASH=os.getenv('SECURITY_ANSWER_2_HASH', ''),
-    PASSWORD_RESET_TOKENS={},
-    # 2FA Configuration
-    TOTP_SECRET=os.getenv('TOTP_SECRET', pyotp.random_base32()),
-    BACKUP_CODES=os.getenv('BACKUP_CODES', '').split(','),
-    # Stripe Configuration
-    STRIPE_SECRET_KEY=os.getenv('STRIPE_SECRET_KEY', ''),
-    STRIPE_PUBLISHABLE_KEY=os.getenv('STRIPE_PUBLISHABLE_KEY', ''),
-    STRIPE_WEBHOOK_SECRET=os.getenv('STRIPE_WEBHOOK_SECRET', ''),
-    # Admin reset token - MUST be changed in production
-    ADMIN_RESET_TOKEN=os.getenv('ADMIN_RESET_TOKEN', secrets.token_urlsafe(32)),
-)
+# Import configuration
+from config import AppConfig
+app.config.from_object(AppConfig)
 
 # Initialize Stripe
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 
 # Security setup
+rate_limiter = AdvancedRateLimiter()
 login_attempts = {}
 failed_login_lockout = {}
 security_events = []
@@ -108,58 +72,6 @@ for directory in required_dirs:
     logger.info(f"Ensured directory exists: {directory}")
 
 # Security functions
-def log_security_event(event_type, details, user_id=None, ip=None):
-    """Log security events for monitoring and auditing"""
-    ip = ip or request.remote_addr
-    user_id = user_id or session.get('user_id')
-    event = {
-        'timestamp': datetime.now().isoformat(),
-        'event_type': event_type,
-        'user_id': user_id,
-        'ip': ip,
-        'details': details
-    }
-    security_events.append(event)
-    logger.warning(f"SECURITY: {event_type} - User: {user_id} - IP: {ip} - Details: {details}")
-
-def generate_csrf_token():
-    if 'csrf_token' not in session:
-        session['csrf_token'] = secrets.token_hex(32)
-    return session['csrf_token']
-
-def validate_csrf_token():
-    if request.method in ('GET', 'HEAD', 'OPTIONS'):
-        return True
-    token = request.form.get('csrf_token')
-    return token and secrets.compare_digest(token, session.get('csrf_token', ''))
-
-def check_rate_limit(ip, endpoint, max_attempts=5, window=300):
-    now = time.time()
-    key = f"{ip}_{endpoint}"
-    
-    if key in login_attempts:
-        login_attempts[key] = [t for t in login_attempts[key] if now - t < window]
-    
-    if key not in login_attempts:
-        login_attempts[key] = []
-    
-    if len(login_attempts[key]) >= max_attempts:
-        failed_login_lockout[key] = now + 900
-        log_security_event('RATE_LIMIT_EXCEEDED', f'Endpoint: {endpoint}', ip=ip)
-        return False
-        
-    login_attempts[key].append(now)
-    return True
-
-def is_locked_out(ip, endpoint):
-    key = f"{ip}_{endpoint}"
-    if key in failed_login_lockout:
-        if time.time() < failed_login_lockout[key]:
-            return True
-        else:
-            del failed_login_lockout[key]
-    return False
-
 def remove_auto_durations(albums):
     for album in albums:
         if 'tracks' in album:
@@ -227,9 +139,25 @@ def ensure_music_dirs_exist(album_id):
     return album_dir
 
 def is_password_complex(password):
-    if len(password) < 12:
-        return False, "Password must be at least 12 characters long"
+    if len(password) < 14:  # Increased from 12
+        return False, "Password must be at least 14 characters long"
     
+    # Check for common patterns
+    common_patterns = [
+        r'123456', r'password', r'qwerty', r'admin', r'welcome',
+        r'login', r'abc123', r'letmein', r'monkey', r'sunshine'
+    ]
+    
+    for pattern in common_patterns:
+        if re.search(pattern, password, re.IGNORECASE):
+            return False, "Password contains common weak patterns"
+    
+    # Check against breach database
+    password_hash = hashlib.sha1(password.encode()).hexdigest()
+    if check_password_breach(password_hash):
+        return False, "Password has been compromised in known breaches"
+    
+    # Original complexity checks
     checks = [
         (r'[A-Z]', "uppercase letter"),
         (r'[a-z]', "lowercase letter"),
@@ -267,7 +195,11 @@ def allowed_file(filename, file_type='image'):
         'video': app.config['ALLOWED_VIDEO_EXTENSIONS']
     }
     
-    return ext in extensions.get(file_type, set())
+    if ext not in extensions.get(file_type, set()):
+        return False
+    
+    # Enhanced file content validation
+    return validate_file_content(request.files['file'], extensions.get(file_type, set()))
 
 def load_data(filename):
     try:
@@ -467,29 +399,75 @@ def security_checks():
     suspicious_patterns = [
         '../', '/etc/passwd', '/bin/', '/cmd', ';', '|', '`', '$(',
         'union select', 'insert into', 'drop table', 'sleep(', 'waitfor delay',
-        'script>', 'javascript:', 'onload=', 'onerror=', 'onclick='
+        'script>', 'javascript:', 'onload=', 'onerror=', 'onclick=',
+        'union.*select', 'insert.*into', 'drop.*table', 'delete.*from',
+        'update.*set', 'truncate.*table', 'create.*table', 'alter.*table',
+        'exec\(', 'execute\(', 'xp_cmdshell', 'sp_configure',
+        'waitfor.*delay', 'shutdown', '--', '\/\*', '\*\/',
+        'char\(', 'nchar\(', 'varchar\(', 'nvarchar\(',
+        'convert\(', 'cast\(', 'sys\.', 'information_schema',
+        'pg_catalog', 'mysql\.', 'sqlite_', 'load_extension',
+        'attach.*database', 'detach.*database', 'pragma'
     ]
     
     # Check both path and query parameters
     request_str = str(request.path) + str(request.query_string)
     if any(pattern in request_str.lower() for pattern in suspicious_patterns):
-        log_security_event('SUSPICIOUS_REQUEST', f'Blocked request: {request_str}')
+        log_security_event('SUSPICIOUS_REQUEST', f'Blocked request: {request_str}', severity='HIGH')
         abort(400)
+    
+    # Check for malicious input in form data
+    if request.method == 'POST':
+        for key, value in request.form.items():
+            if is_malicious_input(value):
+                log_security_event('MALICIOUS_INPUT', f'Field: {key}, Value: {value}', severity='HIGH')
+                abort(400)
     
     # Check for suspicious user agents
     user_agent = request.headers.get('User-Agent', '')
     suspicious_agents = ['bot', 'spider', 'crawl', 'scan', 'hack', 'sqlmap', 'nikto']
     if any(agent in user_agent.lower() for agent in suspicious_agents):
-        log_security_event('SUSPICIOUS_USER_AGENT', f'User-Agent: {user_agent}')
+        log_security_event('SUSPICIOUS_USER_AGENT', f'User-Agent: {user_agent}', severity='MEDIUM')
     
-    # Check for common attack patterns in request path
-    if any(pattern in request.path for pattern in suspicious_patterns):
-        log_security_event('SUSPICIOUS_REQUEST', f'Path: {request.path}')
-        abort(400)
+    # Advanced rate limiting by endpoint and IP
+    ip = request.remote_addr
+    endpoint = request.endpoint or 'unknown'
+    
+    # Different limits for different endpoints
+    limits = {
+        'login': (5, 300),      # 5 attempts per 5 minutes
+        'register': (3, 3600),  # 3 registrations per hour per IP
+        'contact': (2, 3600),   # 2 contact form submissions per hour
+        'default': (100, 60)    # 100 requests per minute for other endpoints
+    }
+    
+    limit = limits.get(endpoint, limits['default'])
+    if not rate_limiter.check_rate_limit(f"{ip}_{endpoint}", limit[0], limit[1]):
+        log_security_event('RATE_LIMIT_EXCEEDED', f'Endpoint: {endpoint}', ip=ip, severity='MEDIUM')
+        abort(429)
 
 @app.after_request
 def add_security_headers(response):
     """Add comprehensive security headers to all responses"""
+    # Generate a new nonce for each request
+    nonce = generate_nonce()
+    
+    # Enhanced CSP with nonces
+    csp_policy = (
+        f"default-src 'self'; "
+        f"script-src 'self' 'nonce-{nonce}' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://js.stripe.com; "
+        f"style-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+        f"font-src 'self' https://fonts.gstatic.com; "
+        f"img-src 'self' data: https:; "
+        f"frame-src https://js.stripe.com; "
+        f"media-src 'self'; "
+        f"connect-src 'self'; "
+        f"frame-ancestors 'none'; "
+        f"form-action 'self';"
+        f"base-uri 'self';"
+        f"object-src 'none';"
+    )
+    
     security_headers = {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
@@ -499,24 +477,9 @@ def add_security_headers(response):
         'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
         'Cross-Origin-Embedder-Policy': 'require-corp',
         'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Resource-Policy': 'same-origin'
+        'Cross-Origin-Resource-Policy': 'same-origin',
+        'Content-Security-Policy': csp_policy
     }
-    
-    # Enhanced CSP
-    csp_policy = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://js.stripe.com; "
-        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: blob: https:; "
-        "frame-src https://js.stripe.com; "
-        "media-src 'self' blob:; "
-        "frame-ancestors 'none'; "
-        "form-action 'self';"
-        "base-uri 'self';"
-        "object-src 'none';"
-    )
-    security_headers['Content-Security-Policy'] = csp_policy
     
     for key, value in security_headers.items():
         response.headers[key] = value
@@ -544,6 +507,10 @@ def forbidden(e):
 @app.errorhandler(400)
 def bad_request(e):
     return render_template('400.html'), 400
+
+@app.errorhandler(429)
+def too_many_requests(e):
+    return render_template('429.html'), 429
 
 # Routes
 @app.route('/favicon.ico')
@@ -841,10 +808,6 @@ def login():
         
         if not validate_csrf_token():
             flash('Security token invalid. Please try again.', 'danger')
-            return render_template('login.html', csrf_token=generate_csrf_token())
-        
-        if not check_rate_limit(ip, 'user_login', 5, 300):
-            flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
             return render_template('login.html', csrf_token=generate_csrf_token())
         
         try:
@@ -1210,10 +1173,6 @@ def admin_login():
             flash('Security token invalid. Please try again.', 'danger')
             return render_template('admin/login.html', csrf_token=generate_csrf_token())
         
-        if not check_rate_limit(ip, 'admin_login', 3, 300):
-            flash('Too many login attempts. Please try again in 5 minutes.', 'warning')
-            return render_template('admin/login.html', csrf_token=generate_csrf_token())
-        
         try:
             username = request.form.get('username', '')
             password = request.form.get('password', '')
@@ -1462,7 +1421,7 @@ def add_album():
             
             # Add video if provided
             video_file = request.files.get('video_file')
-            if video_file and allowed_file(video_file.filename, 'video') and allowed_file_size(video_file, 500):
+            if video_file and allowed_file(video_file.filename, 'video') and allowed_file_size(video_file, 100):  # Reduced to 100MB
                 filename = secure_filename(f"album_{new_album_id}_{video_file.filename}")
                 video_path = os.path.join(app.config['VIDEOS_FOLDER'], 'music_videos', filename)
                 video_file.save(video_path)
@@ -1683,7 +1642,7 @@ def edit_album(album_id):
                 
                 # Handle video upload
                 video_file = request.files.get('video_file')
-                if video_file and allowed_file(video_file.filename, 'video') and allowed_file_size(video_file, 500):
+                if video_file and allowed_file(video_file.filename, 'video') and allowed_file_size(video_file, 100):  # Reduced to 100MB
                     # Remove old video if exists
                     if album.get('video_filename'):
                         old_video_path = os.path.join(app.config['VIDEOS_FOLDER'], album.get('video_category', 'music_videos'), album['video_filename'])
@@ -1710,7 +1669,7 @@ def edit_album(album_id):
         return render_template('admin/edit_album.html', album=album, csrf_token=generate_csrf_token())
     
     except Exception as e:
-        logger.error(f"Error loading album: {e")
+        logger.error(f"Error loading album: {e}")
         flash('Error loading album', 'danger')
         return redirect(url_for('manage_albums'))
 
@@ -1739,9 +1698,19 @@ def delete_album(album_id):
         
         # Remove video if exists
         if album.get('video_filename'):
-            video_path = os.path.join(app.config['VIDEOS_FOLDER'], album.get('video_category', 'music_videos'), album['video_filename'])
+            video_category = album.get('video_category', 'music_videos')
+            video_path = os.path.join(app.config['VIDEOS_FOLDER'], video_category, album['video_filename'])
             if os.path.exists(video_path):
                 os.remove(video_path)
+        
+        # Remove music files if they exist
+        album_dir = os.path.join(app.config['MUSIC_FOLDER'], f"album_{album_id}")
+        if os.path.exists(album_dir):
+            for file in os.listdir(album_dir):
+                file_path = os.path.join(album_dir, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            os.rmdir(album_dir)
         
         # Remove album from list
         albums = [a for a in albums if a['id'] != album_id]
@@ -1863,7 +1832,18 @@ def admin_logout():
     log_security_event('ADMIN_LOGOUT', 'Admin logged out')
     return redirect(url_for('admin_login'))
 
+# Context processor for nonce
+@app.context_processor
+def inject_nonce():
+    return {'nonce': generate_nonce()}
+
 if __name__ == '__main__':
+    # Validate environment on startup
+    validate_environment()
+    
+    # Check for vulnerable dependencies
+    check_vulnerable_dependencies()
+    
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('DEBUG', 'False').lower() == 'true'
     
